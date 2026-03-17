@@ -38,12 +38,12 @@ constexpr int SdCs = 5;
 
 
 
-constexpr bool UseInternalDac = true;
+constexpr bool UseInternalDac = false;
 constexpr int InternalAmpPin = 26;
 constexpr i2s_port_t AudioPort = I2S_NUM_0;
-constexpr int ExtI2SBck = 27;
+constexpr int ExtI2SBck = 21;
 constexpr int ExtI2SWs = 22;
-constexpr int ExtI2SData = 21;
+constexpr int ExtI2SData = 3;
 
 constexpr uint16_t TouchMinX = 240;
 constexpr uint16_t TouchMaxX = 3800;

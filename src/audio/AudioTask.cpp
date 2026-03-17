@@ -13,8 +13,7 @@ bool setupAudioOutput() {
   config.mode = static_cast<i2s_mode_t>(I2S_MODE_MASTER | I2S_MODE_TX);
   config.sample_rate = SAMPLE_RATE;
   config.bits_per_sample = I2S_BITS_PER_SAMPLE_16BIT;
-  config.channel_format = CYDConfig::UseInternalDac ? I2S_CHANNEL_FMT_RIGHT_LEFT
-                                                    : I2S_CHANNEL_FMT_ONLY_LEFT;
+  config.channel_format = I2S_CHANNEL_FMT_RIGHT_LEFT;
   config.communication_format = I2S_COMM_FORMAT_STAND_I2S;
   config.intr_alloc_flags = ESP_INTR_FLAG_LEVEL1;
   config.dma_buf_count = 8;
@@ -67,7 +66,7 @@ void audioTask(void *parameter) {
     return;
   }
 
-  const size_t frameWords = CYDConfig::UseInternalDac ? (BUFFER_LEN * 2) : BUFFER_LEN;
+  const size_t frameWords = BUFFER_LEN * 2;
   uint16_t *sampleBuffer = static_cast<uint16_t *>(
       heap_caps_malloc(frameWords * sizeof(uint16_t), MALLOC_CAP_DMA));
   if (sampleBuffer == nullptr) {
@@ -188,8 +187,9 @@ void audioTask(void *parameter) {
         sampleBuffer[i * 2] = dacWord;
         sampleBuffer[(i * 2) + 1] = dacWord;
       } else {
-        sampleBuffer[i] =
-            static_cast<uint16_t>(static_cast<int16_t>(sample * 32767.0f));
+        int16_t pcmSample = static_cast<int16_t>(sample * 32767.0f);
+        sampleBuffer[i * 2] = static_cast<uint16_t>(pcmSample);
+        sampleBuffer[(i * 2) + 1] = static_cast<uint16_t>(pcmSample);
       }
     }
 
