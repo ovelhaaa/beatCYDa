@@ -432,7 +432,7 @@ static void param_meta(int row, ParamMeta *out) {
         case 0:
             strncpy(out->label, "Steps", sizeof(out->label) - 1);
             snprintf(out->value, sizeof(out->value), "%d", steps);
-            out->norm = (float)(steps - 4) / 12.0f; break;
+            out->norm = (float)(steps - 4) / 60.0f; break;
         case 1:
             strncpy(out->label, "Hits", sizeof(out->label) - 1);
             snprintf(out->value, sizeof(out->value), "%d",
