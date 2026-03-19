@@ -1,0 +1,747 @@
+/*  Display.cpp — Euclidean Sequencer UI
+    ─────────────────────────────────────
+    Drop-in implementation for Display.h.
+    Uses: LGFX_CYD · UiStateSnapshot · UiAction · ControlManager · InputManager
+
+    Written in C-style C++ (no classes, no templates in user code).
+    All LovyanGFX calls are isolated to this file.
+*/
+
+#include "Display.h"
+#include "LGFX_CYD.h"
+#include "UiAction.h"
+#include "../control/ControlManager.h"
+#include "../control/InputManager.h"
+#include <math.h>
+#include <string.h>
+
+/* ── Display object (declared extern in LGFX_CYD.h) ─────────────────────────── */
+LGFX_CYD tft;
+
+/* ── Sprites (ring + right panel) — eliminate flicker on animation ──────────── */
+static LGFX_Sprite s_ring(&tft);   /* 140 × 140 — euclidean ring area  */
+static LGFX_Sprite s_panel(&tft);  /* 132 × 168 — right parameter panel */
+static bool s_sprites_ready = false;
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   COLOUR PALETTE  (RGB565)
+   ═══════════════════════════════════════════════════════════════════════════════ */
+#define C_BG       0x0863u   /* deep navy-charcoal      */
+#define C_PANEL    0x1947u   /* dark slate-blue         */
+#define C_PANEL2   0x2104u   /* inactive button face    */
+#define C_DIM      0x4228u   /* outline / subdued       */
+#define C_TEXT     0xBDF8u   /* normal text             */
+#define C_ACCENT   0xFEC9u   /* important / active      */
+#define C_SELECT   0x4F1Fu   /* selected mode highlight */
+#define C_EXPR     0xFA74u   /* expressive / mauve      */
+#define C_PLAY     0x7FEEu   /* positive / running      */
+
+static const uint16_t TRACK_COLORS[TRACK_COUNT] = {
+    0xCAA9u,   /* Kick  — terracotta */
+    0xD568u,   /* Snare — warm gold  */
+    0x4F1Fu,   /* HatC  — steel teal */
+    0xFA74u,   /* HatO  — mauve      */
+    0x5D6Cu,   /* Bass  — muted sage */
+};
+
+static const char TRACK_CHARS[TRACK_COUNT] = {'K','S','C','O','B'};
+static const char * const TRACK_LABELS[TRACK_COUNT] = {"KICK","SNRE","HATC","HATO","BASS"};
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   LAYOUT  (pixel coords, landscape 320 × 240)
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+/* Generic rectangle with hit-test */
+typedef struct { int16_t x, y, w, h; } Rect;
+
+static int rect_hit(const Rect *r, int16_t px, int16_t py) {
+    return px >= r->x && px < r->x + r->w && py >= r->y && py < r->y + r->h;
+}
+
+/* Transport bar */
+static const Rect R_PLAY      = { 4,   8,  62,  30};
+static const Rect R_SLOT_DEC  = {80,   8,  20,  30};
+static const Rect R_SLOT_VAL  = {104,  8,  28,  30};
+static const Rect R_SLOT_INC  = {136,  8,  20,  30};
+static const Rect R_SAVE      = {160,  8,  24,  14};
+static const Rect R_LOAD      = {160, 24,  24,  14};
+static const Rect R_BPM_DEC   = {196,  8,  28,  30};
+static const Rect R_BPM_VAL   = {228,  8,  52,  30};
+static const Rect R_BPM_INC   = {284,  8,  28,  30};
+
+/* Track selector — 5 buttons, left margin */
+static const Rect R_TRACKS[TRACK_COUNT] = {
+    { 4,  48, 28, 34},
+    { 4,  86, 28, 34},
+    { 4, 124, 28, 34},
+    { 4, 162, 28, 34},
+    { 4, 200, 28, 34},
+};
+
+/* Ring area (sprite origin) */
+static const Rect R_RING = {36, 52, 140, 140};
+#define RING_CX 70   /* sprite-relative centre */
+#define RING_CY 70
+static const uint8_t RING_RADII[TRACK_COUNT] = {58, 48, 38, 28, 18};
+
+/* Bottom action row */
+static const Rect R_MUTE  = { 36, 208, 52, 26};
+static const Rect R_VOICE = { 88, 208, 52, 26};
+static const Rect R_MIX   = {140, 208, 52, 26};
+
+/* Right panel (sprite origin x=188, y=44) */
+#define PANEL_SX 188
+#define PANEL_SY  44
+#define PANEL_W  132
+#define PANEL_H  168
+
+/* 4 param rows inside the panel sprite */
+typedef struct {
+    Rect minus;
+    Rect value;
+    Rect plus;
+    Rect touch;  /* full row, for hit-testing */
+} ParamRow;
+
+static const ParamRow PARAM_ROWS[4] = {
+    {{ 8, 18, 28, 26}, {40, 18, 52, 26}, { 96, 18, 28, 26}, {0,  4, PANEL_W, 42}},
+    {{ 8, 68, 28, 26}, {40, 68, 52, 26}, { 96, 68, 28, 26}, {0, 54, PANEL_W, 42}},
+    {{ 8,118, 28, 26}, {40,118, 52, 26}, { 96,118, 28, 26}, {0,104, PANEL_W, 42}},
+    {{ 8,142, 28, 26}, {40,142, 52, 26}, { 96,142, 28, 26}, {0,130, PANEL_W, 38}},
+};
+
+/* Mixer sliders (absolute coords) */
+static const Rect R_SLIDERS[TRACK_COUNT] = {
+    {201, 54, 12, 126},
+    {224, 54, 12, 126},
+    {247, 54, 12, 126},
+    {270, 54, 12, 126},
+    {293, 54, 12, 126},
+};
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   RUNTIME STATE  (display-local — never touches audio engine directly)
+   ═══════════════════════════════════════════════════════════════════════════════ */
+static UiStateSnapshot g_snap;        /* current  */
+static UiStateSnapshot g_last;        /* previous */
+static uint8_t         g_slot      = 0;
+static uint8_t         g_last_slot = 0xFF;
+static UiMode          g_mode      = UiMode::PATTERN_EDIT;
+static UiMode          g_last_mode = (UiMode)0xFF;
+
+static char     g_status[24]     = "Ready";
+static char     g_last_status[24]= "";
+static uint32_t g_status_until   = 0;
+static bool     g_force_redraw   = true;
+
+/* Hold-to-accelerate */
+static int      g_hold_action = -1;   /* cast of UiActionType, -1 = none */
+static int      g_hold_param  =  0;   /* value/delta payload              */
+static uint32_t g_hold_next   =  0;
+static uint8_t  g_hold_count  =  0;
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   HELPERS
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+/* Blend two RGB565 colours; alpha 0=bg .. 255=fg */
+static uint16_t blend16(uint16_t fg, uint16_t bg, uint8_t a) {
+    uint8_t r = (uint8_t)(((fg >> 11) * a + (bg >> 11) * (255u - a)) / 255u);
+    uint8_t g = (uint8_t)((((fg >> 5) & 63u) * a + ((bg >> 5) & 63u) * (255u - a)) / 255u);
+    uint8_t b = (uint8_t)(((fg & 31u) * a + (bg & 31u) * (255u - a)) / 255u);
+    return (uint16_t)((r << 11) | (g << 5) | b);
+}
+
+static uint32_t hold_interval(uint8_t count) {
+    if (count < 6)  return 300;
+    if (count < 15) return 120;
+    return 50;
+}
+
+/* Rounded-rect button — works on both tft and a sprite */
+static void draw_btn(LGFX_Sprite *spr, const Rect *r,
+                     const char *label, uint16_t fill,
+                     uint16_t outline, uint16_t text_col) {
+    if (spr) {
+        spr->fillRoundRect(r->x, r->y, r->w, r->h, 3, fill);
+        spr->drawRoundRect(r->x, r->y, r->w, r->h, 3, outline);
+        spr->setTextColor(text_col, fill);
+        spr->setTextDatum(MC_DATUM);
+        spr->drawString(label, r->x + r->w / 2, r->y + r->h / 2 - 1);
+    } else {
+        tft.fillRoundRect(r->x, r->y, r->w, r->h, 3, fill);
+        tft.drawRoundRect(r->x, r->y, r->w, r->h, 3, outline);
+        tft.setTextColor(text_col, fill);
+        tft.setTextDatum(MC_DATUM);
+        tft.drawString(label, r->x + r->w / 2, r->y + r->h / 2 - 1);
+    }
+}
+
+static void send_action(UiActionType t, int idx, int val) {
+    IPCCommand cmd{};
+    cmd.type    = CommandType::UI_ACTION;
+    cmd.voiceId = (uint8_t)t;
+    cmd.paramId = (uint8_t)idx;
+    cmd.value   = (float)val;
+    CtrlMgr.sendCommand(cmd);
+}
+
+static void set_status(const char *msg, uint32_t ms = 1400) {
+    strncpy(g_status, msg, sizeof(g_status) - 1);
+    g_status[sizeof(g_status) - 1] = '\0';
+    g_status_until = millis() + ms;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   DRAW — TRANSPORT BAR  (y 0–42)
+   ═══════════════════════════════════════════════════════════════════════════════ */
+static void draw_transport(void) {
+    char buf[8];
+    tft.fillRect(0, 0, CYDConfig::ScreenWidth, 42, C_BG);
+
+    /* Play / Stop */
+    bool pl = g_snap.isPlaying;
+    tft.fillRect(R_PLAY.x, R_PLAY.y, R_PLAY.w, R_PLAY.h, pl ? C_ACCENT : C_PLAY);
+    tft.drawRect(R_PLAY.x, R_PLAY.y, R_PLAY.w, R_PLAY.h, C_DIM);
+    if (pl) {
+        tft.fillRect(R_PLAY.x + 20, R_PLAY.y + 7,  10, 16, C_BG);
+        tft.fillRect(R_PLAY.x + 36, R_PLAY.y + 7,  10, 16, C_BG);
+    } else {
+        tft.fillTriangle(R_PLAY.x + 18, R_PLAY.y + 5,
+                         R_PLAY.x + 18, R_PLAY.y + 25,
+                         R_PLAY.x + 44, R_PLAY.y + 15, C_BG);
+    }
+
+    /* Pattern slot */
+    draw_btn(NULL, &R_SLOT_DEC, "<", C_PANEL, C_DIM, C_TEXT);
+    snprintf(buf, sizeof(buf), "%d", g_slot + 1);
+    draw_btn(NULL, &R_SLOT_VAL, buf, C_PANEL2, C_DIM, C_TEXT);
+    draw_btn(NULL, &R_SLOT_INC, ">", C_PANEL, C_DIM, C_TEXT);
+
+    /* Save / Load */
+    draw_btn(NULL, &R_SAVE, "S", C_PANEL2, C_DIM, C_TEXT);
+    draw_btn(NULL, &R_LOAD, "L", C_PANEL2, C_DIM, C_TEXT);
+
+    /* BPM */
+    draw_btn(NULL, &R_BPM_DEC, "-", C_PANEL, C_DIM, C_TEXT);
+    snprintf(buf, sizeof(buf), "%3d", g_snap.bpm);
+    draw_btn(NULL, &R_BPM_VAL, buf, C_PANEL2, C_DIM, C_ACCENT);
+    draw_btn(NULL, &R_BPM_INC, "+", C_PANEL, C_DIM, C_TEXT);
+
+    /* Status line (thin bar below transport) */
+    uint16_t bar_col = (g_status_until > millis()) ? C_ACCENT : C_DIM;
+    tft.drawFastHLine(0, 41, CYDConfig::ScreenWidth, bar_col);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   DRAW — STATUS TEXT (overlaid in BPM value box)
+   ═══════════════════════════════════════════════════════════════════════════════ */
+static void draw_status(void) {
+    bool active = (g_status_until > millis());
+    const char *msg = active ? g_status
+                     : g_snap.isPlaying
+                         ? "PLAYING"
+                         : "READY";
+    draw_btn(NULL, &R_BPM_VAL, msg, C_PANEL2, active ? C_ACCENT : C_DIM,
+             active ? (uint16_t)C_PLAY : (uint16_t)C_TEXT);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   DRAW — TRACK SELECTOR (left margin)
+   ═══════════════════════════════════════════════════════════════════════════════ */
+static void draw_tracks(void) {
+    char lbl[2] = {0, 0};
+    for (int i = 0; i < TRACK_COUNT; i++) {
+        bool sel = (g_snap.activeTrack == i);
+        bool mut = g_snap.trackMutes[i];
+        uint16_t col  = TRACK_COLORS[i];
+        uint16_t fill = sel ? blend16(col, C_BG, 55) : (mut ? C_PANEL2 : C_PANEL);
+        uint16_t brd  = mut ? blend16(col, C_BG, 50) : col;
+        uint16_t txt  = sel ? C_BG : (mut ? blend16(col, C_BG, 60) : col);
+        lbl[0] = TRACK_CHARS[i];
+        draw_btn(NULL, &R_TRACKS[i], lbl, fill, brd, txt);
+        if (mut && !sel) {
+            tft.drawLine(R_TRACKS[i].x + 2, R_TRACKS[i].y + 2,
+                         R_TRACKS[i].x + R_TRACKS[i].w - 3,
+                         R_TRACKS[i].y + R_TRACKS[i].h - 3, C_DIM);
+        }
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   DRAW — EUCLIDEAN RING (via sprite — atomic push, zero flicker)
+   ═══════════════════════════════════════════════════════════════════════════════ */
+static void draw_ring(void) {
+    s_ring.fillSprite(C_BG);
+
+    /* Guide circles */
+    for (int t = 0; t < TRACK_COUNT; t++) {
+        uint8_t a = (t == g_snap.activeTrack) ? 55u : 18u;
+        s_ring.drawCircle(RING_CX, RING_CY, RING_RADII[t],
+                          blend16(TRACK_COLORS[t], C_BG, a));
+    }
+
+    /* Playhead spoke */
+    if (g_snap.isPlaying) {
+        float ang = ((g_snap.currentStep % 16) / 16.0f) * 2.0f * (float)M_PI - (float)(M_PI / 2.0);
+        s_ring.drawLine(RING_CX, RING_CY,
+                        RING_CX + (int)(66 * cosf(ang)),
+                        RING_CY + (int)(66 * sinf(ang)),
+                        blend16(C_PLAY, C_BG, 18));
+    }
+
+    /* Step dots */
+    for (int t = 0; t < TRACK_COUNT; t++) {
+        int len = g_snap.patternLens[t];
+        if (len <= 0) continue;
+        bool sel = (t == g_snap.activeTrack);
+        bool mut = g_snap.trackMutes[t];
+        uint16_t col = TRACK_COLORS[t];
+        uint8_t  rad = RING_RADII[t];
+        int      dr  = sel ? 3 : 2;
+
+        for (int i = 0; i < len; i++) {
+            float ang = (2.0f * (float)M_PI * i / len) - (float)(M_PI / 2.0);
+            int16_t px = (int16_t)(RING_CX + rad * cosf(ang));
+            int16_t py = (int16_t)(RING_CY + rad * sinf(ang));
+            bool active   = g_snap.patterns[t][i] > 0;
+            bool playhead = g_snap.isPlaying && (i == g_snap.currentStep % len);
+
+            if (mut) {
+                if (active) s_ring.drawCircle(px, py, dr - 1,
+                                blend16(col, C_BG, 25));
+            } else if (playhead && active) {
+                s_ring.fillCircle(px, py, dr + 1, TFT_WHITE);
+            } else if (playhead) {
+                s_ring.drawCircle(px, py, dr, col);
+            } else if (active) {
+                s_ring.fillCircle(px, py, dr,
+                    sel ? col : blend16(col, C_BG, 80));
+            } else if (sel) {
+                s_ring.drawCircle(px, py, 1, C_DIM);
+            }
+        }
+    }
+
+    /* Centre pulse */
+    int pr = g_snap.isPlaying ? ((g_snap.currentStep % 4 == 0) ? 5 : 3) : 3;
+    s_ring.fillCircle(RING_CX, RING_CY, pr, g_snap.isPlaying ? C_PLAY : C_PANEL2);
+    s_ring.fillCircle(RING_CX, RING_CY, 1,  g_snap.isPlaying ? C_BG   : C_DIM);
+
+    s_ring.pushSprite(R_RING.x, R_RING.y);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   DRAW — BOTTOM ACTION ROW (Mute / Voice / Mix)
+   ════════════════════════════════════════════════════════════  �══════════════════ */
+static void draw_footer(void) {
+    bool mut   = g_snap.trackMutes[g_snap.activeTrack];
+    bool voice = (g_mode == UiMode::SOUND_EDIT);
+    bool mix   = (g_mode == UiMode::MIXER);
+
+    draw_btn(NULL, &R_MUTE,  mut   ? "MUTED" : "MUTE",
+             mut   ? C_ACCENT : C_PANEL2, C_DIM, C_TEXT);
+    draw_btn(NULL, &R_VOICE, "VOICE",
+             voice ? C_SELECT : C_PANEL2, C_DIM, voice ? (uint16_t)C_BG : (uint16_t)C_TEXT);
+    draw_btn(NULL, &R_MIX,   "MIX",
+             mix   ? C_EXPR   : C_PANEL2, C_DIM, C_TEXT);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   DRAW — PARAMETER PANEL (right side, via sprite)
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+/* Fill label + value strings for each param row */
+typedef struct { char label[12]; char value[12]; float norm; } ParamMeta;
+
+static void param_meta(int row, ParamMeta *out) {
+    out->label[0] = '\0';
+    out->value[0] = '\0';
+    out->norm = 0.0f;
+
+    const int   tr    = g_snap.activeTrack;
+    const bool  bass  = (tr == VOICE_BASS);
+    const VoiceParams &vp = g_snap.voiceParams[tr];
+
+    if (g_mode == UiMode::SOUND_EDIT) {
+        static const char * const PITCH_LBL[TRACK_COUNT] =
+            {"Pitch","Tune","Freq","Freq","Pitch"};
+        static const char * const DECAY_LBL[TRACK_COUNT] =
+            {"Decay","Snap","Decay","Ring","Glide"};
+        static const char * const TIMB_LBL[TRACK_COUNT] =
+            {"Punch","Tone","Open","Open","Timbre"};
+        static const char * const DRIVE_LBL[TRACK_COUNT] =
+            {"Drive","Crack","Level","Level","Level"};
+        float vals[4] = {vp.pitch / 127.0f, vp.decay / 100.0f,
+                         vp.timbre / 100.0f, vp.drive / 100.0f};
+        int   ints[4] = {vp.pitch, (int)(vp.decay * 100 / 100),
+                         vp.timbre, vp.drive};
+        const char *lbls[4] = {PITCH_LBL[tr], DECAY_LBL[tr],
+                                TIMB_LBL[tr], DRIVE_LBL[tr]};
+        if (row < 4) {
+            strncpy(out->label, lbls[row], sizeof(out->label) - 1);
+            snprintf(out->value, sizeof(out->value), "%d", ints[row]);
+            out->norm = vals[row];
+        }
+        return;
+    }
+
+    if (bass) {
+        static const char * const SCALE_NAMES[] =
+            {"Chrom","Major","Minor","Penta","Blues"};
+        static const char * const NOTE_NAMES[] =
+            {"C","C#","D","Eb","E","F","F#","G","Ab","A","Bb","B"};
+        const BassGrooveParams &bp = g_snap.bassParams;
+        switch (row) {
+            case 0:
+                strncpy(out->label, "Density", sizeof(out->label) - 1);
+                snprintf(out->value, sizeof(out->value), "%d",
+                         (int)(bp.density * 100));
+                out->norm = bp.density; break;
+            case 1:
+                strncpy(out->label, "Range", sizeof(out->label) - 1);
+                snprintf(out->value, sizeof(out->value), "%d", bp.range);
+                out->norm = (float)(bp.range - 1) / 11.0f; break;
+            case 2: {
+                strncpy(out->label, "Scale", sizeof(out->label) - 1);
+                int sc = constrain((int)bp.scaleType, 0, 4);
+                strncpy(out->value, SCALE_NAMES[sc], sizeof(out->value) - 1);
+                out->norm = (float)sc / 4.0f; break;
+            }
+            case 3: {
+                strncpy(out->label, "Root", sizeof(out->label) - 1);
+                snprintf(out->value, sizeof(out->value), "%s%d",
+                         NOTE_NAMES[bp.rootNote % 12], bp.rootNote / 12 - 1);
+                out->norm = (float)(bp.rootNote - 24) / 36.0f; break;
+            }
+            default: break;
+        }
+        return;
+    }
+
+    /* Percussion — pattern params */
+    int steps = g_snap.trackSteps[tr];
+    switch (row) {
+        case 0:
+            strncpy(out->label, "Steps", sizeof(out->label) - 1);
+            snprintf(out->value, sizeof(out->value), "%d", steps);
+            out->norm = (float)(steps - 4) / 12.0f; break;
+        case 1:
+            strncpy(out->label, "Hits", sizeof(out->label) - 1);
+            snprintf(out->value, sizeof(out->value), "%d",
+                     g_snap.trackHits[tr]);
+            out->norm = steps > 0
+                ? (float)g_snap.trackHits[tr] / steps : 0.0f; break;
+        case 2:
+            strncpy(out->label, "Rot", sizeof(out->label) - 1);
+            snprintf(out->value, sizeof(out->value), "%d",
+                     g_snap.trackRotations[tr]);
+            out->norm = steps > 1
+                ? (float)g_snap.trackRotations[tr] / (steps - 1) : 0.0f; break;
+        case 3:
+            strncpy(out->label, "Vol", sizeof(out->label) - 1);
+            snprintf(out->value, sizeof(out->value), "%d",
+                     (int)(g_snap.voiceGain[tr] * 100));
+            out->norm = g_snap.voiceGain[tr]; break;
+        default: break;
+    }
+}
+
+static void draw_params(void) {
+    uint16_t tc = TRACK_COLORS[g_snap.activeTrack];
+
+    s_panel.fillSprite(C_BG);
+
+    /* Track name header */
+    s_panel.setTextColor(tc, C_BG);
+    s_panel.setTextDatum(MC_DATUM);
+    s_panel.drawString(TRACK_LABELS[g_snap.activeTrack], PANEL_W / 2, 8);
+    s_panel.drawFastHLine(0, 15, PANEL_W, C_DIM);
+
+    if (g_mode == UiMode::MIXER) {
+        /* 5 vertical sliders */
+        int sh = PANEL_H - 22;
+        int sw = (PANEL_W - 10) / TRACK_COUNT;
+        for (int i = 0; i < TRACK_COUNT; i++) {
+            int sx = 5 + i * sw, sy = 20;
+            int filled = (int)(g_snap.voiceGain[i] * sh);
+            bool mut = g_snap.trackMutes[i];
+            s_panel.fillRect(sx, sy, sw - 2, sh, C_PANEL);
+            s_panel.fillRect(sx, sy + sh - filled, sw - 2, filled,
+                mut ? blend16(TRACK_COLORS[i], C_BG, 40) : TRACK_COLORS[i]);
+            s_panel.drawRect(sx, sy, sw - 2, sh, C_DIM);
+            s_panel.setTextColor(TRACK_COLORS[i], C_BG);
+            s_panel.setTextDatum(MC_DATUM);
+            char lbl[2] = {TRACK_CHARS[i], '\0'};
+            s_panel.drawString(lbl, sx + (sw - 2) / 2, sy + sh + 7);
+        }
+    } else {
+        for (int row = 0; row < 4; row++) {
+            ParamMeta m;
+            param_meta(row, &m);
+            if (m.label[0] == '\0') continue;
+
+            const ParamRow *pr = &PARAM_ROWS[row];
+
+            /* Mini progress bar */
+            int bw = (int)(m.norm * (float)(pr->value.w - 4));
+            s_panel.fillRect(pr->value.x + 2, pr->value.y - 5, pr->value.w - 4, 3, C_PANEL);
+            if (bw > 0)
+                s_panel.fillRect(pr->value.x + 2, pr->value.y - 5, bw, 3, tc);
+
+            /* Label */
+            s_panel.setTextColor(C_DIM, C_BG);
+            s_panel.setTextDatum(TL_DATUM);
+            s_panel.drawString(m.label, pr->minus.x, pr->touch.y + 2);
+
+            /* − value + */
+            draw_btn(&s_panel, &pr->minus, "-", C_PANEL,  C_DIM, C_TEXT);
+            draw_btn(&s_panel, &pr->value, m.value, C_PANEL2, tc,    C_TEXT);
+            draw_btn(&s_panel, &pr->plus,  "+", C_PANEL,  C_DIM, C_TEXT);
+        }
+    }
+
+    s_panel.pushSprite(PANEL_SX, PANEL_SY);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   HOLD-TO-ACCELERATE
+   ═══════════════════════════════════════════════════════════════════════════════ */
+static void hold_start(UiActionType action, int param) {
+    g_hold_action = (int)action;
+    g_hold_param  = param;
+    g_hold_count  = 0;
+    g_hold_next   = millis() + 400;
+}
+
+static void hold_stop(void) {
+    g_hold_action = -1;
+    g_hold_count  = 0;
+}
+
+static void hold_tick(void) {
+    if (g_hold_action < 0) return;
+    uint32_t now = millis();
+    if (now < g_hold_next) return;
+    g_hold_count++;
+    g_hold_next = now + hold_interval(g_hold_count);
+    send_action((UiActionType)g_hold_action, g_snap.activeTrack, g_hold_param);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   TOUCH HANDLER
+   ═══════════════════════════════════════════════════════════════════════════════ */
+static void param_delta(int row, int delta) {
+    const int tr   = g_snap.activeTrack;
+    const bool bass = (tr == VOICE_BASS);
+
+    if (g_mode == UiMode::SOUND_EDIT) {
+        send_action(UiActionType::SET_SOUND_PARAM, row, delta);
+        hold_start(UiActionType::SET_SOUND_PARAM, delta);
+        return;
+    }
+    if (bass) {
+        send_action(UiActionType::SET_BASS_PARAM, row, delta);
+        hold_start(UiActionType::SET_BASS_PARAM, delta);
+        return;
+    }
+    switch (row) {
+        case 0: send_action(UiActionType::SET_STEPS,    tr, delta);
+                hold_start(UiActionType::SET_STEPS, delta);    break;
+        case 1: send_action(UiActionType::SET_HITS,     tr, delta);
+                hold_start(UiActionType::SET_HITS,  delta);    break;
+        case 2: send_action(UiActionType::SET_ROTATION, tr, delta);
+                hold_start(UiActionType::SET_ROTATION, delta); break;
+        case 3: send_action(UiActionType::SET_VOICE_GAIN, tr, delta);
+                hold_start(UiActionType::SET_VOICE_GAIN, delta); break;
+    }
+}
+
+static void handle_touch(const TouchPoint &tp) {
+    if (tp.justReleased) { hold_stop(); return; }
+    if (!tp.justPressed) return;
+
+    int tx = tp.x, ty = tp.y;
+
+    /* ── Transport (y < 42) ────────────────────────────────────────────────── */
+    if (ty < 42) {
+        if (rect_hit(&R_PLAY, tx, ty))  { send_action(UiActionType::TOGGLE_PLAY, 0, 0); return; }
+        if (rect_hit(&R_SLOT_DEC, tx, ty)) { if (g_slot > 0) g_slot--; return; }
+        if (rect_hit(&R_SLOT_INC, tx, ty)) { if (g_slot < PATTERN_SLOTS-1) g_slot++; return; }
+        if (rect_hit(&R_SAVE, tx, ty))  { set_status("Saved!"); return; }
+        if (rect_hit(&R_LOAD, tx, ty))  { set_status("Loaded!"); return; }
+        if (rect_hit(&R_BPM_DEC, tx, ty)) {
+            send_action(UiActionType::NUDGE_BPM, 0, -1);
+            hold_start(UiActionType::NUDGE_BPM, -1); return;
+        }
+        if (rect_hit(&R_BPM_INC, tx, ty)) {
+            send_action(UiActionType::NUDGE_BPM, 0, +1);
+            hold_start(UiActionType::NUDGE_BPM, +1); return;
+        }
+        return;
+    }
+
+    /* ── Track selector (x < 36) ───────────────────────────────────────────── */
+    if (tx < 36) {
+        for (int i = 0; i < TRACK_COUNT; i++) {
+            if (rect_hit(&R_TRACKS[i], tx, ty)) {
+                send_action(UiActionType::SELECT_TRACK, 0, i); return;
+            }
+        }
+        return;
+    }
+
+    /* ── Footer (y >= 208, x < 192) ────────────────────────────────────────── */
+    if (ty >= 208 && tx < 192) {
+        if (rect_hit(&R_MUTE,  tx, ty)) { send_action(UiActionType::TOGGLE_MUTE, 0, g_snap.activeTrack); return; }
+        if (rect_hit(&R_VOICE, tx, ty)) { send_action(UiActionType::CHANGE_MODE, 0, (int)UiMode::SOUND_EDIT);  g_mode = UiMode::SOUND_EDIT;  return; }
+        if (rect_hit(&R_MIX,   tx, ty)) { send_action(UiActionType::CHANGE_MODE, 0, (int)UiMode::MIXER);       g_mode = UiMode::MIXER;        return; }
+        /* Tapping ring area resets to pattern edit */
+        send_action(UiActionType::CHANGE_MODE, 0, (int)UiMode::PATTERN_EDIT);
+        g_mode = UiMode::PATTERN_EDIT;
+        return;
+    }
+
+    /* ── Mixer sliders (x >= 192, mixer mode) ──────────────────────────────── */
+    if (g_mode == UiMode::MIXER && tx >= 192) {
+        for (int i = 0; i < TRACK_COUNT; i++) {
+            if (rect_hit(&R_SLIDERS[i], tx, ty)) {
+                float norm = 1.0f - (float)(ty - R_SLIDERS[i].y) / R_SLIDERS[i].h;
+                norm = norm < 0.0f ? 0.0f : (norm > 1.0f ? 1.0f : norm);
+                send_action(UiActionType::SET_VOICE_GAIN, i, (int)(norm * 100));
+                return;
+            }
+        }
+        return;
+    }
+
+    /* ── Param panel (x >= PANEL_SX, not mixer) ────────────────────────────── */
+    if (tx >= PANEL_SX) {
+        /* Convert to sprite-local coords */
+        int lx = tx - PANEL_SX;
+        int ly = ty - PANEL_SY;
+        for (int row = 0; row < 4; row++) {
+            const ParamRow *pr = &PARAM_ROWS[row];
+            if (!rect_hit(&pr->touch, lx, ly)) continue;
+            if (rect_hit(&pr->minus, lx, ly)) { param_delta(row, -1); return; }
+            if (rect_hit(&pr->plus,  lx, ly)) { param_delta(row, +1); return; }
+            return;
+        }
+        return;
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   PUBLIC API — called from Display.h / displayTask
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+/* displayTask — pin to core 1; core 0 is free for audio */
+void displayTask(void *parameter) {
+    /* ── Init display ──────────────────────────────────────────────────────── */
+    tft.init();
+    tft.setRotation(1);
+    tft.setBrightness(200);
+    tft.fillScreen(C_BG);
+
+    /* ── Create sprites ────────────────────────────────────────────────────── */
+    s_ring.createSprite(R_RING.w, R_RING.h);
+    s_ring.setColorDepth(16);
+    s_panel.createSprite(PANEL_W, PANEL_H);
+    s_panel.setColorDepth(16);
+    s_sprites_ready = true;
+
+    InputMgr.begin();
+
+    uint32_t last_full  = 0;
+    uint32_t last_ring  = 0;
+    bool     prev_playing = false;
+
+    for (;;) {
+        uint32_t now = millis();
+
+        /* Capture state snapshot */
+        g_snap.capture();
+
+        /* Status timeout */
+        if (g_status_until && now >= g_status_until) {
+            g_status_until = 0;
+            strncpy(g_status, g_snap.isPlaying ? "PLAYING" : "READY",
+                    sizeof(g_status) - 1);
+        }
+
+        /* Touch */
+        InputMgr.update();
+        handle_touch(InputMgr.state());
+        hold_tick();
+
+        /* Mode sync from engine snapshot */
+        g_mode = g_snap.mode;
+
+        /* ── Decide what to redraw ─────────────────────────────────────────── */
+        bool any_change =
+            (g_snap.bpm         != g_last.bpm)          ||
+            (g_snap.isPlaying   != g_last.isPlaying)     ||
+            (g_snap.activeTrack != g_last.activeTrack)   ||
+            (g_mode             != g_last_mode)          ||
+            (g_slot             != g_last_slot)          ||
+            (strcmp(g_status, g_last_status) != 0)       ||
+            memcmp(g_snap.trackMutes, g_last.trackMutes,
+                   sizeof(g_snap.trackMutes)) != 0;
+
+        bool pattern_change =
+            memcmp(g_snap.patterns,  � g_last.patterns,    sizeof(g_snap.patterns)) != 0  ||
+            memcmp(g_snap.trackSteps,  g_last.trackSteps,  sizeof(g_snap.trackSteps)) != 0||
+            g_snap.activeTrack != g_last.activeTrack;
+
+        bool step_change = (g_snap.currentStep != g_last.currentStep);
+
+        /* Periodic full redraw to clear any artefacts */
+        bool full = g_force_redraw || (now - last_full > 8000u);
+
+        tft.startWrite();
+
+        if (full) {
+            tft.fillScreen(C_BG);
+            draw_transport();
+            draw_tracks();
+            draw_footer();
+            draw_params();
+            last_full = now;
+            g_force_redraw = false;
+        } else if (any_change) {
+            if (g_snap.bpm != g_last.bpm ||
+                g_snap.isPlaying != g_last.isPlaying ||
+                g_slot != g_last_slot)
+                draw_transport();
+            else
+                draw_status();
+
+            if (g_snap.activeTrack != g_last.activeTrack ||
+                memcmp(g_snap.trackMutes, g_last.trackMutes,
+                       sizeof(g_snap.trackMutes)) != 0)
+                draw_tracks();
+
+            if (any_change) draw_footer();
+            if (any_change) draw_params();
+        }
+
+        tft.endWrite();
+
+        /* Ring: redraw every step tick or if pattern changed */
+        if ((g_snap.isPlaying && step_change) || pattern_change || full) {
+            if (now - last_ring >= 33u) {   /* cap ~30 fps for ring */
+                draw_ring();
+                last_ring = now;
+            }
+        }
+
+        /* Save snapshot */
+        g_last      = g_snap;
+        g_last_mode = g_mode;
+        g_last_slot = g_slot;
+        strncpy(g_last_status, g_status, sizeof(g_last_status) - 1);
+        prev_playing = g_snap.isPlaying;
+
+        vTaskDelay(pdMS_TO_TICKS(16));   /* ~60 fps budget */
+    }
+}
