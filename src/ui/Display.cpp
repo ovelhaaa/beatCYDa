@@ -16,20 +16,19 @@ namespace {
 /* ── Sprites (ring + right panel) — eliminate flicker on animation ──────────── */
 static LGFX_Sprite s_ring(&tft);   /* 140 × 140 — euclidean ring area  */
 static LGFX_Sprite s_panel(&tft);  /* 132 × 168 — right parameter panel */
-static bool s_sprites_ready = false;
 
 /* ═══════════════════════════════════════════════════════════════════════════════
    COLOUR PALETTE  (RGB565)
    ═══════════════════════════════════════════════════════════════════════════════ */
-#define C_BG       0x0863u   /* deep navy-charcoal      */
-#define C_PANEL    0x1947u   /* dark slate-blue         */
-#define C_PANEL2   0x2104u   /* inactive button face    */
-#define C_DIM      0x4228u   /* outline / subdued       */
-#define C_TEXT     0xBDF8u   /* normal text             */
-#define C_ACCENT   0xFEC9u   /* important / active      */
-#define C_SELECT   0x4F1Fu   /* selected mode highlight */
-#define C_EXPR     0xFA74u   /* expressive / mauve      */
-#define C_PLAY     0x7FEEu   /* positive / running      */
+constexpr uint16_t C_BG       = 0x0863u;   /* deep navy-charcoal      */
+constexpr uint16_t C_PANEL    = 0x1947u;   /* dark slate-blue         */
+constexpr uint16_t C_PANEL2   = 0x2104u;   /* inactive button face    */
+constexpr uint16_t C_DIM      = 0x4228u;   /* outline / subdued       */
+constexpr uint16_t C_TEXT     = 0xBDF8u;   /* normal text             */
+constexpr uint16_t C_ACCENT   = 0xFEC9u;   /* important / active      */
+constexpr uint16_t C_SELECT   = 0x4F1Fu;   /* selected mode highlight */
+constexpr uint16_t C_EXPR     = 0xFA74u;   /* expressive / mauve      */
+constexpr uint16_t C_PLAY     = 0x7FEEu;   /* positive / running      */
 
 static const uint16_t TRACK_COLORS[TRACK_COUNT] = {
     0xCAA9u,   /* Kick  — terracotta */
@@ -770,7 +769,6 @@ void displayTask(void *parameter) {
   s_ring.setColorDepth(16);
   s_panel.createSprite(PANEL_W, PANEL_H);
   s_panel.setColorDepth(16);
-  s_sprites_ready = true;
 
   uint32_t last_full  = 0;
   uint32_t last_ring  = 0;
