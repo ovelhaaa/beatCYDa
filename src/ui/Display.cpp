@@ -375,10 +375,6 @@ static void param_meta(int row, ParamMeta *out) {
         if (!bass && row == 3 && tr != VOICE_KICK) {
             vals[3] = ui.snapshot.voiceGain[tr];
         }
-        int   ints[4] = {static_cast<int>(vals[0] * 100.0f),
-                         static_cast<int>(vals[1] * 100.0f),
-                         static_cast<int>(vals[2] * 100.0f),
-                         static_cast<int>(vals[3] * 100.0f)};
         const char *lbls[4] = {PITCH_LBL[tr], DECAY_LBL[tr],
                                 TIMB_LBL[tr], DRIVE_LBL[tr]};
         if (!bass && row == 3 && tr != VOICE_KICK) {
@@ -386,7 +382,7 @@ static void param_meta(int row, ParamMeta *out) {
         }
         if (row < 4) {
             strncpy(out->label, lbls[row], sizeof(out->label) - 1);
-            snprintf(out->value, sizeof(out->value), "%d", ints[row]);
+            snprintf(out->value, sizeof(out->value), "%d", getParamDisplayValue(row));
             out->norm = vals[row];
         }
         return;
@@ -401,12 +397,11 @@ static void param_meta(int row, ParamMeta *out) {
         switch (row) {
             case 0:
                 strncpy(out->label, "Density", sizeof(out->label) - 1);
-                snprintf(out->value, sizeof(out->value), "%d",
-                         (int)(bp.density * 100));
+                snprintf(out->value, sizeof(out->value), "%d", getParamDisplayValue(row));
                 out->norm = bp.density; break;
             case 1:
                 strncpy(out->label, "Range", sizeof(out->label) - 1);
-                snprintf(out->value, sizeof(out->value), "%d", bp.range);
+                snprintf(out->value, sizeof(out->value), "%d", getParamDisplayValue(row));
                 out->norm = (float)(bp.range - 1) / 11.0f; break;
             case 2: {
                 strncpy(out->label, "Scale", sizeof(out->label) - 1);
@@ -430,24 +425,21 @@ static void param_meta(int row, ParamMeta *out) {
     switch (row) {
         case 0:
             strncpy(out->label, "Steps", sizeof(out->label) - 1);
-            snprintf(out->value, sizeof(out->value), "%d", steps);
+            snprintf(out->value, sizeof(out->value), "%d", getParamDisplayValue(row));
             out->norm = (float)(steps - 4) / 60.0f; break;
         case 1:
             strncpy(out->label, "Hits", sizeof(out->label) - 1);
-            snprintf(out->value, sizeof(out->value), "%d",
-                     ui.snapshot.trackHits[tr]);
+            snprintf(out->value, sizeof(out->value), "%d", getParamDisplayValue(row));
             out->norm = steps > 0
                 ? (float)ui.snapshot.trackHits[tr] / steps : 0.0f; break;
         case 2:
             strncpy(out->label, "Rot", sizeof(out->label) - 1);
-            snprintf(out->value, sizeof(out->value), "%d",
-                     ui.snapshot.trackRotations[tr]);
+            snprintf(out->value, sizeof(out->value), "%d", getParamDisplayValue(row));
             out->norm = steps > 1
                 ? (float)ui.snapshot.trackRotations[tr] / (steps - 1) : 0.0f; break;
         case 3:
             strncpy(out->label, "Vol", sizeof(out->label) - 1);
-            snprintf(out->value, sizeof(out->value), "%d",
-                     (int)(ui.snapshot.voiceGain[tr] * 100));
+            snprintf(out->value, sizeof(out->value), "%d", getParamDisplayValue(row));
             out->norm = ui.snapshot.voiceGain[tr]; break;
         default: break;
     }
@@ -526,47 +518,51 @@ static void hold_stop(void) {
     ui.holdTickCount  = 0;
 }
 
+static int getParamDisplayValue(int paramIndex) {
+    const int track = ui.snapshot.activeTrack;
+    const bool isBass = track == VOICE_BASS;
+    const VoiceParams &params = ui.snapshot.voiceParams[track];
+
+    if (ui.mode == UiMode::SOUND_EDIT) {
+        if (isBass) {
+            switch (paramIndex) {
+                case 0: return static_cast<int>(params.pitch * 100.0f);
+                case 1: return static_cast<int>(params.decay * 100.0f);
+                case 2: return static_cast<int>(params.timbre * 100.0f);
+                default: return static_cast<int>(params.drive * 100.0f);
+            }
+        } else {
+            switch (paramIndex) {
+                case 0: return static_cast<int>(params.pitch * 100.0f);
+                case 1: return static_cast<int>(params.decay * 100.0f);
+                case 2: return static_cast<int>(params.timbre * 100.0f);
+                default: return (track == VOICE_KICK) ? static_cast<int>(params.drive * 100.0f) : static_cast<int>(ui.snapshot.voiceGain[track] * 100.0f);
+            }
+        }
+    } else {
+        if (isBass) {
+            switch (paramIndex) {
+                case 0: return static_cast<int>(ui.snapshot.bassParams.density * 100.0f);
+                case 1: return ui.snapshot.bassParams.range;
+                case 2: return static_cast<int>(ui.snapshot.bassParams.scaleType);
+                default: return ui.snapshot.bassParams.rootNote;
+            }
+        } else {
+            switch (paramIndex) {
+                case 0: return ui.snapshot.trackSteps[track];
+                case 1: return ui.snapshot.trackHits[track];
+                case 2: return ui.snapshot.trackRotations[track];
+                default: return static_cast<int>(ui.snapshot.voiceGain[track] * 100.0f);
+            }
+        }
+    }
+}
+
 static void fireParamAction(int paramIndex, int amount) {
   const int track = ui.snapshot.activeTrack;
   const bool isBass = track == VOICE_BASS;
-  const VoiceParams &params = ui.snapshot.voiceParams[track];
 
-  int displayValue = 0;
-
-  if (ui.mode == UiMode::SOUND_EDIT) {
-    if (isBass) {
-      switch (paramIndex) {
-      case 0: displayValue = static_cast<int>(params.pitch * 100.0f); break;
-      case 1: displayValue = static_cast<int>(params.decay * 100.0f); break;
-      case 2: displayValue = static_cast<int>(params.timbre * 100.0f); break;
-      default: displayValue = static_cast<int>(params.drive * 100.0f); break;
-      }
-    } else {
-      switch (paramIndex) {
-      case 0: displayValue = static_cast<int>(params.pitch * 100.0f); break;
-      case 1: displayValue = static_cast<int>(params.decay * 100.0f); break;
-      case 2: displayValue = static_cast<int>(params.timbre * 100.0f); break;
-      default: displayValue = (track == VOICE_KICK) ? static_cast<int>(params.drive * 100.0f) : static_cast<int>(ui.snapshot.voiceGain[track] * 100.0f); break;
-      }
-    }
-  } else {
-    if (isBass) {
-      switch (paramIndex) {
-      case 0: displayValue = static_cast<int>(ui.snapshot.bassParams.density * 100.0f); break;
-      case 1: displayValue = ui.snapshot.bassParams.range; break;
-      case 2: displayValue = static_cast<int>(ui.snapshot.bassParams.scaleType); break;
-      default: displayValue = ui.snapshot.bassParams.rootNote; break;
-      }
-    } else {
-      switch (paramIndex) {
-      case 0: displayValue = ui.snapshot.trackSteps[track]; break;
-      case 1: displayValue = ui.snapshot.trackHits[track]; break;
-      case 2: displayValue = ui.snapshot.trackRotations[track]; break;
-      default: displayValue = static_cast<int>(ui.snapshot.voiceGain[track] * 100.0f); break;
-      }
-    }
-  }
-
+  int displayValue = getParamDisplayValue(paramIndex);
   int newValue = displayValue + amount;
 
   if (ui.mode == UiMode::SOUND_EDIT) {
