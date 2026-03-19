@@ -638,8 +638,8 @@ static void handleTouch(const TouchPoint &tp) {
     /* ── Transport (y < 42) ────────────────────────────────────────────────── */
     if (ty < 42) {
         if (R_PLAY.contains(tx, ty))  { postUiAction(UiActionType::TOGGLE_PLAY, 0, 0); return; }
-        if (R_SLOT_DEC.contains(tx, ty)) { if (ui.activeSlot > 0) ui.activeSlot--; return; }
-        if (R_SLOT_INC.contains(tx, ty)) { if (ui.activeSlot < CYDConfig::PatternSlots-1) ui.activeSlot++; return; }
+        if (R_SLOT_DEC.contains(tx, ty)) { ui.activeSlot = (ui.activeSlot == 0) ? (CYDConfig::PatternSlots - 1) : (ui.activeSlot - 1); return; }
+        if (R_SLOT_INC.contains(tx, ty)) { ui.activeSlot = (ui.activeSlot + 1) % CYDConfig::PatternSlots; return; }
         if (R_SAVE.contains(tx, ty))  {
             set_status(PatternStore.saveSlot(ui.activeSlot) ? "Saved!" : "Save Fail");
             return;
