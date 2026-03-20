@@ -783,13 +783,13 @@ void displayTask(void *parameter) {
           ui.forceRedraw = true; // force the full transport bar to redraw so the BPM value isn't overwritten
       }
 
+      /* Mode sync from engine snapshot */
+      ui.mode = ui.snapshot.mode;
+
       /* Touch */
       InputMgr.update();
       handleTouch(InputMgr.state());
       hold_tick();
-
-      /* Mode sync from engine snapshot */
-      ui.mode = ui.snapshot.mode;
 
       /* ── Decide what to redraw ─────────────────────────────────────────── */
       bool sliders_dirty = ui.activeHoldParam != -1 ||
