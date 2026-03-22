@@ -353,6 +353,46 @@ static void draw_footer(void) {
 /* Fill label + value strings for each param row */
 struct ParamMeta { char label[12]; char value[12]; float norm; };
 
+static int getParamDisplayValue(int paramIndex) {
+    const int track = ui.snapshot.activeTrack;
+    const bool isBass = track == VOICE_BASS;
+    const VoiceParams &params = ui.snapshot.voiceParams[track];
+
+    if (ui.mode == UiMode::SOUND_EDIT) {
+        if (isBass) {
+            switch (paramIndex) {
+                case 0: return static_cast<int>(params.pitch * 100.0f);
+                case 1: return static_cast<int>(params.decay * 100.0f);
+                case 2: return static_cast<int>(params.timbre * 100.0f);
+                default: return static_cast<int>(params.drive * 100.0f);
+            }
+        } else {
+            switch (paramIndex) {
+                case 0: return static_cast<int>(params.pitch * 100.0f);
+                case 1: return static_cast<int>(params.decay * 100.0f);
+                case 2: return static_cast<int>(params.timbre * 100.0f);
+                default: return (track == VOICE_KICK) ? static_cast<int>(params.drive * 100.0f) : static_cast<int>(ui.snapshot.voiceGain[track] * 100.0f);
+            }
+        }
+    } else {
+        if (isBass) {
+            switch (paramIndex) {
+                case 0: return static_cast<int>(ui.snapshot.bassParams.density * 100.0f);
+                case 1: return ui.snapshot.bassParams.range;
+                case 2: return static_cast<int>(ui.snapshot.bassParams.scaleType);
+                default: return ui.snapshot.bassParams.rootNote;
+            }
+        } else {
+            switch (paramIndex) {
+                case 0: return ui.snapshot.trackSteps[track];
+                case 1: return ui.snapshot.trackHits[track];
+                case 2: return ui.snapshot.trackRotations[track];
+                default: return static_cast<int>(ui.snapshot.voiceGain[track] * 100.0f);
+            }
+        }
+    }
+}
+
 static void param_meta(int row, ParamMeta *out) {
     out->label[0] = '\0';
     out->value[0] = '\0';
@@ -516,46 +556,6 @@ static void hold_stop(void) {
     ui.activeHoldAction = 0;
     ui.activeHoldParam = -1;
     ui.holdTickCount  = 0;
-}
-
-static int getParamDisplayValue(int paramIndex) {
-    const int track = ui.snapshot.activeTrack;
-    const bool isBass = track == VOICE_BASS;
-    const VoiceParams &params = ui.snapshot.voiceParams[track];
-
-    if (ui.mode == UiMode::SOUND_EDIT) {
-        if (isBass) {
-            switch (paramIndex) {
-                case 0: return static_cast<int>(params.pitch * 100.0f);
-                case 1: return static_cast<int>(params.decay * 100.0f);
-                case 2: return static_cast<int>(params.timbre * 100.0f);
-                default: return static_cast<int>(params.drive * 100.0f);
-            }
-        } else {
-            switch (paramIndex) {
-                case 0: return static_cast<int>(params.pitch * 100.0f);
-                case 1: return static_cast<int>(params.decay * 100.0f);
-                case 2: return static_cast<int>(params.timbre * 100.0f);
-                default: return (track == VOICE_KICK) ? static_cast<int>(params.drive * 100.0f) : static_cast<int>(ui.snapshot.voiceGain[track] * 100.0f);
-            }
-        }
-    } else {
-        if (isBass) {
-            switch (paramIndex) {
-                case 0: return static_cast<int>(ui.snapshot.bassParams.density * 100.0f);
-                case 1: return ui.snapshot.bassParams.range;
-                case 2: return static_cast<int>(ui.snapshot.bassParams.scaleType);
-                default: return ui.snapshot.bassParams.rootNote;
-            }
-        } else {
-            switch (paramIndex) {
-                case 0: return ui.snapshot.trackSteps[track];
-                case 1: return ui.snapshot.trackHits[track];
-                case 2: return ui.snapshot.trackRotations[track];
-                default: return static_cast<int>(ui.snapshot.voiceGain[track] * 100.0f);
-            }
-        }
-    }
 }
 
 static void fireParamAction(int paramIndex, int amount) {
