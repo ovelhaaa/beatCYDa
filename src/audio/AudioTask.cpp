@@ -174,11 +174,13 @@ void audioTask(void *parameter) {
       }
     }
 
+    static int ditherIdx = 0;
     for (int i = 0; i < BUFFER_LEN; ++i) {
       float mix = voiceManager.process();
       mix = fastSoftClip(mix * 0.9f);
 
-      const float dither = (fastRandom() + fastRandom()) * (0.5f / 32768.0f);
+      const float dither = ditherLUT[ditherIdx];
+      ditherIdx = (ditherIdx + 1) & LUT_MASK;
       const float sample = constrain(mix + dither, -1.0f, 1.0f);
 
       if (CYDConfig::UseInternalDac) {

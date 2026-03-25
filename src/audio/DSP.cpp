@@ -1,6 +1,7 @@
 #include "DSP.h"
 
 float sinLUT[LUT_SIZE];
+float ditherLUT[LUT_SIZE];
 
 float fastRandom() {
   static unsigned long seed = 123456789;
@@ -17,8 +18,10 @@ float fastSoftClip(float x) {
 }
 
 void initLUT() {
-  for (int i = 0; i < LUT_SIZE; i++)
+  for (int i = 0; i < LUT_SIZE; i++) {
     sinLUT[i] = sinf((float)i * 2.0f * PI / (float)LUT_SIZE);
+    ditherLUT[i] = (fastRandom() + fastRandom()) * (0.5f / 32768.0f);
+  }
 }
 
 float getSinLUT(float phase) {
