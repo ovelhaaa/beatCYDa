@@ -20,8 +20,6 @@ void setupPower() {
 
 void setup() {
   Serial.begin(115200, SERIAL_8N1, -1, 1);
-  delay(1000);
-  Serial.println("\nPENOSA CYD variant boot");
 
   setupPower();
   CtrlMgr.begin();
