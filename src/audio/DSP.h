@@ -18,6 +18,7 @@ inline float velocityCurve(float vel, float curve = 2.0f) {
 #define LUT_SIZE 2048
 #define LUT_MASK 2047
 extern float sinLUT[LUT_SIZE];
+extern float ditherLUT[LUT_SIZE];
 void initLUT();
 float getSinLUT(float phase);
 
