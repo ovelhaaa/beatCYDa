@@ -1059,9 +1059,9 @@ void displayTask(void *parameter) {
   tft.setTextSize(1); // Default 6x8 font
 
   /* ── Create sprites ────────────────────────────────────────────────────── */
-  s_ring.createSprite(50, 50);
+  s_ring.createSprite(R_RING.w, R_RING.h);
   s_ring.setColorDepth(16);
-  s_panel.createSprite(258, 174);
+  s_panel.createSprite(PANEL_W, PANEL_H);
   s_panel.setColorDepth(16);
 
   uint32_t last_full  = 0;
