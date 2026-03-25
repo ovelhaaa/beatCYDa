@@ -406,14 +406,15 @@ static void draw_footer(void) {
     char center_buf[32];
     int steps = ui.snapshot.trackSteps[tr];
     int rot = ui.snapshot.trackRotations[tr];
-    snprintf(center_buf, sizeof(center_buf), "%c - %d/16 - ROT %d", TRACK_CHARS[tr], steps, rot);
+    int hits = ui.snapshot.trackHits[tr];
+    snprintf(center_buf, sizeof(center_buf), "%c - %d/%d - ROT %d", TRACK_CHARS[tr], hits, steps, rot);
     tft.setTextColor(C_TXT_STAT, C_PANEL_BG);
     tft.setTextDatum(MC_DATUM);
     tft.drawString(center_buf, R_FOOTER.x + R_FOOTER.w / 2, R_FOOTER.y + 8);
 
     // Right Zone
     char right_buf[16];
-    snprintf(right_buf, sizeof(right_buf), "step %d/16", (ui.snapshot.currentStep % 16) + 1);
+    snprintf(right_buf, sizeof(right_buf), "step %d/%d", steps > 0 ? (ui.snapshot.currentStep % steps) + 1 : 1, steps);
     tft.setTextColor(C_TXT_DIM, C_PANEL_BG);
     tft.setTextDatum(MR_DATUM);
     tft.drawString(right_buf, R_FOOTER.x + R_FOOTER.w - 6, R_FOOTER.y + 8);
