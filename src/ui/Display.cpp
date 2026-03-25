@@ -186,8 +186,7 @@ static void postUiAction(UiActionType t, int idx=0, int val=0) {
 }
 
 static void set_status(const char *msg, uint32_t ms = 1400) {
-    strncpy(ui.status, msg, sizeof(ui.status) - 1);
-    ui.status[sizeof(ui.status) - 1] = '\0';
+    snprintf(ui.status, sizeof(ui.status), "%s", msg);
     ui.statusUntilMs = millis() + ms;
 }
 
@@ -421,7 +420,7 @@ static void param_meta(int row, ParamMeta *out) {
             lbls[3] = "Level";
         }
         if (row < 4) {
-            strncpy(out->label, lbls[row], sizeof(out->label) - 1);
+            snprintf(out->label, sizeof(out->label), "%s", lbls[row]);
             snprintf(out->value, sizeof(out->value), "%d", getParamDisplayValue(row));
             out->norm = vals[row];
         }
@@ -436,21 +435,21 @@ static void param_meta(int row, ParamMeta *out) {
         const BassGrooveParams &bp = ui.snapshot.bassParams;
         switch (row) {
             case 0:
-                strncpy(out->label, "Density", sizeof(out->label) - 1);
+                snprintf(out->label, sizeof(out->label), "Density");
                 snprintf(out->value, sizeof(out->value), "%d", getParamDisplayValue(row));
                 out->norm = bp.density; break;
             case 1:
-                strncpy(out->label, "Range", sizeof(out->label) - 1);
+                snprintf(out->label, sizeof(out->label), "Range");
                 snprintf(out->value, sizeof(out->value), "%d", getParamDisplayValue(row));
                 out->norm = (float)(bp.range - 1) / 11.0f; break;
             case 2: {
-                strncpy(out->label, "Scale", sizeof(out->label) - 1);
+                snprintf(out->label, sizeof(out->label), "Scale");
                 int sc = constrain((int)bp.scaleType, 0, 4);
-                strncpy(out->value, SCALE_NAMES[sc], sizeof(out->value) - 1);
+                snprintf(out->value, sizeof(out->value), "%s", SCALE_NAMES[sc]);
                 out->norm = (float)sc / 4.0f; break;
             }
             case 3: {
-                strncpy(out->label, "Root", sizeof(out->label) - 1);
+                snprintf(out->label, sizeof(out->label), "Root");
                 snprintf(out->value, sizeof(out->value), "%s%d",
                          NOTE_NAMES[bp.rootNote % 12], bp.rootNote / 12 - 1);
                 out->norm = (float)(bp.rootNote - 24) / 36.0f; break;
@@ -464,21 +463,21 @@ static void param_meta(int row, ParamMeta *out) {
     int steps = ui.snapshot.trackSteps[tr];
     switch (row) {
         case 0:
-            strncpy(out->label, "Steps", sizeof(out->label) - 1);
+            snprintf(out->label, sizeof(out->label), "Steps");
             snprintf(out->value, sizeof(out->value), "%d", getParamDisplayValue(row));
             out->norm = (float)(steps - 4) / 60.0f; break;
         case 1:
-            strncpy(out->label, "Hits", sizeof(out->label) - 1);
+            snprintf(out->label, sizeof(out->label), "Hits");
             snprintf(out->value, sizeof(out->value), "%d", getParamDisplayValue(row));
             out->norm = steps > 0
                 ? (float)ui.snapshot.trackHits[tr] / steps : 0.0f; break;
         case 2:
-            strncpy(out->label, "Rot", sizeof(out->label) - 1);
+            snprintf(out->label, sizeof(out->label), "Rot");
             snprintf(out->value, sizeof(out->value), "%d", getParamDisplayValue(row));
             out->norm = steps > 1
                 ? (float)ui.snapshot.trackRotations[tr] / (steps - 1) : 0.0f; break;
         case 3:
-            strncpy(out->label, "Vol", sizeof(out->label) - 1);
+            snprintf(out->label, sizeof(out->label), "Vol");
             snprintf(out->value, sizeof(out->value), "%d", getParamDisplayValue(row));
             out->norm = ui.snapshot.voiceGain[tr]; break;
         default: break;
@@ -778,8 +777,7 @@ void displayTask(void *parameter) {
       /* Status timeout */
       if (ui.statusUntilMs && now >= ui.statusUntilMs) {
           ui.statusUntilMs = 0;
-          strncpy(ui.status, ui.snapshot.isPlaying ? "PLAYING" : "READY",
-                  sizeof(ui.status) - 1);
+          snprintf(ui.status, sizeof(ui.status), "%s", ui.snapshot.isPlaying ? "PLAYING" : "READY");
           ui.forceRedraw = true; // force the full transport bar to redraw so the BPM value isn't overwritten
       }
 
@@ -865,7 +863,7 @@ void displayTask(void *parameter) {
       ui.lastSnapshot = ui.snapshot;
       ui.lastMode     = ui.mode;
       ui.lastActiveSlot = ui.activeSlot;
-      strncpy(ui.lastStatus, ui.status, sizeof(ui.lastStatus) - 1);
+      snprintf(ui.lastStatus, sizeof(ui.lastStatus), "%s", ui.status);
 
       vTaskDelay(pdMS_TO_TICKS(16));   /* ~60 fps budget */
   }
