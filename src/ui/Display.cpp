@@ -847,9 +847,9 @@ static void handleTouch(const TouchPoint &tp) {
 
         /* ── Tabs (y >= 204) ────────────────────────────────────────── */
         if (R_TABS.contains(tx, ty)) {
-            if (R_TAB_SEQ.contains(tx, ty)) { postUiAction(UiActionType::CHANGE_MODE, 0, (int)UiMode::PATTERN_EDIT); ui.mode = UiMode::PATTERN_EDIT; return; }
-            if (R_TAB_SOUND.contains(tx, ty)) { postUiAction(UiActionType::CHANGE_MODE, 0, (int)UiMode::SOUND_EDIT);  ui.mode = UiMode::SOUND_EDIT;  return; }
-            if (R_TAB_MIX.contains(tx, ty)) { postUiAction(UiActionType::CHANGE_MODE, 0, (int)UiMode::MIXER);       ui.mode = UiMode::MIXER;        return; }
+            if (R_TAB_SEQ.contains(tx, ty)) { postUiAction(UiActionType::CHANGE_MODE, 0, (int)UiMode::PATTERN_EDIT); return; }
+            if (R_TAB_SOUND.contains(tx, ty)) { postUiAction(UiActionType::CHANGE_MODE, 0, (int)UiMode::SOUND_EDIT); return; }
+            if (R_TAB_MIX.contains(tx, ty)) { postUiAction(UiActionType::CHANGE_MODE, 0, (int)UiMode::MIXER); return; }
             return;
         }
 
@@ -977,6 +977,9 @@ void displayTask(void *parameter) {
           ui.forceRedraw = true;
           ui.dirtyStatus = true;
       }
+
+      /* Mode sync from engine snapshot */
+      ui.mode = ui.snapshot.mode;
 
       /* Touch */
       InputMgr.update();
