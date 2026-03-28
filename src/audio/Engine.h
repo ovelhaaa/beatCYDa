@@ -18,7 +18,6 @@ struct Track {
   int hits = 4;
   uint8_t pattern[64];    // Fixed array - max 64 steps
   uint8_t patternLen = 0; // Actual pattern length
-  // stepFreqs removed - unused (BassGroove handles melody)
   int rotationOffset = 0; // Manual Euclidean Rotation
 
   // Voice Params
