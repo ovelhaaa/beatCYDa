@@ -35,6 +35,8 @@ struct BassGrooveParams {
 
 class BassGroove {
 public:
+  static float midiToFreq(uint8_t note);
+
   void init(float sampleRate);
 
   // Update logic parameters
@@ -79,7 +81,6 @@ private:
   void trigger();
   void trigger(bool forceAccent); // Added overload
   uint8_t generateNote();
-  float midiToFreq(uint8_t note);
 
   // Random helper
   bool checkProb(float p);
