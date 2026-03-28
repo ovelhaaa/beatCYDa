@@ -1,122 +1,112 @@
 #include "Display.h"
+
 #include "LGFX_CYD.h"
 #include "UiAction.h"
 #include "../control/ControlManager.h"
 #include "../control/InputManager.h"
 #include "../storage/PatternStorage.h"
+
 #include <SPI.h>
 #include <math.h>
 #include <string.h>
 
-/* ── Display object (declared extern in LGFX_CYD.h) ─────────────────────────── */
 LGFX_CYD tft;
 
 namespace {
 
-/* ── Sprites (ring + right panel) — eliminate flicker on animation ──────────── */
-static LGFX_Sprite s_ring(&tft);   /* 140 × 140 — euclidean ring area  */
-static LGFX_Sprite s_panel(&tft);  /* 132 × 168 — right parameter panel */
+struct Rect {
+  int16_t x;
+  int16_t y;
+  int16_t w;
+  int16_t h;
+  bool contains(int16_t px, int16_t py) const {
+    return px >= x && px < (x + w) && py >= y && py < (y + h);
+  }
+};
 
-/* ═══════════════════════════════════════════════════════════════════════════════
-   COLOUR PALETTE  (RGB565)
-   ═══════════════════════════════════════════════════════════════════════════════ */
-constexpr uint16_t C_BG       = 0x0863u;   /* deep navy-charcoal      */
-constexpr uint16_t C_PANEL    = 0x1947u;   /* dark slate-blue         */
-constexpr uint16_t C_PANEL2   = 0x2104u;   /* inactive button face    */
-constexpr uint16_t C_DIM      = 0x4228u;   /* outline / subdued       */
-constexpr uint16_t C_TEXT     = 0xBDF8u;   /* normal text             */
-constexpr uint16_t C_ACCENT   = 0xFEC9u;   /* important / active      */
-constexpr uint16_t C_SELECT   = 0x4F1Fu;   /* selected mode highlight */
-constexpr uint16_t C_EXPR     = 0xFA74u;   /* expressive / mauve      */
-constexpr uint16_t C_PLAY     = 0x7FEEu;   /* positive / running      */
+constexpr uint16_t C_BG = 0x0842;
+constexpr uint16_t C_PANEL = 0x1084;
+constexpr uint16_t C_PANEL_2 = 0x18E6;
+constexpr uint16_t C_STROKE = 0x2927;
+constexpr uint16_t C_DIVIDER = 0x2105;
+constexpr uint16_t C_TEXT = 0xDEDB;
+constexpr uint16_t C_TEXT_DIM = 0x8C71;
+constexpr uint16_t C_ACCENT_SEQ = 0xFD20;
+constexpr uint16_t C_ACCENT_STATUS = 0x2D7F;
+constexpr uint16_t C_PLAY = 0x2E6A;
+constexpr uint16_t C_STOP = 0xB0E4;
+constexpr uint16_t C_MUTE = 0xB9A0;
 
 static const uint16_t TRACK_COLORS[TRACK_COUNT] = {
-    0xCAA9u,   /* Kick  — terracotta */
-    0xD568u,   /* Snare — warm gold  */
-    0x4F1Fu,   /* HatC  — steel teal */
-    0xFA74u,   /* HatO  — mauve      */
-    0x5D6Cu,   /* Bass  — muted sage */
+    0xFC40, // Kick
+    0xFC00, // Snare
+    0x7D07, // Hat closed
+    0x959F, // Hat open
+    0x3D07  // Bass
 };
 
-static const char TRACK_CHARS[TRACK_COUNT] = {'K','S','C','O','B'};
-static const char * const TRACK_LABELS[TRACK_COUNT] = {"KICK","SNRE","HATC","HATO","BASS"};
+static const char* const TRACK_NAMES[TRACK_COUNT] = {"KICK", "SNARE", "HAT C", "HAT O", "BASS"};
 
-/* ═══════════════════════════════════════════════════════════════════════════════
-   LAYOUT  (pixel coords, landscape 320 × 240)
-   ═══════════════════════════════════════════════════════════════════════════════ */
+constexpr Rect R_HEADER = {0, 0, 320, 40};
+constexpr Rect R_STATUS = {0, 40, 320, 16};
+constexpr Rect R_TRACKS = {0, 56, 68, 148};
+constexpr Rect R_CENTER = {68, 56, 148, 148};
+constexpr Rect R_PANEL = {216, 56, 104, 148};
+constexpr Rect R_TABS = {0, 204, 320, 36};
 
-/* Generic rectangle with hit-test */
-struct Rect {
-    int16_t x, y, w, h;
-    bool contains(int16_t px, int16_t py) const {
-        return px >= x && px < x + w && py >= y && py < y + h;
-    }
+constexpr Rect BTN_PLAY = {6, 6, 52, 28};
+constexpr Rect BPM_BOX = {66, 4, 92, 32};
+constexpr Rect SLOT_BOX = {166, 6, 58, 28};
+constexpr Rect BTN_SAVE = {232, 6, 38, 28};
+constexpr Rect BTN_LOAD = {276, 6, 38, 28};
+
+constexpr Rect TAB_SEQ = {4, 208, 102, 28};
+constexpr Rect TAB_SOUND = {109, 208, 102, 28};
+constexpr Rect TAB_MIX = {214, 208, 102, 28};
+
+constexpr int kTrackButtonH = 24;
+constexpr int kTrackButtonGap = 4;
+constexpr int kLongPressMs = 380;
+
+struct ParamCardRects {
+  Rect outer;
+  Rect minus;
+  Rect value;
+  Rect plus;
 };
 
-/* Transport bar */
-static const Rect R_PLAY      = { 4,   8,  62,  30};
-static const Rect R_SLOT_DEC  = {80,   8,  20,  30};
-static const Rect R_SLOT_VAL  = {104,  8,  28,  30};
-static const Rect R_SLOT_INC  = {136,  8,  20,  30};
-static const Rect R_SAVE      = {160,  8,  24,  14};
-static const Rect R_LOAD      = {160, 24,  24,  14};
-static const Rect R_BPM_DEC   = {196,  8,  28,  30};
-static const Rect R_BPM_VAL   = {228,  8,  52,  30};
-static const Rect R_BPM_INC   = {284,  8,  28,  30};
-
-/* Track selector — 5 buttons, left margin */
-static const Rect R_TRACKS[TRACK_COUNT] = {
-    { 4,  48, 28, 34},
-    { 4,  86, 28, 34},
-    { 4, 124, 28, 34},
-    { 4, 162, 28, 34},
-    { 4, 200, 28, 34},
+struct FaderRect {
+  Rect slot;
+  Rect track;
 };
 
-/* Ring area (sprite origin) */
-static const Rect R_RING = {36, 52, 140, 140};
-#define RING_CX 70   /* sprite-relative centre */
-#define RING_CY 70
-static const uint8_t RING_RADII[TRACK_COUNT] = {58, 48, 38, 28, 18};
+struct DirtyFlags {
+  bool dirtyHeader = true;
+  bool dirtyStatus = true;
+  bool dirtyTracks = true;
+  bool dirtyCenter = true;
+  bool dirtyPanel = true;
+  bool dirtyTabs = true;
+  bool dirtyBpm = true;
+  bool dirtySlot = true;
+  bool dirtyTransport = true;
+  bool dirtyActiveTrack = true;
+  bool dirtyPattern = true;
+  bool dirtyParams = true;
+  bool dirtyMixer = true;
 
-/* Bottom action row */
-static const Rect R_MUTE  = { 36, 208, 52, 26};
-static const Rect R_VOICE = { 88, 208, 52, 26};
-static const Rect R_MIX   = {140, 208, 52, 26};
-
-/* Right panel (sprite origin x=188, y=44) */
-#define PANEL_SX 188
-#define PANEL_SY  44
-#define PANEL_W  132
-#define PANEL_H  168
-
-/* 4 param rows inside the panel sprite */
-struct ParamRow {
-    Rect minus;
-    Rect value;
-    Rect plus;
-    Rect touch;  /* full row, for hit-testing */
+  void all() {
+    dirtyHeader = dirtyStatus = dirtyTracks = dirtyCenter = dirtyPanel = dirtyTabs = true;
+    dirtyBpm = dirtySlot = dirtyTransport = dirtyActiveTrack = true;
+    dirtyPattern = dirtyParams = dirtyMixer = true;
+  }
 };
 
-static const ParamRow PARAM_ROWS[4] = {
-    {{ 8, 18, 28, 26}, {40, 18, 52, 26}, { 96, 18, 28, 26}, {0,  4, PANEL_W, 42}},
-    {{ 8, 68, 28, 26}, {40, 68, 52, 26}, { 96, 68, 28, 26}, {0, 54, PANEL_W, 42}},
-    {{ 8,118, 28, 26}, {40,118, 52, 26}, { 96,118, 28, 26}, {0,104, PANEL_W, 42}},
-    {{ 8,142, 28, 26}, {40,142, 52, 26}, { 96,142, 28, 26}, {0,130, PANEL_W, 38}},
+struct TouchHoldContext {
+  bool pending = false;
+  bool consumed = false;
+  int trackIndex = -1;
 };
-
-/* Mixer sliders (absolute coords) */
-static const Rect R_SLIDERS[TRACK_COUNT] = {
-    {201, 54, 12, 126},
-    {224, 54, 12, 126},
-    {247, 54, 12, 126},
-    {270, 54, 12, 126},
-    {293, 54, 12, 126},
-};
-
-/* ═══════════════════════════════════════════════════════════════════════════════
-   RUNTIME STATE  (display-local — never touches audio engine directly)
-   ═══════════════════════════════════════════════════════════════════════════════ */
 
 struct UiRuntime {
   UiStateSnapshot snapshot;
@@ -124,457 +114,460 @@ struct UiRuntime {
   uint8_t activeSlot = 0;
   uint8_t lastActiveSlot = 255;
   UiMode mode = UiMode::PATTERN_EDIT;
-  UiMode lastMode = (UiMode)0xFF;
-  
-  // Hold-to-increment tracking
-  int activeHoldAction = -1; 
-  int activeHoldParam = -1;
-  uint32_t holdNextTickMs = 0;
-  int holdTickCount = 0;
+  UiMode lastMode = UiMode::SYSTEM;
 
-  char status[32] = "CYD ready";
-  char lastStatus[32] = "";
+  char status[40] = "READY";
+  char lastStatus[40] = "";
   uint32_t statusUntilMs = 0;
-  bool forceRedraw = true;
+
+  int activeHoldParam = -1;
+  int holdDirection = 0;
+  uint32_t holdNextTickMs = 0;
+  int holdTicks = 0;
+
+  DirtyFlags dirty;
+  TouchHoldContext holdTouch;
+
+  bool initialized = false;
 } ui;
 
-
-/* ═══════════════════════════════════════════════════════════════════════════════
-   HELPERS
-   ═══════════════════════════════════════════════════════════════════════════════ */
-
-/* Blend two RGB565 colours; alpha 0=bg .. 255=fg */
-static uint16_t blend16(uint16_t fg, uint16_t bg, uint8_t a) {
-    uint8_t r = (uint8_t)(((fg >> 11) * a + (bg >> 11) * (255u - a)) / 255u);
-    uint8_t g = (uint8_t)((((fg >> 5) & 63u) * a + ((bg >> 5) & 63u) * (255u - a)) / 255u);
-    uint8_t b = (uint8_t)(((fg & 31u) * a + (bg & 31u) * (255u - a)) / 255u);
-    return (uint16_t)((r << 11) | (g << 5) | b);
+inline UiMode uiModeFromTab(int tab) {
+  switch (tab) {
+  case 0:
+    return UiMode::PATTERN_EDIT;
+  case 1:
+    return UiMode::SOUND_EDIT;
+  default:
+    return UiMode::MIXER;
+  }
 }
 
-static uint32_t hold_interval(uint8_t count) {
-    if (count < 6)  return 300;
-    if (count < 15) return 120;
-    return 50;
+inline int tabFromMode(UiMode mode) {
+  if (mode == UiMode::SOUND_EDIT)
+    return 1;
+  if (mode == UiMode::MIXER)
+    return 2;
+  return 0;
 }
 
-/* Rounded-rect button — works on both tft and a sprite */
-static void draw_btn(LGFX_Sprite *spr, const Rect *r,
-                     const char *label, uint16_t fill,
-                     uint16_t outline, uint16_t text_col) {
-    if (spr) {
-        spr->fillRoundRect(r->x, r->y, r->w, r->h, 3, fill);
-        spr->drawRoundRect(r->x, r->y, r->w, r->h, 3, outline);
-        spr->setTextColor(text_col, fill);
-        spr->setTextDatum(MC_DATUM);
-        spr->drawString(label, r->x + r->w / 2, r->y + r->h / 2 - 1);
-    } else {
-        tft.fillRoundRect(r->x, r->y, r->w, r->h, 3, fill);
-        tft.drawRoundRect(r->x, r->y, r->w, r->h, 3, outline);
-        tft.setTextColor(text_col, fill);
-        tft.setTextDatum(MC_DATUM);
-        tft.drawString(label, r->x + r->w / 2, r->y + r->h / 2 - 1);
+template <typename T> static inline void setFontUiSmall(T& g) { g.setFont(&fonts::FreeSansBold12pt7b); }
+template <typename T> static inline void setFontUiLarge(T& g) { g.setFont(&fonts::FreeSansBold18pt7b); }
+template <typename T> static inline void setFontValueSmall(T& g) { g.setFont(&fonts::FreeMonoBold12pt7b); }
+template <typename T> static inline void setFontValueLarge(T& g) { g.setFont(&fonts::FreeMonoBold18pt7b); }
+template <typename T> static inline void setFontHeroNumber(T& g) { g.setFont(&fonts::FreeMonoBold24pt7b); }
+
+static inline uint16_t blend16(uint16_t fg, uint16_t bg, uint8_t a) {
+  uint8_t r = (uint8_t)(((fg >> 11) * a + (bg >> 11) * (255u - a)) / 255u);
+  uint8_t g = (uint8_t)((((fg >> 5) & 63u) * a + ((bg >> 5) & 63u) * (255u - a)) / 255u);
+  uint8_t b = (uint8_t)(((fg & 31u) * a + (bg & 31u) * (255u - a)) / 255u);
+  return (uint16_t)((r << 11) | (g << 5) | b);
+}
+
+static void postUiAction(UiActionType type, int idx = 0, int val = 0) {
+  IPCCommand cmd{};
+  cmd.type = CommandType::UI_ACTION;
+  cmd.voiceId = static_cast<uint8_t>(type);
+  cmd.paramId = static_cast<uint8_t>(idx);
+  cmd.value = static_cast<float>(val);
+  CtrlMgr.sendCommand(cmd);
+}
+
+static void setStatus(const char* msg, uint32_t ms = 1200) {
+  snprintf(ui.status, sizeof(ui.status), "%s", msg);
+  ui.statusUntilMs = millis() + ms;
+  ui.dirty.dirtyStatus = true;
+}
+
+static Rect trackRect(int index) {
+  const int16_t x = 4;
+  const int16_t yStart = R_TRACKS.y + 6;
+  return {x, static_cast<int16_t>(yStart + index * (kTrackButtonH + kTrackButtonGap)),
+          static_cast<int16_t>(R_TRACKS.w - 8), kTrackButtonH};
+}
+
+static Rect trackMuteRect(const Rect& tr) {
+  return {static_cast<int16_t>(tr.x + tr.w - 14), tr.y, 14, tr.h};
+}
+
+static ParamCardRects cardRects(int row) {
+  const int16_t x = R_PANEL.x + 4;
+  const int16_t y = static_cast<int16_t>(R_PANEL.y + 4 + row * 36);
+  const int16_t w = R_PANEL.w - 8;
+  const int16_t h = 32;
+  const Rect outer = {x, y, w, h};
+  const Rect minus = {static_cast<int16_t>(x + 4), static_cast<int16_t>(y + 12), 16, 16};
+  const Rect plus = {static_cast<int16_t>(x + w - 20), static_cast<int16_t>(y + 12), 16, 16};
+  const Rect value = {static_cast<int16_t>(minus.x + minus.w + 4), static_cast<int16_t>(y + 10),
+                      static_cast<int16_t>(w - 48), 18};
+  return {outer, minus, value, plus};
+}
+
+static FaderRect mixFaderRect(int index) {
+  const Rect mixArea = {R_CENTER.x, R_CENTER.y, static_cast<int16_t>(R_CENTER.w + R_PANEL.w), R_CENTER.h};
+  const int16_t pad = 8;
+  const int16_t gap = 6;
+  const int16_t faderW = static_cast<int16_t>((mixArea.w - (2 * pad) - (gap * 4)) / 5);
+  const int16_t x = static_cast<int16_t>(mixArea.x + pad + index * (faderW + gap));
+  const Rect slot = {x, static_cast<int16_t>(mixArea.y + 20), faderW, static_cast<int16_t>(mixArea.h - 30)};
+  const Rect track = {static_cast<int16_t>(x + (faderW / 2) - 6), static_cast<int16_t>(slot.y + 4), 12,
+                      static_cast<int16_t>(slot.h - 16)};
+  return {slot, track};
+}
+
+static void drawPlusMinusSymbol(const Rect& r, bool plus) {
+  const int16_t cx = r.x + r.w / 2;
+  const int16_t cy = r.y + r.h / 2;
+  tft.drawFastHLine(cx - 4, cy, 9, C_TEXT);
+  if (plus) {
+    tft.drawFastVLine(cx, cy - 4, 9, C_TEXT);
+  }
+}
+
+static void drawHeaderButton(const Rect& r, const char* label, bool active, uint16_t accent) {
+  const uint16_t fill = active ? accent : C_PANEL_2;
+  const uint16_t text = active ? C_BG : C_TEXT;
+  tft.fillRoundRect(r.x, r.y, r.w, r.h, 4, fill);
+  tft.drawRoundRect(r.x, r.y, r.w, r.h, 4, C_STROKE);
+  setFontUiSmall(tft);
+  tft.setTextColor(text, fill);
+  tft.setTextDatum(MC_DATUM);
+  tft.drawString(label, r.x + r.w / 2, r.y + r.h / 2);
+}
+
+static void drawHeader() {
+  tft.fillRect(R_HEADER.x, R_HEADER.y, R_HEADER.w, R_HEADER.h, C_BG);
+
+  const bool playing = ui.snapshot.isPlaying;
+  drawHeaderButton(BTN_PLAY, playing ? "STOP" : "PLAY", playing, playing ? C_STOP : C_PLAY);
+
+  tft.fillRoundRect(BPM_BOX.x, BPM_BOX.y, BPM_BOX.w, BPM_BOX.h, 4, C_PANEL);
+  tft.drawRoundRect(BPM_BOX.x, BPM_BOX.y, BPM_BOX.w, BPM_BOX.h, 4, C_STROKE);
+  setFontUiSmall(tft);
+  tft.setTextColor(C_TEXT_DIM, C_PANEL);
+  tft.setTextDatum(TL_DATUM);
+  tft.drawString("BPM", BPM_BOX.x + 6, BPM_BOX.y + 4);
+  setFontHeroNumber(tft);
+  tft.setTextColor(C_TEXT, C_PANEL);
+  tft.setTextDatum(TR_DATUM);
+  char bpmText[8];
+  snprintf(bpmText, sizeof(bpmText), "%3d", ui.snapshot.bpm);
+  tft.drawString(bpmText, BPM_BOX.x + BPM_BOX.w - 6, BPM_BOX.y + BPM_BOX.h - 4);
+
+  tft.fillRoundRect(SLOT_BOX.x, SLOT_BOX.y, SLOT_BOX.w, SLOT_BOX.h, 4, C_PANEL_2);
+  tft.drawRoundRect(SLOT_BOX.x, SLOT_BOX.y, SLOT_BOX.w, SLOT_BOX.h, 4, C_STROKE);
+  setFontUiSmall(tft);
+  tft.setTextColor(C_TEXT_DIM, C_PANEL_2);
+  tft.setTextDatum(TL_DATUM);
+  tft.drawString("SLOT", SLOT_BOX.x + 4, SLOT_BOX.y + 4);
+  setFontValueLarge(tft);
+  tft.setTextColor(C_TEXT, C_PANEL_2);
+  tft.setTextDatum(TR_DATUM);
+  char slotText[8];
+  snprintf(slotText, sizeof(slotText), "%02d", ui.activeSlot + 1);
+  tft.drawString(slotText, SLOT_BOX.x + SLOT_BOX.w - 4, SLOT_BOX.y + SLOT_BOX.h - 5);
+
+  drawHeaderButton(BTN_SAVE, "SAVE", false, C_ACCENT_SEQ);
+  drawHeaderButton(BTN_LOAD, "LOAD", false, C_ACCENT_SEQ);
+
+  tft.drawFastHLine(0, R_HEADER.y + R_HEADER.h - 1, R_HEADER.w, C_DIVIDER);
+}
+
+static void drawStatusStrip() {
+  tft.fillRect(R_STATUS.x, R_STATUS.y, R_STATUS.w, R_STATUS.h, C_PANEL);
+  const bool statusActive = ui.statusUntilMs > millis();
+  setFontUiSmall(tft);
+  tft.setTextDatum(ML_DATUM);
+  tft.setTextColor(C_ACCENT_STATUS, C_PANEL);
+  tft.drawString("STATUS", 6, R_STATUS.y + R_STATUS.h / 2);
+
+  setFontValueSmall(tft);
+  tft.setTextColor(statusActive ? C_TEXT : C_TEXT_DIM, C_PANEL);
+  tft.drawString(statusActive ? ui.status : (ui.snapshot.isPlaying ? "PLAYING" : "READY"), 70,
+                 R_STATUS.y + R_STATUS.h / 2);
+}
+
+static void drawTrackButton(int i) {
+  const Rect tr = trackRect(i);
+  const Rect mute = trackMuteRect(tr);
+  const bool active = (ui.snapshot.activeTrack == i);
+  const bool muted = ui.snapshot.trackMutes[i];
+  const uint16_t trackColor = TRACK_COLORS[i];
+
+  uint16_t fill = C_PANEL;
+  uint16_t text = C_TEXT;
+  if (active) {
+    fill = blend16(trackColor, C_BG, 85);
+    text = C_BG;
+  } else if (muted) {
+    fill = C_PANEL_2;
+    text = C_TEXT_DIM;
+  }
+
+  tft.fillRoundRect(tr.x, tr.y, tr.w, tr.h, 4, fill);
+  tft.drawRoundRect(tr.x, tr.y, tr.w, tr.h, 4, C_STROKE);
+
+  tft.fillRect(mute.x, mute.y, mute.w, mute.h, muted ? C_MUTE : C_PANEL_2);
+  tft.drawFastVLine(mute.x, mute.y, mute.h, C_STROKE);
+
+  setFontUiLarge(tft);
+  tft.setTextColor(text, fill);
+  tft.setTextDatum(ML_DATUM);
+  tft.drawString(TRACK_NAMES[i], tr.x + 4, tr.y + tr.h / 2 + 1);
+
+  setFontValueSmall(tft);
+  tft.setTextColor(muted ? C_BG : C_TEXT_DIM, muted ? C_MUTE : C_PANEL_2);
+  tft.setTextDatum(MC_DATUM);
+  tft.drawString("M", mute.x + mute.w / 2, mute.y + mute.h / 2);
+}
+
+static void drawTracks() {
+  tft.fillRect(R_TRACKS.x, R_TRACKS.y, R_TRACKS.w, R_TRACKS.h, C_BG);
+  for (int i = 0; i < TRACK_COUNT; ++i) {
+    drawTrackButton(i);
+  }
+}
+
+static void drawSeqCenter() {
+  tft.fillRect(R_CENTER.x, R_CENTER.y, R_CENTER.w, R_CENTER.h, C_BG);
+  const int16_t cx = R_CENTER.x + R_CENTER.w / 2;
+  const int16_t cy = R_CENTER.y + R_CENTER.h / 2;
+
+  for (int t = 0; t < TRACK_COUNT; ++t) {
+    const int16_t radius = 60 - t * 10;
+    const uint16_t ringColor = (t == ui.snapshot.activeTrack) ? TRACK_COLORS[t] : blend16(TRACK_COLORS[t], C_BG, 40);
+    tft.drawCircle(cx, cy, radius, ringColor);
+
+    const int len = max(1, ui.snapshot.patternLens[t]);
+    for (int s = 0; s < len; ++s) {
+      const float a = ((2.0f * M_PI * s) / len) - 1.5707963f;
+      const int16_t px = static_cast<int16_t>(cx + cosf(a) * radius);
+      const int16_t py = static_cast<int16_t>(cy + sinf(a) * radius);
+      const bool hit = ui.snapshot.patterns[t][s] > 0;
+      const bool playhead = ui.snapshot.isPlaying && ((ui.snapshot.currentStep % len) == s);
+
+      if (hit && playhead) {
+        tft.fillCircle(px, py, 3, C_TEXT);
+      } else if (hit) {
+        tft.fillCircle(px, py, 2, ringColor);
+      } else if (playhead && t == ui.snapshot.activeTrack) {
+        tft.drawCircle(px, py, 2, C_ACCENT_SEQ);
+      }
     }
+  }
+
+  setFontHeroNumber(tft);
+  tft.setTextColor(C_TEXT, C_BG);
+  tft.setTextDatum(MC_DATUM);
+  char stepTxt[16];
+  snprintf(stepTxt, sizeof(stepTxt), "%02d", (ui.snapshot.currentStep % 16) + 1);
+  tft.drawString(stepTxt, cx, cy + 2);
+  setFontUiSmall(tft);
+  tft.setTextColor(C_TEXT_DIM, C_BG);
+  tft.drawString("STEP", cx, cy - 26);
 }
 
-static void postUiAction(UiActionType t, int idx=0, int val=0) {
-    IPCCommand cmd{};
-    cmd.type    = CommandType::UI_ACTION;
-    cmd.voiceId = (uint8_t)t;
-    cmd.paramId = (uint8_t)idx;
-    cmd.value   = (float)val;
-    CtrlMgr.sendCommand(cmd);
+static void drawSoundCenter() {
+  tft.fillRect(R_CENTER.x, R_CENTER.y, R_CENTER.w, R_CENTER.h, C_BG);
+  setFontUiSmall(tft);
+  tft.setTextColor(C_TEXT_DIM, C_BG);
+  tft.setTextDatum(TL_DATUM);
+  tft.drawString("SOUND PREVIEW", R_CENTER.x + 6, R_CENTER.y + 12);
+
+  const int barCount = 8;
+  const int barW = 14;
+  const int gap = 3;
+  const int x0 = R_CENTER.x + 10;
+  const int baseY = R_CENTER.y + R_CENTER.h - 20;
+  const uint16_t c = TRACK_COLORS[ui.snapshot.activeTrack];
+
+  for (int i = 0; i < barCount; ++i) {
+    const uint8_t patt = ui.snapshot.patterns[ui.snapshot.activeTrack][i] > 0 ? 1 : 0;
+    const int h = patt ? 56 - (i % 3) * 10 : 24 - (i % 2) * 6;
+    const int x = x0 + i * (barW + gap);
+    tft.fillRoundRect(x, baseY - h, barW, h, 3, patt ? c : C_PANEL_2);
+    tft.drawRoundRect(x, baseY - h, barW, h, 3, C_STROKE);
+  }
+
+  setFontValueLarge(tft);
+  tft.setTextColor(C_TEXT, C_BG);
+  tft.setTextDatum(BR_DATUM);
+  char tr[8];
+  snprintf(tr, sizeof(tr), "T%d", ui.snapshot.activeTrack + 1);
+  tft.drawString(tr, R_CENTER.x + R_CENTER.w - 6, R_CENTER.y + R_CENTER.h - 6);
 }
 
-static void set_status(const char *msg, uint32_t ms = 1400) {
-    snprintf(ui.status, sizeof(ui.status), "%s", msg);
-    ui.statusUntilMs = millis() + ms;
+static void drawMixCenter() {
+  const Rect mixArea = {R_CENTER.x, R_CENTER.y, static_cast<int16_t>(R_CENTER.w + R_PANEL.w), R_CENTER.h};
+  tft.fillRect(mixArea.x, mixArea.y, mixArea.w, mixArea.h, C_BG);
+
+  for (int i = 0; i < TRACK_COUNT; ++i) {
+    FaderRect fr = mixFaderRect(i);
+    tft.fillRoundRect(fr.slot.x, fr.slot.y, fr.slot.w, fr.slot.h, 4, C_PANEL);
+    tft.drawRoundRect(fr.slot.x, fr.slot.y, fr.slot.w, fr.slot.h, 4, C_STROKE);
+
+    const float gain = constrain(ui.snapshot.voiceGain[i], 0.0f, 1.0f);
+    const int16_t fillH = static_cast<int16_t>(gain * (fr.track.h - 6));
+    const int16_t fillY = fr.track.y + fr.track.h - fillH;
+
+    tft.fillRect(fr.track.x, fr.track.y, fr.track.w, fr.track.h, C_PANEL_2);
+    tft.fillRect(fr.track.x, fillY, fr.track.w, fillH, ui.snapshot.trackMutes[i] ? C_MUTE : TRACK_COLORS[i]);
+    tft.drawRect(fr.track.x, fr.track.y, fr.track.w, fr.track.h, C_STROKE);
+
+    const int16_t knobY = constrain(fillY - 3, fr.track.y, fr.track.y + fr.track.h - 6);
+    tft.fillRoundRect(fr.slot.x + 2, knobY, fr.slot.w - 4, 6, 2, C_TEXT);
+
+    setFontUiSmall(tft);
+    tft.setTextColor(C_TEXT, C_BG);
+    tft.setTextDatum(MC_DATUM);
+    tft.drawString(TRACK_NAMES[i], fr.slot.x + fr.slot.w / 2, fr.slot.y + fr.slot.h + 10);
+  }
 }
-
-/* ═══════════════════════════════════════════════════════════════════════════════
-   DRAW — TRANSPORT BAR  (y 0–42)
-   ═══════════════════════════════════════════════════════════════════════════════ */
-static void draw_transport(void) {
-    char buf[8];
-    tft.fillRect(0, 0, CYDConfig::ScreenWidth, 42, C_BG);
-
-    /* Play / Stop */
-    bool pl = ui.snapshot.isPlaying;
-    tft.fillRect(R_PLAY.x, R_PLAY.y, R_PLAY.w, R_PLAY.h, pl ? C_ACCENT : C_PLAY);
-    tft.drawRect(R_PLAY.x, R_PLAY.y, R_PLAY.w, R_PLAY.h, C_DIM);
-    if (pl) {
-        tft.fillRect(R_PLAY.x + 20, R_PLAY.y + 7,  10, 16, C_BG);
-        tft.fillRect(R_PLAY.x + 36, R_PLAY.y + 7,  10, 16, C_BG);
-    } else {
-        tft.fillTriangle(R_PLAY.x + 18, R_PLAY.y + 5,
-                         R_PLAY.x + 18, R_PLAY.y + 25,
-                         R_PLAY.x + 44, R_PLAY.y + 15, C_BG);
-    }
-
-    /* Pattern slot */
-    draw_btn(NULL, &R_SLOT_DEC, "<", C_PANEL, C_DIM, C_TEXT);
-    snprintf(buf, sizeof(buf), "%d", ui.activeSlot + 1);
-    draw_btn(NULL, &R_SLOT_VAL, buf, C_PANEL2, C_DIM, C_TEXT);
-    draw_btn(NULL, &R_SLOT_INC, ">", C_PANEL, C_DIM, C_TEXT);
-
-    /* Save / Load */
-    draw_btn(NULL, &R_SAVE, "S", C_PANEL2, C_DIM, C_TEXT);
-    draw_btn(NULL, &R_LOAD, "L", C_PANEL2, C_DIM, C_TEXT);
-
-    /* BPM */
-    draw_btn(NULL, &R_BPM_DEC, "-", C_PANEL, C_DIM, C_TEXT);
-    snprintf(buf, sizeof(buf), "%3d", ui.snapshot.bpm);
-    draw_btn(NULL, &R_BPM_VAL, buf, C_PANEL2, C_DIM, C_ACCENT);
-    draw_btn(NULL, &R_BPM_INC, "+", C_PANEL, C_DIM, C_TEXT);
-
-    /* Status line (thin bar below transport) */
-    uint16_t bar_col = (ui.statusUntilMs > millis()) ? C_ACCENT : C_DIM;
-    tft.drawFastHLine(0, 41, CYDConfig::ScreenWidth, bar_col);
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════════
-   DRAW — STATUS TEXT (overlaid in BPM value box)
-   ═══════════════════════════════════════════════════════════════════════════════ */
-static void draw_status(void) {
-    bool active = (ui.statusUntilMs > millis());
-    const char *msg = active ? ui.status
-                     : ui.snapshot.isPlaying
-                         ? "PLAYING"
-                         : "READY";
-    draw_btn(NULL, &R_BPM_VAL, msg, C_PANEL2, active ? C_ACCENT : C_DIM,
-             active ? (uint16_t)C_PLAY : (uint16_t)C_TEXT);
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════════
-   DRAW — TRACK SELECTOR (left margin)
-   ═══════════════════════════════════════════════════════════════════════════════ */
-static void draw_tracks(void) {
-    char lbl[2] = {0, 0};
-    for (int i = 0; i < TRACK_COUNT; i++) {
-        bool sel = (ui.snapshot.activeTrack == i);
-        bool mut = ui.snapshot.trackMutes[i];
-        uint16_t col  = TRACK_COLORS[i];
-        uint16_t fill = sel ? blend16(col, C_BG, 55) : (mut ? C_PANEL2 : C_PANEL);
-        uint16_t brd  = mut ? blend16(col, C_BG, 50) : col;
-        uint16_t txt  = sel ? C_BG : (mut ? blend16(col, C_BG, 60) : col);
-        lbl[0] = TRACK_CHARS[i];
-        draw_btn(NULL, &R_TRACKS[i], lbl, fill, brd, txt);
-        if (mut && !sel) {
-            tft.drawLine(R_TRACKS[i].x + 2, R_TRACKS[i].y + 2,
-                         R_TRACKS[i].x + R_TRACKS[i].w - 3,
-                         R_TRACKS[i].y + R_TRACKS[i].h - 3, C_DIM);
-        }
-    }
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════════
-   DRAW — EUCLIDEAN RING (via sprite — atomic push, zero flicker)
-   ═══════════════════════════════════════════════════════════════════════════════ */
-static void draw_ring(void) {
-    s_ring.fillSprite(C_BG);
-
-    /* Guide circles */
-    for (int t = 0; t < TRACK_COUNT; t++) {
-        uint8_t a = (t == ui.snapshot.activeTrack) ? 55u : 18u;
-        s_ring.drawCircle(RING_CX, RING_CY, RING_RADII[t],
-                          blend16(TRACK_COLORS[t], C_BG, a));
-    }
-
-    /* Playhead spoke */
-    if (ui.snapshot.isPlaying) {
-        float ang = ((ui.snapshot.currentStep % 16) / 16.0f) * 2.0f * (float)M_PI - (float)(M_PI / 2.0);
-        s_ring.drawLine(RING_CX, RING_CY,
-                        RING_CX + (int)(66 * cosf(ang)),
-                        RING_CY + (int)(66 * sinf(ang)),
-                        blend16(C_PLAY, C_BG, 18));
-    }
-
-    /* Step dots */
-    for (int t = 0; t < TRACK_COUNT; t++) {
-        int len = ui.snapshot.patternLens[t];
-        if (len <= 0) continue;
-        bool sel = (t == ui.snapshot.activeTrack);
-        bool mut = ui.snapshot.trackMutes[t];
-        uint16_t col = TRACK_COLORS[t];
-        uint8_t  rad = RING_RADII[t];
-        int      dr  = sel ? 3 : 2;
-
-        for (int i = 0; i < len; i++) {
-            float ang = (2.0f * (float)M_PI * i / len) - (float)(M_PI / 2.0);
-            int16_t px = (int16_t)(RING_CX + rad * cosf(ang));
-            int16_t py = (int16_t)(RING_CY + rad * sinf(ang));
-            bool active   = ui.snapshot.patterns[t][i] > 0;
-            bool playhead = ui.snapshot.isPlaying && (i == ui.snapshot.currentStep % len);
-
-            if (mut) {
-                if (active) s_ring.drawCircle(px, py, dr - 1,
-                                blend16(col, C_BG, 25));
-            } else if (playhead && active) {
-                s_ring.fillCircle(px, py, dr + 1, TFT_WHITE);
-            } else if (playhead) {
-                s_ring.drawCircle(px, py, dr, col);
-            } else if (active) {
-                s_ring.fillCircle(px, py, dr,
-                    sel ? col : blend16(col, C_BG, 80));
-            } else if (sel) {
-                s_ring.drawCircle(px, py, 1, C_DIM);
-            }
-        }
-    }
-
-    /* Centre pulse */
-    int pr = ui.snapshot.isPlaying ? ((ui.snapshot.currentStep % 4 == 0) ? 5 : 3) : 3;
-    s_ring.fillCircle(RING_CX, RING_CY, pr, ui.snapshot.isPlaying ? C_PLAY : C_PANEL2);
-    s_ring.fillCircle(RING_CX, RING_CY, 1,  ui.snapshot.isPlaying ? C_BG   : C_DIM);
-
-    s_ring.pushSprite(R_RING.x, R_RING.y);
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════════
-   DRAW — BOTTOM ACTION ROW (Mute / Voice / Mix)
-   ═══════════════════════════════════════════════════════════════════════════════ */
-static void draw_footer(void) {
-    bool mut   = ui.snapshot.trackMutes[ui.snapshot.activeTrack];
-    bool voice = (ui.mode == UiMode::SOUND_EDIT);
-    bool mix   = (ui.mode == UiMode::MIXER);
-
-    draw_btn(NULL, &R_MUTE,  mut   ? "MUTED" : "MUTE",
-             mut   ? C_ACCENT : C_PANEL2, C_DIM, C_TEXT);
-    draw_btn(NULL, &R_VOICE, "VOICE",
-             voice ? C_SELECT : C_PANEL2, C_DIM, voice ? (uint16_t)C_BG : (uint16_t)C_TEXT);
-    draw_btn(NULL, &R_MIX,   "MIX",
-             mix   ? C_EXPR   : C_PANEL2, C_DIM, C_TEXT);
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════════
-   DRAW — PARAMETER PANEL (right side, via sprite)
-   ═══════════════════════════════════════════════════════════════════════════════ */
-
-/* Fill label + value strings for each param row */
-struct ParamMeta { char label[12]; char value[12]; float norm; };
 
 static int getParamDisplayValue(int paramIndex) {
-    const int track = ui.snapshot.activeTrack;
-    const bool isBass = track == VOICE_BASS;
-    const VoiceParams &params = ui.snapshot.voiceParams[track];
+  const int track = ui.snapshot.activeTrack;
+  const bool isBass = track == VOICE_BASS;
+  const VoiceParams& params = ui.snapshot.voiceParams[track];
 
-    if (ui.mode == UiMode::SOUND_EDIT) {
-        if (isBass) {
-            switch (paramIndex) {
-                case 0: return static_cast<int>(params.pitch * 100.0f);
-                case 1: return static_cast<int>(params.decay * 100.0f);
-                case 2: return static_cast<int>(params.timbre * 100.0f);
-                default: return static_cast<int>(params.drive * 100.0f);
-            }
-        } else {
-            switch (paramIndex) {
-                case 0: return static_cast<int>(params.pitch * 100.0f);
-                case 1: return static_cast<int>(params.decay * 100.0f);
-                case 2: return static_cast<int>(params.timbre * 100.0f);
-                default: return (track == VOICE_KICK) ? static_cast<int>(params.drive * 100.0f) : static_cast<int>(ui.snapshot.voiceGain[track] * 100.0f);
-            }
-        }
-    } else {
-        if (isBass) {
-            switch (paramIndex) {
-                case 0: return static_cast<int>(ui.snapshot.bassParams.density * 100.0f);
-                case 1: return ui.snapshot.bassParams.range;
-                case 2: return static_cast<int>(ui.snapshot.bassParams.scaleType);
-                default: return ui.snapshot.bassParams.rootNote;
-            }
-        } else {
-            switch (paramIndex) {
-                case 0: return ui.snapshot.trackSteps[track];
-                case 1: return ui.snapshot.trackHits[track];
-                case 2: return ui.snapshot.trackRotations[track];
-                default: return static_cast<int>(ui.snapshot.voiceGain[track] * 100.0f);
-            }
-        }
+  if (ui.mode == UiMode::SOUND_EDIT) {
+    switch (paramIndex) {
+    case 0:
+      return static_cast<int>(params.pitch * 100.0f);
+    case 1:
+      return static_cast<int>(params.decay * 100.0f);
+    case 2:
+      return static_cast<int>(params.timbre * 100.0f);
+    default:
+      return static_cast<int>((isBass ? params.drive : ui.snapshot.voiceGain[track]) * 100.0f);
     }
+  }
+
+  if (isBass) {
+    switch (paramIndex) {
+    case 0:
+      return static_cast<int>(ui.snapshot.bassParams.density * 100.0f);
+    case 1:
+      return ui.snapshot.bassParams.range;
+    case 2:
+      return static_cast<int>(ui.snapshot.bassParams.scaleType);
+    default:
+      return ui.snapshot.bassParams.rootNote;
+    }
+  }
+
+  switch (paramIndex) {
+  case 0:
+    return ui.snapshot.trackSteps[track];
+  case 1:
+    return ui.snapshot.trackHits[track];
+  case 2:
+    return ui.snapshot.trackRotations[track];
+  default:
+    return static_cast<int>(ui.snapshot.voiceGain[track] * 100.0f);
+  }
 }
 
-static void param_meta(int row, ParamMeta *out) {
-    out->label[0] = '\0';
-    out->value[0] = '\0';
-    out->norm = 0.0f;
+static void getParamLabel(int row, char* out, size_t n) {
+  if (ui.mode == UiMode::SOUND_EDIT) {
+    static const char* kSoundLabels[4] = {"PITCH", "DECAY", "TIMBRE", "LEVEL"};
+    snprintf(out, n, "%s", kSoundLabels[row]);
+    return;
+  }
 
-    const int   tr    = ui.snapshot.activeTrack;
-    const bool  bass  = (tr == VOICE_BASS);
-    const VoiceParams &vp = ui.snapshot.voiceParams[tr];
+  if (ui.snapshot.activeTrack == VOICE_BASS) {
+    static const char* kBassLabels[4] = {"DENS", "RANGE", "SCALE", "ROOT"};
+    snprintf(out, n, "%s", kBassLabels[row]);
+    return;
+  }
 
-    if (ui.mode == UiMode::SOUND_EDIT) {
-        static const char * const PITCH_LBL[TRACK_COUNT] =
-            {"Pitch","Tune","Freq","Freq","Pitch"};
-        static const char * const DECAY_LBL[TRACK_COUNT] =
-            {"Decay","Snap","Decay","Ring","Glide"};
-        static const char * const TIMB_LBL[TRACK_COUNT] =
-            {"Punch","Tone","Open","Open","Timbre"};
-        static const char * const DRIVE_LBL[TRACK_COUNT] =
-            {"Drive","Crack","Level","Level","Level"};
-        float vals[4] = {vp.pitch, vp.decay, vp.timbre, vp.drive};
-        if (!bass && row == 3 && tr != VOICE_KICK) {
-            vals[3] = ui.snapshot.voiceGain[tr];
-        }
-        const char *lbls[4] = {PITCH_LBL[tr], DECAY_LBL[tr],
-                                TIMB_LBL[tr], DRIVE_LBL[tr]};
-        if (!bass && row == 3 && tr != VOICE_KICK) {
-            lbls[3] = "Level";
-        }
-        if (row < 4) {
-            snprintf(out->label, sizeof(out->label), "%s", lbls[row]);
-            snprintf(out->value, sizeof(out->value), "%d", getParamDisplayValue(row));
-            out->norm = vals[row];
-        }
-        return;
-    }
-
-    if (bass) {
-        static const char * const SCALE_NAMES[] =
-            {"Chrom","Major","Minor","Penta","Blues"};
-        static const char * const NOTE_NAMES[] =
-            {"C","C#","D","Eb","E","F","F#","G","Ab","A","Bb","B"};
-        const BassGrooveParams &bp = ui.snapshot.bassParams;
-        switch (row) {
-            case 0:
-                snprintf(out->label, sizeof(out->label), "Density");
-                snprintf(out->value, sizeof(out->value), "%d", getParamDisplayValue(row));
-                out->norm = bp.density; break;
-            case 1:
-                snprintf(out->label, sizeof(out->label), "Range");
-                snprintf(out->value, sizeof(out->value), "%d", getParamDisplayValue(row));
-                out->norm = (float)(bp.range - 1) / 11.0f; break;
-            case 2: {
-                snprintf(out->label, sizeof(out->label), "Scale");
-                int sc = constrain((int)bp.scaleType, 0, 4);
-                snprintf(out->value, sizeof(out->value), "%s", SCALE_NAMES[sc]);
-                out->norm = (float)sc / 4.0f; break;
-            }
-            case 3: {
-                snprintf(out->label, sizeof(out->label), "Root");
-                snprintf(out->value, sizeof(out->value), "%s%d",
-                         NOTE_NAMES[bp.rootNote % 12], bp.rootNote / 12 - 1);
-                out->norm = (float)(bp.rootNote - 24) / 36.0f; break;
-            }
-            default: break;
-        }
-        return;
-    }
-
-    /* Percussion — pattern params */
-    int steps = ui.snapshot.trackSteps[tr];
-    switch (row) {
-        case 0:
-            snprintf(out->label, sizeof(out->label), "Steps");
-            snprintf(out->value, sizeof(out->value), "%d", getParamDisplayValue(row));
-            out->norm = (float)(steps - 4) / 60.0f; break;
-        case 1:
-            snprintf(out->label, sizeof(out->label), "Hits");
-            snprintf(out->value, sizeof(out->value), "%d", getParamDisplayValue(row));
-            out->norm = steps > 0
-                ? (float)ui.snapshot.trackHits[tr] / steps : 0.0f; break;
-        case 2:
-            snprintf(out->label, sizeof(out->label), "Rot");
-            snprintf(out->value, sizeof(out->value), "%d", getParamDisplayValue(row));
-            out->norm = steps > 1
-                ? (float)ui.snapshot.trackRotations[tr] / (steps - 1) : 0.0f; break;
-        case 3:
-            snprintf(out->label, sizeof(out->label), "Vol");
-            snprintf(out->value, sizeof(out->value), "%d", getParamDisplayValue(row));
-            out->norm = ui.snapshot.voiceGain[tr]; break;
-        default: break;
-    }
+  static const char* kSeqLabels[4] = {"STEPS", "HITS", "ROT", "VOL"};
+  snprintf(out, n, "%s", kSeqLabels[row]);
 }
 
-static void draw_params(void) {
-    uint16_t tc = TRACK_COLORS[ui.snapshot.activeTrack];
+static void drawParamPanel() {
+  tft.fillRect(R_PANEL.x, R_PANEL.y, R_PANEL.w, R_PANEL.h, C_BG);
+  if (ui.mode == UiMode::MIXER) {
+    return;
+  }
 
-    s_panel.fillSprite(C_BG);
+  for (int row = 0; row < 4; ++row) {
+    ParamCardRects rc = cardRects(row);
+    const bool focused = (row == 0);
+    tft.fillRoundRect(rc.outer.x, rc.outer.y, rc.outer.w, rc.outer.h, 4, C_PANEL);
+    tft.drawRoundRect(rc.outer.x, rc.outer.y, rc.outer.w, rc.outer.h, 4,
+                      focused ? C_ACCENT_SEQ : C_STROKE);
 
-    /* Track name header */
-    s_panel.setTextColor(tc, C_BG);
-    s_panel.setTextDatum(MC_DATUM);
-    s_panel.drawString(TRACK_LABELS[ui.snapshot.activeTrack], PANEL_W / 2, 8);
-    s_panel.drawFastHLine(0, 15, PANEL_W, C_DIM);
+    char lbl[10];
+    getParamLabel(row, lbl, sizeof(lbl));
+    setFontUiSmall(tft);
+    tft.setTextColor(focused ? C_TEXT : C_TEXT_DIM, C_PANEL);
+    tft.setTextDatum(TL_DATUM);
+    tft.drawString(lbl, rc.outer.x + 4, rc.outer.y + 3);
 
-    if (ui.mode == UiMode::MIXER) {
-        /* 5 vertical sliders */
-        int sh = PANEL_H - 22;
-        int sw = (PANEL_W - 10) / TRACK_COUNT;
-        for (int i = 0; i < TRACK_COUNT; i++) {
-            int sx = 5 + i * sw, sy = 20;
-            int filled = (int)(ui.snapshot.voiceGain[i] * sh);
-            bool mut = ui.snapshot.trackMutes[i];
-            s_panel.fillRect(sx, sy, sw - 2, sh, C_PANEL);
-            s_panel.fillRect(sx, sy + sh - filled, sw - 2, filled,
-                mut ? blend16(TRACK_COLORS[i], C_BG, 40) : TRACK_COLORS[i]);
-            s_panel.drawRect(sx, sy, sw - 2, sh, C_DIM);
-            s_panel.setTextColor(TRACK_COLORS[i], C_BG);
-            s_panel.setTextDatum(MC_DATUM);
-            char lbl[2] = {TRACK_CHARS[i], '\0'};
-            s_panel.drawString(lbl, sx + (sw - 2) / 2, sy + sh + 7);
-        }
-    } else {
-        for (int row = 0; row < 4; row++) {
-            ParamMeta m;
-            param_meta(row, &m);
-            if (m.label[0] == '\0') continue;
+    tft.fillRoundRect(rc.minus.x, rc.minus.y, rc.minus.w, rc.minus.h, 3, C_PANEL_2);
+    tft.fillRoundRect(rc.plus.x, rc.plus.y, rc.plus.w, rc.plus.h, 3, C_PANEL_2);
+    tft.drawRoundRect(rc.minus.x, rc.minus.y, rc.minus.w, rc.minus.h, 3, C_STROKE);
+    tft.drawRoundRect(rc.plus.x, rc.plus.y, rc.plus.w, rc.plus.h, 3, C_STROKE);
 
-            const ParamRow *pr = &PARAM_ROWS[row];
+    drawPlusMinusSymbol(rc.minus, false);
+    drawPlusMinusSymbol(rc.plus, true);
 
-            /* Mini progress bar */
-            int bw = (int)(m.norm * (float)(pr->value.w - 4));
-            s_panel.fillRect(pr->value.x + 2, pr->value.y - 5, pr->value.w - 4, 3, C_PANEL);
-            if (bw > 0)
-                s_panel.fillRect(pr->value.x + 2, pr->value.y - 5, bw, 3, tc);
+    tft.fillRoundRect(rc.value.x, rc.value.y, rc.value.w, rc.value.h, 3, C_PANEL_2);
+    tft.drawRoundRect(rc.value.x, rc.value.y, rc.value.w, rc.value.h, 3, C_STROKE);
 
-            /* Label */
-            s_panel.setTextColor(C_DIM, C_BG);
-            s_panel.setTextDatum(TL_DATUM);
-            s_panel.drawString(m.label, pr->minus.x, pr->touch.y + 2);
-
-            /* − value + */
-            draw_btn(&s_panel, &pr->minus, "-", C_PANEL,  C_DIM, C_TEXT);
-            draw_btn(&s_panel, &pr->value, m.value, C_PANEL2, tc,    C_TEXT);
-            draw_btn(&s_panel, &pr->plus,  "+", C_PANEL,  C_DIM, C_TEXT);
-        }
-    }
-
-    s_panel.pushSprite(PANEL_SX, PANEL_SY);
+    setFontValueLarge(tft);
+    tft.setTextColor(C_TEXT, C_PANEL_2);
+    tft.setTextDatum(MC_DATUM);
+    char val[12];
+    snprintf(val, sizeof(val), "%d", getParamDisplayValue(row));
+    tft.drawString(val, rc.value.x + rc.value.w / 2, rc.value.y + rc.value.h / 2 + 1);
+  }
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════════
-   HOLD-TO-ACCELERATE
-   ═══════════════════════════════════════════════════════════════════════════════ */
-static void hold_start(int paramIndex, int delta) {
-    ui.activeHoldAction = delta; // delta is +1 or -1
-    ui.activeHoldParam  = paramIndex;
-    ui.holdTickCount  = 0;
-    ui.holdNextTickMs   = millis() + 400;
+static void drawTabs() {
+  tft.fillRect(R_TABS.x, R_TABS.y, R_TABS.w, R_TABS.h, C_BG);
+  tft.drawFastHLine(R_TABS.x, R_TABS.y, R_TABS.w, C_DIVIDER);
+
+  const int activeTab = tabFromMode(ui.mode);
+  const Rect tabs[3] = {TAB_SEQ, TAB_SOUND, TAB_MIX};
+  const char* names[3] = {"SEQ", "SOUND", "MIX"};
+
+  for (int i = 0; i < 3; ++i) {
+    const bool active = (i == activeTab);
+    tft.fillRoundRect(tabs[i].x, tabs[i].y, tabs[i].w, tabs[i].h, 4, active ? C_ACCENT_SEQ : C_PANEL_2);
+    tft.drawRoundRect(tabs[i].x, tabs[i].y, tabs[i].w, tabs[i].h, 4, C_STROKE);
+    setFontUiLarge(tft);
+    tft.setTextColor(active ? C_BG : C_TEXT, active ? C_ACCENT_SEQ : C_PANEL_2);
+    tft.setTextDatum(MC_DATUM);
+    tft.drawString(names[i], tabs[i].x + tabs[i].w / 2, tabs[i].y + tabs[i].h / 2 + 1);
+  }
 }
 
-static void hold_stop(void) {
-    ui.activeHoldAction = 0;
-    ui.activeHoldParam = -1;
-    ui.holdTickCount  = 0;
+static void drawCenterByMode() {
+  if (ui.mode == UiMode::MIXER) {
+    drawMixCenter();
+    return;
+  }
+  if (ui.mode == UiMode::SOUND_EDIT) {
+    drawSoundCenter();
+    return;
+  }
+  drawSeqCenter();
 }
 
 static void fireParamAction(int paramIndex, int amount) {
   const int track = ui.snapshot.activeTrack;
   const bool isBass = track == VOICE_BASS;
-
-  int displayValue = getParamDisplayValue(paramIndex);
-  int newValue = displayValue + amount;
+  const int newValue = getParamDisplayValue(paramIndex) + amount;
 
   if (ui.mode == UiMode::SOUND_EDIT) {
     if (isBass) {
       postUiAction(UiActionType::SET_BASS_PARAM, paramIndex, newValue);
-      return;
+    } else {
+      postUiAction(UiActionType::SET_SOUND_PARAM, paramIndex, newValue);
     }
-
-    postUiAction(UiActionType::SET_SOUND_PARAM, paramIndex, newValue);
     return;
   }
 
-  // PATTERN_EDIT Mode
   if (isBass) {
     postUiAction(UiActionType::SET_BASS_PARAM, paramIndex, newValue);
     return;
@@ -591,125 +584,331 @@ static void fireParamAction(int paramIndex, int amount) {
     postUiAction(UiActionType::SET_ROTATION, track, newValue);
     break;
   default:
-    // Volume: adjust voice gain via SET_SOUND_PARAM index 3
     postUiAction(UiActionType::SET_SOUND_PARAM, 3, newValue);
     break;
   }
 }
 
-static void hold_tick(void) {
-    if (ui.activeHoldParam < 0 || ui.activeHoldAction == 0) return;
-    uint32_t now = millis();
-    if (now < ui.holdNextTickMs) return;
-    ui.holdTickCount++;
+static uint32_t holdInterval(int ticks) {
+  if (ticks < 6)
+    return 260;
+  if (ticks < 14)
+    return 100;
+  return 50;
+}
 
-    int amount = ui.activeHoldAction;
-    if (ui.holdTickCount > 15) {
-      amount *= 5;
-    } else if (ui.holdTickCount > 6) {
-      amount *= 2;
-    }
+static void startRepeat(int paramIndex, int direction) {
+  ui.activeHoldParam = paramIndex;
+  ui.holdDirection = direction;
+  ui.holdTicks = 0;
+  ui.holdNextTickMs = millis() + 420;
+}
 
-    if (ui.activeHoldParam == 10) {
-      postUiAction(UiActionType::NUDGE_BPM, 0, amount);
+static void stopRepeat() {
+  ui.activeHoldParam = -1;
+  ui.holdDirection = 0;
+  ui.holdTicks = 0;
+}
+
+static void tickRepeat() {
+  if (ui.activeHoldParam < 0 || ui.holdDirection == 0) {
+    return;
+  }
+  const uint32_t now = millis();
+  if (now < ui.holdNextTickMs) {
+    return;
+  }
+
+  ++ui.holdTicks;
+  int amount = ui.holdDirection;
+  if (ui.holdTicks > 14) {
+    amount *= 4;
+  } else if (ui.holdTicks > 6) {
+    amount *= 2;
+  }
+
+  if (ui.activeHoldParam == 10) {
+    postUiAction(UiActionType::NUDGE_BPM, 0, amount);
+  } else {
+    fireParamAction(ui.activeHoldParam, amount);
+  }
+  ui.holdNextTickMs = now + holdInterval(ui.holdTicks);
+}
+
+static void applyTabMode(int tabIndex) {
+  UiMode newMode = uiModeFromTab(tabIndex);
+  postUiAction(UiActionType::CHANGE_MODE, 0, static_cast<int>(newMode));
+  ui.mode = newMode;
+  ui.dirty.dirtyCenter = true;
+  ui.dirty.dirtyTabs = true;
+  ui.dirty.dirtyPanel = true;
+}
+
+static void handleLongPress(const TouchPoint& tp) {
+  if (!tp.pressed || ui.holdTouch.consumed || !ui.holdTouch.pending) {
+    return;
+  }
+  if ((millis() - tp.pressedAtMs) < kLongPressMs) {
+    return;
+  }
+  if (ui.holdTouch.trackIndex >= 0 && ui.holdTouch.trackIndex < TRACK_COUNT) {
+    postUiAction(UiActionType::TOGGLE_MUTE, 0, ui.holdTouch.trackIndex);
+    setStatus("TRACK MUTE");
+    ui.holdTouch.consumed = true;
+  }
+}
+
+static bool handleHeaderTouch(int x, int y) {
+  if (!R_HEADER.contains(x, y)) {
+    return false;
+  }
+
+  if (BTN_PLAY.contains(x, y)) {
+    postUiAction(UiActionType::TOGGLE_PLAY);
+    return true;
+  }
+
+  if (BPM_BOX.contains(x, y)) {
+    const int rel = x - BPM_BOX.x;
+    if (rel < BPM_BOX.w / 2) {
+      postUiAction(UiActionType::NUDGE_BPM, 0, -1);
+      startRepeat(10, -1);
     } else {
-      fireParamAction(ui.activeHoldParam, amount);
+      postUiAction(UiActionType::NUDGE_BPM, 0, +1);
+      startRepeat(10, +1);
     }
-    
-    // Accelerate the ticking rate down to 40ms max speed
-    ui.holdNextTickMs = now + hold_interval(ui.holdTickCount);
+    return true;
+  }
+
+  if (SLOT_BOX.contains(x, y)) {
+    if (x < (SLOT_BOX.x + SLOT_BOX.w / 2)) {
+      ui.activeSlot = (ui.activeSlot == 0) ? (CYDConfig::PatternSlots - 1) : (ui.activeSlot - 1);
+    } else {
+      ui.activeSlot = (ui.activeSlot + 1) % CYDConfig::PatternSlots;
+    }
+    ui.dirty.dirtySlot = true;
+    ui.dirty.dirtyHeader = true;
+    return true;
+  }
+
+  if (BTN_SAVE.contains(x, y)) {
+    setStatus(PatternStore.saveSlot(ui.activeSlot) ? "SAVE OK" : "SAVE FAIL");
+    return true;
+  }
+
+  if (BTN_LOAD.contains(x, y)) {
+    setStatus(PatternStore.loadSlot(ui.activeSlot) ? "LOAD OK" : "LOAD FAIL");
+    return true;
+  }
+
+  return true;
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════════
-   TOUCH HANDLER
-   ═══════════════════════════════════════════════════════════════════════════════ */
-static void param_delta(int row, int delta) {
-    fireParamAction(row, delta);
-    hold_start(row, delta);
+static bool handleTabTouch(int x, int y) {
+  if (!R_TABS.contains(x, y)) {
+    return false;
+  }
+  if (TAB_SEQ.contains(x, y)) {
+    applyTabMode(0);
+  } else if (TAB_SOUND.contains(x, y)) {
+    applyTabMode(1);
+  } else if (TAB_MIX.contains(x, y)) {
+    applyTabMode(2);
+  }
+  return true;
 }
 
-static void handleTouch(const TouchPoint &tp) {
-    if (tp.justReleased) { hold_stop(); return; }
-    if (!tp.justPressed) return;
+static bool handleTrackTouch(int x, int y) {
+  if (!R_TRACKS.contains(x, y)) {
+    return false;
+  }
 
-    int tx = tp.x, ty = tp.y;
-
-    /* ── Transport (y < 42) ────────────────────────────────────────────────── */
-    if (ty < 42) {
-        if (R_PLAY.contains(tx, ty))  { postUiAction(UiActionType::TOGGLE_PLAY, 0, 0); return; }
-        if (R_SLOT_DEC.contains(tx, ty)) { ui.activeSlot = (ui.activeSlot == 0) ? (CYDConfig::PatternSlots - 1) : (ui.activeSlot - 1); return; }
-        if (R_SLOT_INC.contains(tx, ty)) { ui.activeSlot = (ui.activeSlot + 1) % CYDConfig::PatternSlots; return; }
-        if (R_SAVE.contains(tx, ty))  {
-            set_status(PatternStore.saveSlot(ui.activeSlot) ? "Saved!" : "Save Fail");
-            return;
-        }
-        if (R_LOAD.contains(tx, ty))  {
-            set_status(PatternStore.loadSlot(ui.activeSlot) ? "Loaded!" : "Load Fail");
-            return;
-        }
-        if (R_BPM_DEC.contains(tx, ty)) {
-            postUiAction(UiActionType::NUDGE_BPM, 0, -1);
-            hold_start(10, -1); return;
-        }
-        if (R_BPM_INC.contains(tx, ty)) {
-            postUiAction(UiActionType::NUDGE_BPM, 0, +1);
-            hold_start(10, +1); return;
-        }
-        return;
+  for (int i = 0; i < TRACK_COUNT; ++i) {
+    const Rect tr = trackRect(i);
+    const Rect muteR = trackMuteRect(tr);
+    if (!tr.contains(x, y)) {
+      continue;
     }
 
-    /* ── Track selector (x < 36) ───────────────────────────────────────────── */
-    if (tx < 36) {
-        for (int i = 0; i < TRACK_COUNT; i++) {
-            if (R_TRACKS[i].contains(tx, ty)) {
-                postUiAction(UiActionType::SELECT_TRACK, 0, i); return;
-            }
-        }
-        return;
+    if (muteR.contains(x, y)) {
+      postUiAction(UiActionType::TOGGLE_MUTE, 0, i);
+      return true;
     }
 
-    /* ── Footer (y >= 208, x < 192) ────────────────────────────────────────── */
-    if (ty >= 208 && tx < 192) {
-        if (R_MUTE.contains(tx, ty)) { postUiAction(UiActionType::TOGGLE_MUTE, 0, ui.snapshot.activeTrack); return; }
-        if (R_VOICE.contains(tx, ty)) { postUiAction(UiActionType::CHANGE_MODE, 0, (int)UiMode::SOUND_EDIT);  ui.mode = UiMode::SOUND_EDIT;  return; }
-        if (R_MIX.contains(tx, ty)) { postUiAction(UiActionType::CHANGE_MODE, 0, (int)UiMode::MIXER);       ui.mode = UiMode::MIXER;        return; }
-        return;
-    }
+    postUiAction(UiActionType::SELECT_TRACK, 0, i);
+    ui.holdTouch.pending = true;
+    ui.holdTouch.consumed = false;
+    ui.holdTouch.trackIndex = i;
+    return true;
+  }
+  return true;
+}
 
-    /* ── Ring Area (Tapping resets to pattern edit) ────────────────────────── */
-    if (R_RING.contains(tx, ty) && ui.mode != UiMode::PATTERN_EDIT) {
-        postUiAction(UiActionType::CHANGE_MODE, 0, (int)UiMode::PATTERN_EDIT);
-        ui.mode = UiMode::PATTERN_EDIT;
-        return;
-    }
+static bool handleParamTouch(int x, int y) {
+  if (ui.mode == UiMode::MIXER || !R_PANEL.contains(x, y)) {
+    return false;
+  }
 
-    /* ── Mixer sliders (x >= 192, mixer mode) ──────────────────────────────── */
-    if (ui.mode == UiMode::MIXER && tx >= 192) {
-        for (int i = 0; i < TRACK_COUNT; i++) {
-            if (R_SLIDERS[i].contains(tx, ty)) {
-                float norm = 1.0f - (float)(ty - R_SLIDERS[i].y) / R_SLIDERS[i].h;
-                norm = norm < 0.0f ? 0.0f : (norm > 1.0f ? 1.0f : norm);
-                postUiAction(UiActionType::SET_VOICE_GAIN, i, (int)(norm * 100));
-                return;
-            }
-        }
-        return;
+  for (int row = 0; row < 4; ++row) {
+    ParamCardRects rc = cardRects(row);
+    if (!rc.outer.contains(x, y)) {
+      continue;
     }
+    if (rc.minus.contains(x, y)) {
+      fireParamAction(row, -1);
+      startRepeat(row, -1);
+      return true;
+    }
+    if (rc.plus.contains(x, y)) {
+      fireParamAction(row, +1);
+      startRepeat(row, +1);
+      return true;
+    }
+    return true;
+  }
+  return true;
+}
 
-    /* ── Param panel (x >= PANEL_SX, not mixer) ────────────────────────────── */
-    if (tx >= PANEL_SX) {
-        /* Convert to sprite-local coords */
-        int lx = tx - PANEL_SX;
-        int ly = ty - PANEL_SY;
-        for (int row = 0; row < 4; row++) {
-            const ParamRow *pr = &PARAM_ROWS[row];
-            if (!pr->touch.contains(lx, ly)) continue;
-            if (pr->minus.contains(lx, ly)) { param_delta(row, -1); return; }
-            if (pr->plus.contains(lx, ly))  { param_delta(row, +1); return; }
-            return;
-        }
-        return;
+static bool handleMixTouch(int x, int y) {
+  if (ui.mode != UiMode::MIXER) {
+    return false;
+  }
+  const Rect mixArea = {R_CENTER.x, R_CENTER.y, static_cast<int16_t>(R_CENTER.w + R_PANEL.w), R_CENTER.h};
+  if (!mixArea.contains(x, y)) {
+    return false;
+  }
+
+  for (int i = 0; i < TRACK_COUNT; ++i) {
+    FaderRect fr = mixFaderRect(i);
+    if (!fr.slot.contains(x, y)) {
+      continue;
     }
+    float norm = 1.0f - static_cast<float>(y - fr.track.y) / static_cast<float>(fr.track.h);
+    norm = constrain(norm, 0.0f, 1.0f);
+    postUiAction(UiActionType::SET_VOICE_GAIN, i, static_cast<int>(norm * 100.0f));
+    return true;
+  }
+
+  return true;
+}
+
+static void handleTouch(const TouchPoint& tp) {
+  if (tp.justReleased) {
+    stopRepeat();
+    ui.holdTouch = TouchHoldContext{};
+    return;
+  }
+
+  handleLongPress(tp);
+
+  if (!tp.justPressed) {
+    return;
+  }
+
+  stopRepeat();
+  ui.holdTouch = TouchHoldContext{};
+
+  const int tx = tp.x;
+  const int ty = tp.y;
+  if (handleHeaderTouch(tx, ty))
+    return;
+  if (handleTabTouch(tx, ty))
+    return;
+  if (handleTrackTouch(tx, ty))
+    return;
+  if (handleParamTouch(tx, ty))
+    return;
+  (void)handleMixTouch(tx, ty);
+}
+
+static void computeDirtyFlags() {
+  if (!ui.initialized) {
+    ui.dirty.all();
+    return;
+  }
+
+  if (ui.snapshot.bpm != ui.lastSnapshot.bpm) {
+    ui.dirty.dirtyBpm = true;
+    ui.dirty.dirtyHeader = true;
+  }
+
+  if (ui.snapshot.isPlaying != ui.lastSnapshot.isPlaying) {
+    ui.dirty.dirtyTransport = true;
+    ui.dirty.dirtyHeader = true;
+    ui.dirty.dirtyStatus = true;
+  }
+
+  if (ui.activeSlot != ui.lastActiveSlot) {
+    ui.dirty.dirtySlot = true;
+    ui.dirty.dirtyHeader = true;
+  }
+
+  if (strcmp(ui.status, ui.lastStatus) != 0) {
+    ui.dirty.dirtyStatus = true;
+  }
+
+  if (ui.snapshot.activeTrack != ui.lastSnapshot.activeTrack ||
+      memcmp(ui.snapshot.trackMutes, ui.lastSnapshot.trackMutes, sizeof(ui.snapshot.trackMutes)) != 0) {
+    ui.dirty.dirtyActiveTrack = true;
+    ui.dirty.dirtyTracks = true;
+    ui.dirty.dirtyCenter = true;
+    ui.dirty.dirtyPanel = true;
+  }
+
+  if (ui.mode != ui.lastMode) {
+    ui.dirty.dirtyCenter = true;
+    ui.dirty.dirtyTabs = true;
+    ui.dirty.dirtyPanel = true;
+  }
+
+  if (memcmp(ui.snapshot.patterns, ui.lastSnapshot.patterns, sizeof(ui.snapshot.patterns)) != 0 ||
+      memcmp(ui.snapshot.patternLens, ui.lastSnapshot.patternLens, sizeof(ui.snapshot.patternLens)) != 0 ||
+      ui.snapshot.currentStep != ui.lastSnapshot.currentStep) {
+    ui.dirty.dirtyPattern = true;
+    ui.dirty.dirtyCenter = true;
+  }
+
+  if (memcmp(ui.snapshot.trackSteps, ui.lastSnapshot.trackSteps, sizeof(ui.snapshot.trackSteps)) != 0 ||
+      memcmp(ui.snapshot.trackHits, ui.lastSnapshot.trackHits, sizeof(ui.snapshot.trackHits)) != 0 ||
+      memcmp(ui.snapshot.trackRotations, ui.lastSnapshot.trackRotations, sizeof(ui.snapshot.trackRotations)) != 0 ||
+      memcmp(ui.snapshot.voiceParams, ui.lastSnapshot.voiceParams, sizeof(ui.snapshot.voiceParams)) != 0 ||
+      memcmp(ui.snapshot.voiceGain, ui.lastSnapshot.voiceGain, sizeof(ui.snapshot.voiceGain)) != 0 ||
+      memcmp(&ui.snapshot.bassParams, &ui.lastSnapshot.bassParams, sizeof(BassGrooveParams)) != 0) {
+    ui.dirty.dirtyParams = true;
+    ui.dirty.dirtyPanel = true;
+    ui.dirty.dirtyMixer = true;
+    if (ui.mode == UiMode::MIXER) {
+      ui.dirty.dirtyCenter = true;
+    }
+  }
+}
+
+static void renderDirtyRegions() {
+  if (ui.dirty.dirtyHeader || ui.dirty.dirtyBpm || ui.dirty.dirtySlot || ui.dirty.dirtyTransport) {
+    drawHeader();
+  }
+
+  if (ui.dirty.dirtyStatus) {
+    drawStatusStrip();
+  }
+
+  if (ui.dirty.dirtyTracks || ui.dirty.dirtyActiveTrack) {
+    drawTracks();
+  }
+
+  if (ui.dirty.dirtyCenter || ui.dirty.dirtyPattern || ui.dirty.dirtyMixer) {
+    drawCenterByMode();
+  }
+
+  if (ui.dirty.dirtyPanel || ui.dirty.dirtyParams) {
+    drawParamPanel();
+  }
+
+  if (ui.dirty.dirtyTabs) {
+    drawTabs();
+  }
+
+  ui.dirty = DirtyFlags{};
 }
 
 } // namespace
@@ -741,7 +940,8 @@ void UiStateSnapshot::capture() {
   }
 }
 
-void displayTask(void *parameter) {
+void displayTask(void* parameter) {
+  (void)parameter;
   while (!engine.engineReady.load()) {
     vTaskDelay(pdMS_TO_TICKS(20));
   }
@@ -751,120 +951,38 @@ void displayTask(void *parameter) {
 
   tft.init();
   tft.setRotation(CYDConfig::ScreenRotation);
-  
-  // Initialize dedicated touch SPI *after* TFT to prevent TFT_eSPI
-  // from redefining or conflicting with the standard SPI host.
   InputMgr.begin();
 
   tft.fillScreen(C_BG);
-  tft.setFont(&fonts::FreeMonoBold9pt7b); // Bold mono for legibility at small sizes
-
-  /* ── Create sprites ────────────────────────────────────────────────────── */
-  s_ring.createSprite(R_RING.w, R_RING.h);
-  s_ring.setColorDepth(16);
-  s_panel.createSprite(PANEL_W, PANEL_H);
-  s_panel.setColorDepth(16);
-
-  uint32_t last_full  = 0;
-  uint32_t last_ring  = 0;
+  ui.dirty.all();
 
   for (;;) {
-      uint32_t now = millis();
+    const uint32_t now = millis();
 
-      /* Capture state snapshot */
-      ui.snapshot.capture();
+    ui.snapshot.capture();
+    ui.mode = ui.snapshot.mode;
 
-      /* Status timeout */
-      if (ui.statusUntilMs && now >= ui.statusUntilMs) {
-          ui.statusUntilMs = 0;
-          snprintf(ui.status, sizeof(ui.status), "%s", ui.snapshot.isPlaying ? "PLAYING" : "READY");
-          ui.forceRedraw = true; // force the full transport bar to redraw so the BPM value isn't overwritten
-      }
+    if (ui.statusUntilMs && now >= ui.statusUntilMs) {
+      ui.statusUntilMs = 0;
+      ui.dirty.dirtyStatus = true;
+    }
 
-      /* Mode sync from engine snapshot */
-      ui.mode = ui.snapshot.mode;
+    InputMgr.update();
+    handleTouch(InputMgr.state());
+    tickRepeat();
 
-      /* Touch */
-      InputMgr.update();
-      handleTouch(InputMgr.state());
-      hold_tick();
+    computeDirtyFlags();
 
-      /* ── Decide what to redraw ─────────────────────────────────────────── */
-      bool sliders_dirty = ui.activeHoldParam != -1 ||
-          memcmp(ui.snapshot.trackSteps, ui.lastSnapshot.trackSteps, sizeof(ui.snapshot.trackSteps)) != 0 ||
-          memcmp(ui.snapshot.trackHits, ui.lastSnapshot.trackHits, sizeof(ui.snapshot.trackHits)) != 0 ||
-          memcmp(ui.snapshot.trackRotations, ui.lastSnapshot.trackRotations, sizeof(ui.snapshot.trackRotations)) != 0 ||
-          memcmp(ui.snapshot.voiceParams, ui.lastSnapshot.voiceParams, sizeof(ui.snapshot.voiceParams)) != 0 ||
-          memcmp(ui.snapshot.voiceGain, ui.lastSnapshot.voiceGain, sizeof(ui.snapshot.voiceGain)) != 0 ||
-          memcmp(&ui.snapshot.bassParams, &ui.lastSnapshot.bassParams, sizeof(BassGrooveParams)) != 0;
+    tft.startWrite();
+    renderDirtyRegions();
+    tft.endWrite();
 
-      bool any_change = sliders_dirty ||
-          (ui.snapshot.bpm         != ui.lastSnapshot.bpm)          ||
-          (ui.snapshot.isPlaying   != ui.lastSnapshot.isPlaying)     ||
-          (ui.snapshot.activeTrack != ui.lastSnapshot.activeTrack)   ||
-          (ui.mode                 != ui.lastMode)          ||
-          (ui.activeSlot           != ui.lastActiveSlot)          ||
-          (strcmp(ui.status, ui.lastStatus) != 0)       ||
-          memcmp(ui.snapshot.trackMutes, ui.lastSnapshot.trackMutes,
-                 sizeof(ui.snapshot.trackMutes)) != 0;
+    ui.lastSnapshot = ui.snapshot;
+    ui.lastMode = ui.mode;
+    ui.lastActiveSlot = ui.activeSlot;
+    snprintf(ui.lastStatus, sizeof(ui.lastStatus), "%s", ui.status);
+    ui.initialized = true;
 
-      bool pattern_change =
-          memcmp(ui.snapshot.patterns, ui.lastSnapshot.patterns,    sizeof(ui.snapshot.patterns)) != 0  ||
-          memcmp(ui.snapshot.trackSteps, ui.lastSnapshot.trackSteps,  sizeof(ui.snapshot.trackSteps)) != 0||
-          ui.snapshot.activeTrack != ui.lastSnapshot.activeTrack;
-
-      bool step_change = (ui.snapshot.currentStep != ui.lastSnapshot.currentStep);
-
-      /* Periodic full redraw to clear any artefacts */
-      bool full = ui.forceRedraw || (now - last_full > 8000u);
-
-      tft.startWrite();
-
-      if (full) {
-          tft.fillScreen(C_BG);
-          draw_transport();
-          draw_tracks();
-          draw_footer();
-          draw_params();
-          last_full = now;
-          ui.forceRedraw = false;
-      } else if (any_change) {
-          bool transport_dirty = (ui.snapshot.bpm != ui.lastSnapshot.bpm ||
-              ui.snapshot.isPlaying != ui.lastSnapshot.isPlaying ||
-              ui.activeSlot != ui.lastActiveSlot);
-
-          if (transport_dirty) {
-              draw_transport();
-          } else if (strcmp(ui.status, ui.lastStatus) != 0) {
-              // Redraw status only when status text actually changes
-              draw_status();
-          }
-
-          if (ui.snapshot.activeTrack != ui.lastSnapshot.activeTrack ||
-              memcmp(ui.snapshot.trackMutes, ui.lastSnapshot.trackMutes,
-                     sizeof(ui.snapshot.trackMutes)) != 0)
-              draw_tracks();
-
-          if (any_change) draw_footer();
-          if (any_change) draw_params();
-      }
-
-      tft.endWrite();
-
-      /* Ring: redraw every step tick or if pattern changed */
-      if ((ui.snapshot.isPlaying && step_change) || pattern_change || full) {
-          if (now - last_ring >= 33u) {   /* cap ~30 fps for ring */
-              draw_ring();
-              last_ring = now;
-          }
-      }
-
-      /* Save snapshot */
-      ui.lastSnapshot = ui.snapshot;
-      ui.lastMode     = ui.mode;
-      ui.lastActiveSlot = ui.activeSlot;
-      snprintf(ui.lastStatus, sizeof(ui.lastStatus), "%s", ui.status);
-
-      vTaskDelay(pdMS_TO_TICKS(16));   /* ~60 fps budget */
+    vTaskDelay(pdMS_TO_TICKS(16));
   }
 }
