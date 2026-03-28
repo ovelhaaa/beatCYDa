@@ -31,10 +31,6 @@ enum class UiActionType {
   BTN_CLICK,
   BTN_LONG,
 
-  // Legacy / Deprecated (Keeping for temp compat if needed, but should be
-  // unused)
-  // ENC_CTX_ROTATE, ... removed
-
   // Transport
   TOGGLE_MUTE, // value = track index
   TOGGLE_PLAY, // value = 0 (toggle), 1 (play), 2 (stop)
