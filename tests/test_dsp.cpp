@@ -30,7 +30,50 @@ void test_initLUT() {
     std::cout << "test_initLUT passed!" << std::endl;
 }
 
+void test_fastRandom() {
+    std::cout << "Running test_fastRandom..." << std::endl;
+
+    bool has_positive = false;
+    bool has_negative = false;
+    float previous_val = 0.0f;
+    bool has_diff = false;
+
+    // Test a reasonable number of iterations
+    for (int i = 0; i < 1000; i++) {
+        float val = fastRandom();
+
+        // Check bounds [-1.0f, 1.0f]
+        if (val < -1.0f || val > 1.0f) {
+            std::cerr << "Test failed at index " << i << ": fastRandom() returned " << val << " which is out of bounds [-1.0f, 1.0f]" << std::endl;
+            exit(1);
+        }
+
+        if (val > 0.0f) has_positive = true;
+        if (val < 0.0f) has_negative = true;
+
+        if (i > 0 && std::abs(val - previous_val) > 1e-6) {
+            has_diff = true;
+        }
+
+        previous_val = val;
+    }
+
+    // Verify properties
+    if (!has_positive || !has_negative) {
+        std::cerr << "Test failed: fastRandom() did not produce both positive and negative values" << std::endl;
+        exit(1);
+    }
+
+    if (!has_diff) {
+        std::cerr << "Test failed: fastRandom() returned identical consecutive values" << std::endl;
+        exit(1);
+    }
+
+    std::cout << "test_fastRandom passed!" << std::endl;
+}
+
 int main() {
     test_initLUT();
+    test_fastRandom();
     return 0;
 }
