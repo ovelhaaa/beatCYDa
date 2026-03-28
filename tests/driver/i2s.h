@@ -1,0 +1,3 @@
+#ifndef MOCK_DRIVER_I2S_H
+#define MOCK_DRIVER_I2S_H
+#endif // MOCK_DRIVER_I2S_H
