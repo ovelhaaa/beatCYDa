@@ -1,5 +1,4 @@
 #pragma once
-
 #include <Arduino.h>
 #include <driver/i2s.h>
 
@@ -35,8 +34,6 @@ constexpr int SdSclk = 18;
 constexpr int SdMiso = 19;
 constexpr int SdMosi = 23;
 constexpr int SdCs = 5;
-
-
 
 constexpr bool UseInternalDac = false;
 constexpr int InternalAmpPin = 26;
