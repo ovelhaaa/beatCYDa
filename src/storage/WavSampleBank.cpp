@@ -72,7 +72,8 @@ bool WavSampleBank::loadMono16(const char *path, WavSample &outSample,
     }
   }
 
-  if (fmt.audioFormat != 1 || fmt.bitsPerSample != 16 || dataSize == 0) {
+  if (fmt.audioFormat != 1 || fmt.bitsPerSample != 16 || dataSize == 0 ||
+      fmt.blockAlign == 0) {
     file.close();
     return false;
   }
