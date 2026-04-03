@@ -14,32 +14,54 @@ LGFX_CYD tft;
 namespace {
 
 /* ── Sprites (ring + right panel) — eliminate flicker on animation ──────────── */
-static LGFX_Sprite s_ring(&tft);   /* 140 × 140 — euclidean ring area  */
-static LGFX_Sprite s_panel(&tft);  /* 132 × 168 — right parameter panel */
+static LGFX_Sprite s_ring(&tft);   /* 50 × 50 — euclidean ring area  */
+static LGFX_Sprite s_panel(&tft);  /* 258 × 174 — tab content panel */
 
 /* ═══════════════════════════════════════════════════════════════════════════════
    COLOUR PALETTE  (RGB565)
    ═══════════════════════════════════════════════════════════════════════════════ */
-constexpr uint16_t C_BG       = 0x0863u;   /* deep navy-charcoal      */
-constexpr uint16_t C_PANEL    = 0x1947u;   /* dark slate-blue         */
-constexpr uint16_t C_PANEL2   = 0x2104u;   /* inactive button face    */
-constexpr uint16_t C_DIM      = 0x4228u;   /* outline / subdued       */
-constexpr uint16_t C_TEXT     = 0xBDF8u;   /* normal text             */
-constexpr uint16_t C_ACCENT   = 0xFEC9u;   /* important / active      */
-constexpr uint16_t C_SELECT   = 0x4F1Fu;   /* selected mode highlight */
-constexpr uint16_t C_EXPR     = 0xFA74u;   /* expressive / mauve      */
-constexpr uint16_t C_PLAY     = 0x7FEEu;   /* positive / running      */
+#define RGB565(r, g, b) (uint16_t)((((r) >> 3) << 11) | (((g) >> 2) << 5) | ((b) >> 3))
+
+constexpr uint16_t C_BG       = RGB565(0x08, 0x0A, 0x0C);
+constexpr uint16_t C_PANEL_BG = RGB565(0x06, 0x07, 0x08);
+constexpr uint16_t C_DIV      = RGB565(0x1A, 0x1A, 0x1A);
+constexpr uint16_t C_BORDER   = RGB565(0x2A, 0x2A, 0x2A);
+
+constexpr uint16_t C_ACCENT   = RGB565(0xFF, 0x6A, 0x00);
+constexpr uint16_t C_ACCENT_L = RGB565(0xFF, 0x8C, 0x40);
+
+constexpr uint16_t C_TXT_ACT  = RGB565(0xFF, 0x8C, 0x40);
+constexpr uint16_t C_TXT_SEC  = RGB565(0x55, 0x66, 0x77);
+constexpr uint16_t C_TXT_DIM  = RGB565(0x2A, 0x33, 0x44);
+constexpr uint16_t C_TXT_STAT = RGB565(0x44, 0x55, 0x66);
+
+constexpr uint16_t C_FILL_BTN = RGB565(0x0A, 0x0B, 0x0D);
+constexpr uint16_t C_FILL_TAB = RGB565(0x0D, 0x0E, 0x10);
+constexpr uint16_t C_BORDER_DIM=RGB565(0x1E, 0x20, 0x22);
+
+
+/* Legacy aliases for old UI code, to be removed later */
+constexpr uint16_t C_PANEL    = C_PANEL_BG;
+constexpr uint16_t C_PANEL2   = C_FILL_BTN;
+constexpr uint16_t C_DIM      = C_TXT_DIM;
+constexpr uint16_t C_TEXT     = C_TXT_SEC;
+constexpr uint16_t C_SELECT   = C_ACCENT;
+constexpr uint16_t C_EXPR     = C_ACCENT;
+constexpr uint16_t C_PLAY     = C_TXT_STAT;
 
 static const uint16_t TRACK_COLORS[TRACK_COUNT] = {
-    0xCAA9u,   /* Kick  — terracotta */
-    0xD568u,   /* Snare — warm gold  */
-    0x4F1Fu,   /* HatC  — steel teal */
-    0xFA74u,   /* HatO  — mauve      */
-    0x5D6Cu,   /* Bass  — muted sage */
+    RGB565(0xFF, 0x6A, 0x00),   /* K - Kick */
+    RGB565(0x00, 0xCC, 0x66),   /* S - Snare */
+    RGB565(0x00, 0xCC, 0xFF),   /* C - Clap */
+    RGB565(0xCC, 0x44, 0xFF),   /* O - OpenHH */
+    RGB565(0xFF, 0xCC, 0x00),   /* B - Bass */
 };
 
 static const char TRACK_CHARS[TRACK_COUNT] = {'K','S','C','O','B'};
-static const char * const TRACK_LABELS[TRACK_COUNT] = {"KICK","SNRE","HATC","HATO","BASS"};
+static const char * const TRACK_LABELS[TRACK_COUNT] = {"KICK","SNRE","CLAP","HATO","BASS"};
+
+
+
 
 /* ═══════════════════════════════════════════════════════════════════════════════
    LAYOUT  (pixel coords, landscape 320 × 240)
@@ -53,59 +75,57 @@ struct Rect {
     }
 };
 
-/* Transport bar */
-static const Rect R_PLAY      = { 4,   8,  62,  30};
+/* ── Topbar (0,0 -> 320,30) ────────────────────────────────────────────────── */
+static const Rect R_PLAY      = { 6,   5,  32,  20};
+static const Rect R_BPM_DEC   = { 46,  8,  14,  14};
+static const Rect R_BPM_VAL   = { 62,  8,  30,  14};
+static const Rect R_BPM_INC   = { 94,  8,  14,  14};
 static const Rect R_SLOT_DEC  = {80,   8,  20,  30};
 static const Rect R_SLOT_VAL  = {104,  8,  28,  30};
 static const Rect R_SLOT_INC  = {136,  8,  20,  30};
-static const Rect R_SAVE      = {160,  8,  24,  14};
-static const Rect R_LOAD      = {160, 24,  24,  14};
-static const Rect R_BPM_DEC   = {196,  8,  28,  30};
-static const Rect R_BPM_VAL   = {228,  8,  52,  30};
-static const Rect R_BPM_INC   = {284,  8,  28,  30};
+static const Rect R_SLOT_1    = {116,  6,  18,  18};
+static const Rect R_SLOT_2    = {136,  6,  18,  18};
+static const Rect R_SLOT_3    = {156,  6,  18,  18};
+static const Rect R_SAVE      = {268,  6,  20,  18};
+static const Rect R_LOAD      = {290,  6,  20,  18};
 
-/* Track selector — 5 buttons, left margin */
+static const Rect R_BPM_GROUP = {43, 5, 68, 20};
+
+/* ── Left Panel (0,30 -> 62,240) ───────────────────────────────────────────── */
 static const Rect R_TRACKS[TRACK_COUNT] = {
-    { 4,  48, 28, 34},
-    { 4,  86, 28, 34},
-    { 4, 124, 28, 34},
-    { 4, 162, 28, 34},
-    { 4, 200, 28, 34},
+    { 6,  92,  50, 18},
+    { 6, 113,  50, 18},
+    { 6, 134,  50, 18},
+    { 6, 155,  50, 18},
+    { 6, 176,  50, 18},
 };
 
-/* Ring area (sprite origin) */
-static const Rect R_RING = {36, 52, 140, 140};
-#define RING_CX 70   /* sprite-relative centre */
-#define RING_CY 70
-static const uint8_t RING_RADII[TRACK_COUNT] = {58, 48, 38, 28, 18};
+static const Rect R_RING = {6, 42, 50, 50};
+#define RING_CX 25
+#define RING_CY 25
+static const uint8_t RING_RADII[4] = {23, 17, 11, 6}; // No bass ring
 
+/* ── Tabs (62,30 -> 320,50) ────────────────────────────────────────────────── */
+static const Rect R_TAB_SEQ = { 62, 30, 86, 20};
+static const Rect R_TAB_DSP = {148, 30, 86, 20};
+static const Rect R_TAB_MIX = {234, 30, 86, 20};
+
+/* ── Footer (62,224 -> 320,240) ────────────────────────────────────────────── */
+static const Rect R_FOOTER = {62, 224, 258, 16};
 /* Bottom action row */
 static const Rect R_MUTE  = { 36, 208, 52, 26};
 static const Rect R_VOICE = { 88, 208, 52, 26};
 static const Rect R_MIX   = {140, 208, 52, 26};
 
-/* Right panel (sprite origin x=188, y=44) */
-#define PANEL_SX 188
-#define PANEL_SY  44
-#define PANEL_W  132
-#define PANEL_H  168
 
-/* 4 param rows inside the panel sprite */
-struct ParamRow {
-    Rect minus;
-    Rect value;
-    Rect plus;
-    Rect touch;  /* full row, for hit-testing */
-};
 
-static const ParamRow PARAM_ROWS[4] = {
-    {{ 8, 18, 28, 26}, {40, 18, 52, 26}, { 96, 18, 28, 26}, {0,  4, PANEL_W, 42}},
-    {{ 8, 68, 28, 26}, {40, 68, 52, 26}, { 96, 68, 28, 26}, {0, 54, PANEL_W, 42}},
-    {{ 8,118, 28, 26}, {40,118, 52, 26}, { 96,118, 28, 26}, {0,104, PANEL_W, 42}},
-    {{ 8,142, 28, 26}, {40,142, 52, 26}, { 96,142, 28, 26}, {0,130, PANEL_W, 38}},
-};
+#define PANEL_SX 62
+#define PANEL_SY 50
+#define PANEL_W  258
+#define PANEL_H  174
 
-/* Mixer sliders (absolute coords) */
+
+
 static const Rect R_SLIDERS[TRACK_COUNT] = {
     {201, 54, 12, 126},
     {224, 54, 12, 126},
@@ -113,6 +133,8 @@ static const Rect R_SLIDERS[TRACK_COUNT] = {
     {270, 54, 12, 126},
     {293, 54, 12, 126},
 };
+
+
 
 /* ═══════════════════════════════════════════════════════════════════════════════
    RUNTIME STATE  (display-local — never touches audio engine directly)
@@ -195,156 +217,207 @@ static void set_status(const char *msg, uint32_t ms = 1400) {
    ═══════════════════════════════════════════════════════════════════════════════ */
 static void draw_transport(void) {
     char buf[8];
-    tft.fillRect(0, 0, CYDConfig::ScreenWidth, 42, C_BG);
+    tft.fillRect(0, 0, CYDConfig::ScreenWidth, 30, C_BG);
 
     /* Play / Stop */
     bool pl = ui.snapshot.isPlaying;
-    tft.fillRect(R_PLAY.x, R_PLAY.y, R_PLAY.w, R_PLAY.h, pl ? C_ACCENT : C_PLAY);
-    tft.drawRect(R_PLAY.x, R_PLAY.y, R_PLAY.w, R_PLAY.h, C_DIM);
-    if (pl) {
-        tft.fillRect(R_PLAY.x + 20, R_PLAY.y + 7,  10, 16, C_BG);
-        tft.fillRect(R_PLAY.x + 36, R_PLAY.y + 7,  10, 16, C_BG);
-    } else {
-        tft.fillTriangle(R_PLAY.x + 18, R_PLAY.y + 5,
-                         R_PLAY.x + 18, R_PLAY.y + 25,
-                         R_PLAY.x + 44, R_PLAY.y + 15, C_BG);
+    tft.fillRoundRect(R_PLAY.x, R_PLAY.y, R_PLAY.w, R_PLAY.h, 2, pl ? blend16(C_ACCENT, C_BG, 24) : C_FILL_BTN);
+    tft.drawRoundRect(R_PLAY.x, R_PLAY.y, R_PLAY.w, R_PLAY.h, 2, pl ? C_ACCENT : C_BORDER);
+
+    tft.setTextColor(pl ? C_ACCENT_L : C_TXT_STAT, pl ? blend16(C_ACCENT, C_BG, 24) : C_FILL_BTN);
+    tft.setTextDatum(MC_DATUM);
+    tft.drawString(pl ? "X" : ">", R_PLAY.x + R_PLAY.w / 2, R_PLAY.y + R_PLAY.h / 2 - 1);
+
+    /* BPM Group */
+    tft.fillRoundRect(R_BPM_GROUP.x, R_BPM_GROUP.y, R_BPM_GROUP.w, R_BPM_GROUP.h, 2, blend16(C_ACCENT, C_BG, 16));
+    tft.drawRoundRect(R_BPM_GROUP.x, R_BPM_GROUP.y, R_BPM_GROUP.w, R_BPM_GROUP.h, 2, blend16(C_ACCENT, C_BG, 34));
+
+    tft.setTextColor(blend16(C_ACCENT_L, C_BG, 120), blend16(C_ACCENT, C_BG, 16));
+    tft.drawString("-", R_BPM_DEC.x + R_BPM_DEC.w / 2, R_BPM_DEC.y + R_BPM_DEC.h / 2 - 1);
+    tft.drawString("+", R_BPM_INC.x + R_BPM_INC.w / 2, R_BPM_INC.y + R_BPM_INC.h / 2 - 1);
+
+    snprintf(buf, sizeof(buf), "%3d", ui.snapshot.bpm);
+    tft.setTextColor(C_ACCENT_L, blend16(C_ACCENT, C_BG, 16));
+    tft.drawString(buf, R_BPM_VAL.x + R_BPM_VAL.w / 2, R_BPM_VAL.y + R_BPM_VAL.h / 2 - 1);
+
+    /* Slot Selector */
+    for (int i = 0; i < 3; i++) {
+        Rect r = (i == 0) ? R_SLOT_1 : (i == 1) ? R_SLOT_2 : R_SLOT_3;
+        bool active = (ui.activeSlot == i);
+        tft.fillRoundRect(r.x, r.y, r.w, r.h, 0, active ? blend16(C_ACCENT, C_BG, 32) : C_BG);
+        tft.drawRoundRect(r.x, r.y, r.w, r.h, 0, active ? blend16(C_ACCENT, C_BG, 102) : C_BORDER_DIM);
+        tft.setTextColor(active ? C_ACCENT_L : C_TXT_DIM, active ? blend16(C_ACCENT, C_BG, 32) : C_BG);
+        snprintf(buf, sizeof(buf), "%d", i + 1);
+        tft.drawString(buf, r.x + r.w / 2, r.y + r.h / 2 - 1);
     }
 
-    /* Pattern slot */
-    draw_btn(NULL, &R_SLOT_DEC, "<", C_PANEL, C_DIM, C_TEXT);
-    snprintf(buf, sizeof(buf), "%d", ui.activeSlot + 1);
-    draw_btn(NULL, &R_SLOT_VAL, buf, C_PANEL2, C_DIM, C_TEXT);
-    draw_btn(NULL, &R_SLOT_INC, ">", C_PANEL, C_DIM, C_TEXT);
-
     /* Save / Load */
-    draw_btn(NULL, &R_SAVE, "S", C_PANEL2, C_DIM, C_TEXT);
-    draw_btn(NULL, &R_LOAD, "L", C_PANEL2, C_DIM, C_TEXT);
+    tft.drawRect(R_SAVE.x, R_SAVE.y, R_SAVE.w, R_SAVE.h, C_BORDER);
+    tft.setTextColor(C_TXT_STAT, C_BG);
+    tft.drawString("SV", R_SAVE.x + R_SAVE.w / 2, R_SAVE.y + R_SAVE.h / 2 - 1);
 
-    /* BPM */
-    draw_btn(NULL, &R_BPM_DEC, "-", C_PANEL, C_DIM, C_TEXT);
-    snprintf(buf, sizeof(buf), "%3d", ui.snapshot.bpm);
-    draw_btn(NULL, &R_BPM_VAL, buf, C_PANEL2, C_DIM, C_ACCENT);
-    draw_btn(NULL, &R_BPM_INC, "+", C_PANEL, C_DIM, C_TEXT);
-
-    /* Status line (thin bar below transport) */
-    uint16_t bar_col = (ui.statusUntilMs > millis()) ? C_ACCENT : C_DIM;
-    tft.drawFastHLine(0, 41, CYDConfig::ScreenWidth, bar_col);
+    tft.drawRect(R_LOAD.x, R_LOAD.y, R_LOAD.w, R_LOAD.h, C_BORDER);
+    tft.drawString("LD", R_LOAD.x + R_LOAD.w / 2, R_LOAD.y + R_LOAD.h / 2 - 1);
 }
-
 /* ═══════════════════════════════════════════════════════════════════════════════
    DRAW — STATUS TEXT (overlaid in BPM value box)
    ═══════════════════════════════════════════════════════════════════════════════ */
-static void draw_status(void) {
-    bool active = (ui.statusUntilMs > millis());
-    const char *msg = active ? ui.status
-                     : ui.snapshot.isPlaying
-                         ? "PLAYING"
-                         : "READY";
-    draw_btn(NULL, &R_BPM_VAL, msg, C_PANEL2, active ? C_ACCENT : C_DIM,
-             active ? (uint16_t)C_PLAY : (uint16_t)C_TEXT);
-}
+static void draw_status(void) {} // Deprecated, drawn in footer
 
 /* ═══════════════════════════════════════════════════════════════════════════════
    DRAW — TRACK SELECTOR (left margin)
    ═══════════════════════════════════════════════════════════════════════════════ */
 static void draw_tracks(void) {
+    tft.fillRect(0, 30, 62, 210, C_PANEL_BG);
+    tft.drawFastVLine(61, 30, 210, C_DIV);
+
+    tft.setTextColor(C_TXT_DIM, C_PANEL_BG);
+    tft.setTextDatum(MC_DATUM);
+    tft.drawString("E U C L I D", 31, 37);
+
     char lbl[2] = {0, 0};
     for (int i = 0; i < TRACK_COUNT; i++) {
         bool sel = (ui.snapshot.activeTrack == i);
         bool mut = ui.snapshot.trackMutes[i];
-        uint16_t col  = TRACK_COLORS[i];
-        uint16_t fill = sel ? blend16(col, C_BG, 55) : (mut ? C_PANEL2 : C_PANEL);
-        uint16_t brd  = mut ? blend16(col, C_BG, 50) : col;
-        uint16_t txt  = sel ? C_BG : (mut ? blend16(col, C_BG, 60) : col);
-        lbl[0] = TRACK_CHARS[i];
-        draw_btn(NULL, &R_TRACKS[i], lbl, fill, brd, txt);
-        if (mut && !sel) {
-            tft.drawLine(R_TRACKS[i].x + 2, R_TRACKS[i].y + 2,
-                         R_TRACKS[i].x + R_TRACKS[i].w - 3,
-                         R_TRACKS[i].y + R_TRACKS[i].h - 3, C_DIM);
+        uint16_t col  = mut ? blend16(TRACK_COLORS[i], C_PANEL_BG, 60) : TRACK_COLORS[i];
+        uint16_t dim_fill = blend16(C_BORDER_DIM, C_PANEL_BG, 60);
+
+        tft.drawRect(R_TRACKS[i].x, R_TRACKS[i].y, R_TRACKS[i].w, R_TRACKS[i].h, sel ? blend16(col, C_PANEL_BG, 102) : C_DIV);
+
+        if (sel) {
+            tft.fillRect(R_TRACKS[i].x, R_TRACKS[i].y, 2, R_TRACKS[i].h, col);
         }
+
+        tft.fillCircle(R_TRACKS[i].x + 12, R_TRACKS[i].y + R_TRACKS[i].h / 2, 2, col);
+
+        lbl[0] = TRACK_CHARS[i];
+        tft.setTextColor(sel ? col : C_TXT_DIM, C_PANEL_BG);
+        tft.drawString(lbl, R_TRACKS[i].x + 28, R_TRACKS[i].y + R_TRACKS[i].h / 2);
     }
 }
-
 /* ═══════════════════════════════════════════════════════════════════════════════
    DRAW — EUCLIDEAN RING (via sprite — atomic push, zero flicker)
    ═══════════════════════════════════════════════════════════════════════════════ */
 static void draw_ring(void) {
-    s_ring.fillSprite(C_BG);
+    s_ring.fillSprite(C_PANEL_BG);
 
     /* Guide circles */
-    for (int t = 0; t < TRACK_COUNT; t++) {
-        uint8_t a = (t == ui.snapshot.activeTrack) ? 55u : 18u;
-        s_ring.drawCircle(RING_CX, RING_CY, RING_RADII[t],
-                          blend16(TRACK_COLORS[t], C_BG, a));
+    for (int t = 0; t < 4; t++) { // 4 rings for K, S, C, O
+        s_ring.drawCircle(RING_CX, RING_CY, RING_RADII[t], C_DIV);
+        s_ring.drawCircle(RING_CX, RING_CY, RING_RADII[t] - 1, C_DIV);
     }
 
     /* Playhead spoke */
     if (ui.snapshot.isPlaying) {
         float ang = ((ui.snapshot.currentStep % 16) / 16.0f) * 2.0f * (float)M_PI - (float)(M_PI / 2.0);
-        s_ring.drawLine(RING_CX, RING_CY,
-                        RING_CX + (int)(66 * cosf(ang)),
-                        RING_CY + (int)(66 * sinf(ang)),
-                        blend16(C_PLAY, C_BG, 18));
+        int px = RING_CX + (int)(25 * cosf(ang));
+        int py = RING_CY + (int)(25 * sinf(ang));
+        for (int i = 0; i < 25; i+=2) { // dashed line
+            int dx = RING_CX + (int)(i * cosf(ang));
+            int dy = RING_CY + (int)(i * sinf(ang));
+            s_ring.drawPixel(dx, dy, blend16(C_ACCENT, C_PANEL_BG, 96));
+        }
+
+        // extra dot on K ring
+        int kx = RING_CX + (int)(RING_RADII[0] * cosf(ang));
+        int ky = RING_CY + (int)(RING_RADII[0] * sinf(ang));
+        s_ring.fillCircle(kx, ky, 2, C_BG);
+        s_ring.drawCircle(kx, ky, 2, C_ACCENT_L);
     }
 
     /* Step dots */
-    for (int t = 0; t < TRACK_COUNT; t++) {
+    for (int t = 0; t < 4; t++) { // Only first 4 tracks have rings
         int len = ui.snapshot.patternLens[t];
         if (len <= 0) continue;
         bool sel = (t == ui.snapshot.activeTrack);
         bool mut = ui.snapshot.trackMutes[t];
         uint16_t col = TRACK_COLORS[t];
         uint8_t  rad = RING_RADII[t];
-        int      dr  = sel ? 3 : 2;
 
         for (int i = 0; i < len; i++) {
             float ang = (2.0f * (float)M_PI * i / len) - (float)(M_PI / 2.0);
             int16_t px = (int16_t)(RING_CX + rad * cosf(ang));
             int16_t py = (int16_t)(RING_CY + rad * sinf(ang));
             bool active   = ui.snapshot.patterns[t][i] > 0;
-            bool playhead = ui.snapshot.isPlaying && (i == ui.snapshot.currentStep % len);
 
             if (mut) {
-                if (active) s_ring.drawCircle(px, py, dr - 1,
-                                blend16(col, C_BG, 25));
-            } else if (playhead && active) {
-                s_ring.fillCircle(px, py, dr + 1, TFT_WHITE);
-            } else if (playhead) {
-                s_ring.drawCircle(px, py, dr, col);
+                if (active) s_ring.fillCircle(px, py, 1, blend16(col, C_PANEL_BG, 60));
             } else if (active) {
-                s_ring.fillCircle(px, py, dr,
-                    sel ? col : blend16(col, C_BG, 80));
-            } else if (sel) {
-                s_ring.drawCircle(px, py, 1, C_DIM);
+                s_ring.fillCircle(px, py, 2, col);
             }
         }
     }
 
-    /* Centre pulse */
-    int pr = ui.snapshot.isPlaying ? ((ui.snapshot.currentStep % 4 == 0) ? 5 : 3) : 3;
-    s_ring.fillCircle(RING_CX, RING_CY, pr, ui.snapshot.isPlaying ? C_PLAY : C_PANEL2);
-    s_ring.fillCircle(RING_CX, RING_CY, 1,  ui.snapshot.isPlaying ? C_BG   : C_DIM);
-
     s_ring.pushSprite(R_RING.x, R_RING.y);
 }
-
 /* ═══════════════════════════════════════════════════════════════════════════════
    DRAW — BOTTOM ACTION ROW (Mute / Voice / Mix)
    ═══════════════════════════════════════════════════════════════════════════════ */
-static void draw_footer(void) {
-    bool mut   = ui.snapshot.trackMutes[ui.snapshot.activeTrack];
-    bool voice = (ui.mode == UiMode::SOUND_EDIT);
-    bool mix   = (ui.mode == UiMode::MIXER);
+static void draw_tabs(void) {
+    bool is_seq = (ui.mode == UiMode::PATTERN_EDIT);
+    bool is_dsp = (ui.mode == UiMode::SOUND_EDIT);
+    bool is_mix = (ui.mode == UiMode::MIXER);
 
-    draw_btn(NULL, &R_MUTE,  mut   ? "MUTED" : "MUTE",
-             mut   ? C_ACCENT : C_PANEL2, C_DIM, C_TEXT);
-    draw_btn(NULL, &R_VOICE, "VOICE",
-             voice ? C_SELECT : C_PANEL2, C_DIM, voice ? (uint16_t)C_BG : (uint16_t)C_TEXT);
-    draw_btn(NULL, &R_MIX,   "MIX",
-             mix   ? C_EXPR   : C_PANEL2, C_DIM, C_TEXT);
+    /* SEQ Tab */
+    tft.fillRect(R_TAB_SEQ.x, R_TAB_SEQ.y, R_TAB_SEQ.w, R_TAB_SEQ.h, is_seq ? C_FILL_TAB : C_PANEL_BG);
+    tft.drawFastVLine(R_TAB_SEQ.x + R_TAB_SEQ.w - 1, R_TAB_SEQ.y, R_TAB_SEQ.h, C_DIV);
+    if (is_seq) tft.drawFastHLine(R_TAB_SEQ.x, R_TAB_SEQ.y + R_TAB_SEQ.h - 1, R_TAB_SEQ.w, C_ACCENT);
+    tft.setTextColor(is_seq ? C_ACCENT_L : C_TXT_DIM, is_seq ? C_FILL_TAB : C_PANEL_BG);
+    tft.setTextDatum(MC_DATUM);
+    tft.drawString("S E Q", R_TAB_SEQ.x + R_TAB_SEQ.w / 2, R_TAB_SEQ.y + R_TAB_SEQ.h / 2);
+
+    /* DSP Tab */
+    tft.fillRect(R_TAB_DSP.x, R_TAB_DSP.y, R_TAB_DSP.w, R_TAB_DSP.h, is_dsp ? C_FILL_TAB : C_PANEL_BG);
+    tft.drawFastVLine(R_TAB_DSP.x + R_TAB_DSP.w - 1, R_TAB_DSP.y, R_TAB_DSP.h, C_DIV);
+    if (is_dsp) tft.drawFastHLine(R_TAB_DSP.x, R_TAB_DSP.y + R_TAB_DSP.h - 1, R_TAB_DSP.w, C_ACCENT);
+    tft.setTextColor(is_dsp ? C_ACCENT_L : C_TXT_DIM, is_dsp ? C_FILL_TAB : C_PANEL_BG);
+    tft.drawString("D S P", R_TAB_DSP.x + R_TAB_DSP.w / 2, R_TAB_DSP.y + R_TAB_DSP.h / 2);
+
+    /* MIX Tab */
+    tft.fillRect(R_TAB_MIX.x, R_TAB_MIX.y, R_TAB_MIX.w, R_TAB_MIX.h, is_mix ? C_FILL_TAB : C_PANEL_BG);
+    if (is_mix) tft.drawFastHLine(R_TAB_MIX.x, R_TAB_MIX.y + R_TAB_MIX.h - 1, R_TAB_MIX.w, C_ACCENT);
+    tft.setTextColor(is_mix ? C_ACCENT_L : C_TXT_DIM, is_mix ? C_FILL_TAB : C_PANEL_BG);
+    tft.drawString("M I X", R_TAB_MIX.x + R_TAB_MIX.w / 2, R_TAB_MIX.y + R_TAB_MIX.h / 2);
 }
 
+static void draw_footer(void) {
+    tft.fillRect(R_FOOTER.x, R_FOOTER.y, R_FOOTER.w, R_FOOTER.h, C_PANEL_BG);
+    tft.drawFastHLine(R_FOOTER.x, R_FOOTER.y, R_FOOTER.w, C_DIV);
+
+    int tr = ui.snapshot.activeTrack;
+
+    // Left Zone
+    if (ui.statusUntilMs > millis()) {
+        tft.setTextColor(C_TXT_STAT, C_PANEL_BG);
+        tft.setTextDatum(ML_DATUM);
+        tft.drawString(ui.status, R_FOOTER.x + 6, R_FOOTER.y + 8);
+    } else {
+        bool pl = ui.snapshot.isPlaying;
+        uint16_t fill = pl ? blend16(C_ACCENT, C_PANEL_BG, 33) : C_PANEL_BG;
+        tft.fillRoundRect(R_FOOTER.x + 6, R_FOOTER.y + 2, 60, 12, 2, fill);
+        if (pl) tft.drawRoundRect(R_FOOTER.x + 6, R_FOOTER.y + 2, 60, 12, 2, blend16(C_ACCENT, C_PANEL_BG, 76));
+        tft.setTextColor(pl ? blend16(C_ACCENT_L, C_PANEL_BG, 119) : C_TXT_STAT, fill);
+        tft.setTextDatum(MC_DATUM);
+        tft.drawString(pl ? "X PLAYING" : "> STOP", R_FOOTER.x + 6 + 30, R_FOOTER.y + 8);
+    }
+
+    // Center Zone
+    char center_buf[32];
+    int steps = ui.snapshot.trackSteps[tr];
+    int rot = ui.snapshot.trackRotations[tr];
+    int hits = ui.snapshot.trackHits[tr];
+    snprintf(center_buf, sizeof(center_buf), "%c - %d/%d - ROT %d", TRACK_CHARS[tr], hits, steps, rot);
+    tft.setTextColor(C_TXT_STAT, C_PANEL_BG);
+    tft.setTextDatum(MC_DATUM);
+    tft.drawString(center_buf, R_FOOTER.x + R_FOOTER.w / 2, R_FOOTER.y + 8);
+
+    // Right Zone
+    char right_buf[16];
+    snprintf(right_buf, sizeof(right_buf), "step %d/%d", steps > 0 ? (ui.snapshot.currentStep % steps) + 1 : 1, steps);
+    tft.setTextColor(C_TXT_DIM, C_PANEL_BG);
+    tft.setTextDatum(MR_DATUM);
+    tft.drawString(right_buf, R_FOOTER.x + R_FOOTER.w - 6, R_FOOTER.y + 8);
+}
 /* ═══════════════════════════════════════════════════════════════════════════════
    DRAW — PARAMETER PANEL (right side, via sprite)
    ═══════════════════════════════════════════════════════════════════════════════ */
@@ -484,63 +557,228 @@ static void param_meta(int row, ParamMeta *out) {
     }
 }
 
-static void draw_params(void) {
-    uint16_t tc = TRACK_COLORS[ui.snapshot.activeTrack];
 
-    s_panel.fillSprite(C_BG);
+/* ═══════════════════════════════════════════════════════════════════════════════
+   DRAW — TAB CONTENT
+   ═══════════════════════════════════════════════════════════════════════════════ */
 
-    /* Track name header */
-    s_panel.setTextColor(tc, C_BG);
+static void draw_tab_seq(void) {
+    s_panel.fillSprite(C_PANEL_BG);
+
+    int tr = ui.snapshot.activeTrack;
+    uint16_t tc = TRACK_COLORS[tr];
+
+    // Grid 16 steps (2x8)
+    int cell_w = 28;
+    int cell_h = 14;
+    int start_x = 6;
+    int start_y = 7;
+
+    for (int i = 0; i < 16; i++) {
+        int row = i / 8;
+        int col = i % 8;
+
+        int x = start_x + col * (cell_w + 2);
+        if (col >= 4) x += 3; // gap after 4 beats
+
+        int y = start_y + row * (cell_h + 2);
+
+        bool active = ui.snapshot.patterns[tr][i] > 0;
+        bool playhead = ui.snapshot.isPlaying && (i == ui.snapshot.currentStep % 16);
+
+        if (playhead) {
+            s_panel.fillRect(x, y, cell_w, cell_h, blend16(tc, C_PANEL_BG, 80));
+            s_panel.drawRect(x, y, cell_w, cell_h, C_ACCENT_L);
+        } else if (active) {
+            s_panel.fillRect(x, y, cell_w, cell_h, blend16(C_FILL_BTN, C_PANEL_BG, 128)); // base fill
+            // emulated diagonal overlay
+            for (int dx = 0; dx < cell_w; dx+=2) {
+                s_panel.drawLine(x + dx, y, x, y + dx > y + cell_h ? y + cell_h : y + dx, blend16(tc, C_PANEL_BG, 68));
+            }
+            s_panel.drawRect(x, y, cell_w, cell_h, blend16(tc, C_PANEL_BG, 102));
+        } else {
+            s_panel.fillRoundRect(x, y, cell_w, cell_h, 2, C_FILL_TAB);
+            s_panel.drawRoundRect(x, y, cell_w, cell_h, 2, C_BORDER_DIM);
+        }
+    }
+
+    // Steppers HITS and ROT
+    int hits = ui.snapshot.trackHits[tr];
+    int rot = ui.snapshot.trackRotations[tr];
+
+    int stepper_y = start_y + 2 * (cell_h + 2) + 6;
+
+    // HITS
+    s_panel.setTextColor(C_TXT_STAT, C_PANEL_BG);
+    s_panel.setTextDatum(ML_DATUM);
+    s_panel.drawString("HITS", start_x, stepper_y + 8);
+
+    int step_btn_w = 14;
+    int step_val_w = 30;
+    int step_x = start_x + 28 + 6;
+
+    s_panel.fillRoundRect(step_x, stepper_y, step_btn_w, step_btn_w, 2, C_FILL_TAB);
+    s_panel.drawRoundRect(step_x, stepper_y, step_btn_w, step_btn_w, 2, C_BORDER_DIM);
+    s_panel.setTextColor(C_TXT_SEC, C_FILL_TAB);
     s_panel.setTextDatum(MC_DATUM);
-    s_panel.drawString(TRACK_LABELS[ui.snapshot.activeTrack], PANEL_W / 2, 8);
-    s_panel.drawFastHLine(0, 15, PANEL_W, C_DIM);
+    s_panel.drawString("-", step_x + step_btn_w/2, stepper_y + step_btn_w/2);
 
-    if (ui.mode == UiMode::MIXER) {
-        /* 5 vertical sliders */
-        int sh = PANEL_H - 22;
-        int sw = (PANEL_W - 10) / TRACK_COUNT;
-        for (int i = 0; i < TRACK_COUNT; i++) {
-            int sx = 5 + i * sw, sy = 20;
-            int filled = (int)(ui.snapshot.voiceGain[i] * sh);
-            bool mut = ui.snapshot.trackMutes[i];
-            s_panel.fillRect(sx, sy, sw - 2, sh, C_PANEL);
-            s_panel.fillRect(sx, sy + sh - filled, sw - 2, filled,
-                mut ? blend16(TRACK_COLORS[i], C_BG, 40) : TRACK_COLORS[i]);
-            s_panel.drawRect(sx, sy, sw - 2, sh, C_DIM);
-            s_panel.setTextColor(TRACK_COLORS[i], C_BG);
-            s_panel.setTextDatum(MC_DATUM);
-            char lbl[2] = {TRACK_CHARS[i], '\0'};
-            s_panel.drawString(lbl, sx + (sw - 2) / 2, sy + sh + 7);
+    char buf[8];
+    snprintf(buf, sizeof(buf), "%d", hits);
+    s_panel.setTextColor(C_ACCENT_L, C_PANEL_BG);
+    s_panel.drawString(buf, step_x + step_btn_w + step_val_w/2, stepper_y + step_btn_w/2);
+
+    int plus_x = step_x + step_btn_w + step_val_w;
+    s_panel.fillRoundRect(plus_x, stepper_y, step_btn_w, step_btn_w, 2, C_FILL_TAB);
+    s_panel.drawRoundRect(plus_x, stepper_y, step_btn_w, step_btn_w, 2, C_BORDER_DIM);
+    s_panel.setTextColor(C_TXT_SEC, C_FILL_TAB);
+    s_panel.drawString("+", plus_x + step_btn_w/2, stepper_y + step_btn_w/2);
+
+    // ROT
+    stepper_y += step_btn_w + 6;
+    s_panel.setTextColor(C_TXT_STAT, C_PANEL_BG);
+    s_panel.setTextDatum(ML_DATUM);
+    s_panel.drawString("ROT", start_x, stepper_y + 8);
+
+    s_panel.fillRoundRect(step_x, stepper_y, step_btn_w, step_btn_w, 2, C_FILL_TAB);
+    s_panel.drawRoundRect(step_x, stepper_y, step_btn_w, step_btn_w, 2, C_BORDER_DIM);
+    s_panel.setTextColor(C_TXT_SEC, C_FILL_TAB);
+    s_panel.setTextDatum(MC_DATUM);
+    s_panel.drawString("-", step_x + step_btn_w/2, stepper_y + step_btn_w/2);
+
+    snprintf(buf, sizeof(buf), "%d", rot);
+    s_panel.setTextColor(C_ACCENT_L, C_PANEL_BG);
+    s_panel.drawString(buf, step_x + step_btn_w + step_val_w/2, stepper_y + step_btn_w/2);
+
+    s_panel.fillRoundRect(plus_x, stepper_y, step_btn_w, step_btn_w, 2, C_FILL_TAB);
+    s_panel.drawRoundRect(plus_x, stepper_y, step_btn_w, step_btn_w, 2, C_BORDER_DIM);
+    s_panel.setTextColor(C_TXT_SEC, C_FILL_TAB);
+    s_panel.drawString("+", plus_x + step_btn_w/2, stepper_y + step_btn_w/2);
+
+    s_panel.pushSprite(PANEL_SX, PANEL_SY);
+}
+
+static void draw_tab_dsp(void) {
+    s_panel.fillSprite(C_PANEL_BG);
+    int tr = ui.snapshot.activeTrack;
+    bool bass = tr == VOICE_BASS;
+
+    int padding = 6;
+    int kw = (PANEL_W - 3*padding) / 2;
+    int kh = (PANEL_H - 3*padding) / 2;
+
+    for (int i=0; i<4; i++) {
+        int row = i / 2;
+        int col = i % 2;
+        int x = padding + col * (kw + padding);
+        int y = padding + row * (kh + padding);
+
+        s_panel.fillRoundRect(x, y, kw, kh, 3, C_FILL_BTN);
+        s_panel.drawRoundRect(x, y, kw, kh, 3, C_DIV);
+
+        ParamMeta m;
+        param_meta(i, &m);
+        if (m.label[0] == '\0') continue;
+
+        uint16_t arc_col = (i == 2) ? RGB565(0x00, 0xAA, 0xFF) : C_ACCENT;
+
+        int cx = x + kw/2;
+        int cy = y + kh/2;
+        int r = 14;
+
+        // Background arc
+        s_panel.drawArc(cx, cy, r, r-2, 135, 405, C_DIV);
+
+        // Foreground arc
+        int end_ang = 135 + (int)(m.norm * 270);
+        if (end_ang > 135) {
+            s_panel.drawArc(cx, cy, r, r-2, 135, end_ang, arc_col);
         }
-    } else {
-        for (int row = 0; row < 4; row++) {
-            ParamMeta m;
-            param_meta(row, &m);
-            if (m.label[0] == '\0') continue;
 
-            const ParamRow *pr = &PARAM_ROWS[row];
+        s_panel.setTextColor(C_TXT_STAT, C_FILL_BTN);
+        s_panel.setTextDatum(MC_DATUM);
+        s_panel.drawString(m.label, cx, y + 8);
 
-            /* Mini progress bar */
-            int bw = (int)(m.norm * (float)(pr->value.w - 4));
-            s_panel.fillRect(pr->value.x + 2, pr->value.y - 5, pr->value.w - 4, 3, C_PANEL);
-            if (bw > 0)
-                s_panel.fillRect(pr->value.x + 2, pr->value.y - 5, bw, 3, tc);
-
-            /* Label */
-            s_panel.setTextColor(C_DIM, C_BG);
-            s_panel.setTextDatum(TL_DATUM);
-            s_panel.drawString(m.label, pr->minus.x, pr->touch.y + 2);
-
-            /* − value + */
-            draw_btn(&s_panel, &pr->minus, "-", C_PANEL,  C_DIM, C_TEXT);
-            draw_btn(&s_panel, &pr->value, m.value, C_PANEL2, tc,    C_TEXT);
-            draw_btn(&s_panel, &pr->plus,  "+", C_PANEL,  C_DIM, C_TEXT);
-        }
+        s_panel.setTextColor(C_ACCENT_L, C_FILL_BTN);
+        s_panel.drawString(m.value, cx, y + kh - 8);
     }
 
     s_panel.pushSprite(PANEL_SX, PANEL_SY);
 }
 
+static void draw_tab_mix(void) {
+    s_panel.fillSprite(C_PANEL_BG);
+
+    int padding_y = 5;
+    int padding_x = 5;
+    int bar_h = 18;
+    int gap = 4;
+
+    int total_w = PANEL_W - 2 * padding_x;
+    int lbl_w = 14;
+    int val_w = 24;
+    int bar_w = total_w - lbl_w - val_w - 8;
+
+    int y = padding_y;
+    char buf[8];
+
+    for (int i=0; i < TRACK_COUNT; i++) {
+        s_panel.setTextColor(TRACK_COLORS[i], C_PANEL_BG);
+        s_panel.setTextDatum(ML_DATUM);
+        char lbl[2] = {TRACK_CHARS[i], '\0'};
+        s_panel.drawString(lbl, padding_x, y + bar_h/2);
+
+        int bx = padding_x + lbl_w + 4;
+        s_panel.fillRoundRect(bx, y + 5, bar_w, 8, 2, C_FILL_TAB);
+        s_panel.drawRoundRect(bx, y + 5, bar_w, 8, 2, C_BORDER_DIM);
+
+        float gain = ui.snapshot.voiceGain[i];
+        int fw = (int)(gain * bar_w);
+        if (fw > 0) {
+            uint16_t dim_col = blend16(TRACK_COLORS[i], C_PANEL_BG, 80);
+            s_panel.fillRoundRect(bx, y + 5, fw, 8, 2, TRACK_COLORS[i]);
+            s_panel.fillRect(bx + fw/2, y + 5, fw - fw/2, 8, blend16(dim_col, TRACK_COLORS[i], 128)); // Emulate gradient
+        }
+
+        s_panel.setTextColor(C_TXT_STAT, C_PANEL_BG);
+        s_panel.setTextDatum(MR_DATUM);
+        snprintf(buf, sizeof(buf), "%d", (int)(gain * 100));
+        s_panel.drawString(buf, padding_x + total_w, y + bar_h/2);
+
+        y += bar_h + gap;
+    }
+
+    y += gap; // Extra margin before MST
+    s_panel.drawFastHLine(padding_x, y, total_w, C_DIV);
+    y += gap + 1;
+
+    s_panel.setTextColor(C_TXT_SEC, C_PANEL_BG);
+    s_panel.setTextDatum(ML_DATUM);
+    s_panel.drawString("M", padding_x, y + bar_h/2);
+
+    int bx = padding_x + lbl_w + 4;
+    s_panel.fillRoundRect(bx, y + 5, bar_w, 8, 2, C_FILL_TAB);
+    s_panel.drawRoundRect(bx, y + 5, bar_w, 8, 2, C_BORDER_DIM);
+
+    float mgain = ui.snapshot.masterVolume;
+    int mfw = (int)(mgain * bar_w);
+    if (mfw > 0) {
+        s_panel.fillRoundRect(bx, y + 5, mfw, 8, 2, C_TXT_STAT);
+    }
+
+    s_panel.setTextColor(C_TXT_STAT, C_PANEL_BG);
+    s_panel.setTextDatum(MR_DATUM);
+    snprintf(buf, sizeof(buf), "%d", (int)(mgain * 100));
+    s_panel.drawString(buf, padding_x + total_w, y + bar_h/2);
+
+    s_panel.pushSprite(PANEL_SX, PANEL_SY);
+}
+
+static void draw_params(void) {
+    if (ui.mode == UiMode::PATTERN_EDIT) draw_tab_seq();
+    else if (ui.mode == UiMode::SOUND_EDIT) draw_tab_dsp();
+    else if (ui.mode == UiMode::MIXER) draw_tab_mix();
+}
 /* ═══════════════════════════════════════════════════════════════════════════════
    HOLD-TO-ACCELERATE
    ═══════════════════════════════════════════════════════════════════════════════ */
@@ -634,84 +872,144 @@ static void handleTouch(const TouchPoint &tp) {
 
     int tx = tp.x, ty = tp.y;
 
-    /* ── Transport (y < 42) ────────────────────────────────────────────────── */
-    if (ty < 42) {
+    /* ── Topbar (y < 30) ────────────────────────────────────────────────── */
+    if (ty < 30) {
         if (R_PLAY.contains(tx, ty))  { postUiAction(UiActionType::TOGGLE_PLAY, 0, 0); return; }
-        if (R_SLOT_DEC.contains(tx, ty)) { ui.activeSlot = (ui.activeSlot == 0) ? (CYDConfig::PatternSlots - 1) : (ui.activeSlot - 1); return; }
-        if (R_SLOT_INC.contains(tx, ty)) { ui.activeSlot = (ui.activeSlot + 1) % CYDConfig::PatternSlots; return; }
-        if (R_SAVE.contains(tx, ty))  {
-            set_status(PatternStore.saveSlot(ui.activeSlot) ? "Saved!" : "Save Fail");
-            return;
-        }
-        if (R_LOAD.contains(tx, ty))  {
-            set_status(PatternStore.loadSlot(ui.activeSlot) ? "Loaded!" : "Load Fail");
-            return;
-        }
-        if (R_BPM_DEC.contains(tx, ty)) {
-            postUiAction(UiActionType::NUDGE_BPM, 0, -1);
-            hold_start(10, -1); return;
-        }
-        if (R_BPM_INC.contains(tx, ty)) {
-            postUiAction(UiActionType::NUDGE_BPM, 0, +1);
-            hold_start(10, +1); return;
-        }
+        if (R_BPM_DEC.contains(tx, ty)) { postUiAction(UiActionType::NUDGE_BPM, 0, -1); hold_start(10, -1); return; }
+        if (R_BPM_INC.contains(tx, ty)) { postUiAction(UiActionType::NUDGE_BPM, 0, +1); hold_start(10, +1); return; }
+
+        if (R_SLOT_1.contains(tx, ty)) { ui.activeSlot = 0; return; }
+        if (R_SLOT_2.contains(tx, ty)) { ui.activeSlot = 1; return; }
+        if (R_SLOT_3.contains(tx, ty)) { ui.activeSlot = 2; return; }
+
+        if (R_SAVE.contains(tx, ty))  { set_status(PatternStore.saveSlot(ui.activeSlot) ? "SAVED!" : "SAVE ERR"); return; }
+        if (R_LOAD.contains(tx, ty))  { set_status(PatternStore.loadSlot(ui.activeSlot) ? "LOADED!" : "LOAD ERR"); return; }
         return;
     }
 
-    /* ── Track selector (x < 36) ───────────────────────────────────────────── */
-    if (tx < 36) {
+    /* ── Left Panel (x < 62, y > 30) ───────────────────────────────────────────── */
+    if (tx < 62 && ty > 30) {
+        // Track selector
         for (int i = 0; i < TRACK_COUNT; i++) {
             if (R_TRACKS[i].contains(tx, ty)) {
                 postUiAction(UiActionType::SELECT_TRACK, 0, i); return;
             }
         }
-        return;
-    }
 
-    /* ── Footer (y >= 208, x < 192) ────────────────────────────────────────── */
-    if (ty >= 208 && tx < 192) {
-        if (R_MUTE.contains(tx, ty)) { postUiAction(UiActionType::TOGGLE_MUTE, 0, ui.snapshot.activeTrack); return; }
-        if (R_VOICE.contains(tx, ty)) { postUiAction(UiActionType::CHANGE_MODE, 0, (int)UiMode::SOUND_EDIT);  ui.mode = UiMode::SOUND_EDIT;  return; }
-        if (R_MIX.contains(tx, ty)) { postUiAction(UiActionType::CHANGE_MODE, 0, (int)UiMode::MIXER);       ui.mode = UiMode::MIXER;        return; }
-        return;
-    }
-
-    /* ── Ring Area (Tapping resets to pattern edit) ────────────────────────── */
-    if (R_RING.contains(tx, ty) && ui.mode != UiMode::PATTERN_EDIT) {
-        postUiAction(UiActionType::CHANGE_MODE, 0, (int)UiMode::PATTERN_EDIT);
-        ui.mode = UiMode::PATTERN_EDIT;
-        return;
-    }
-
-    /* ── Mixer sliders (x >= 192, mixer mode) ──────────────────────────────── */
-    if (ui.mode == UiMode::MIXER && tx >= 192) {
-        for (int i = 0; i < TRACK_COUNT; i++) {
-            if (R_SLIDERS[i].contains(tx, ty)) {
-                float norm = 1.0f - (float)(ty - R_SLIDERS[i].y) / R_SLIDERS[i].h;
-                norm = norm < 0.0f ? 0.0f : (norm > 1.0f ? 1.0f : norm);
-                postUiAction(UiActionType::SET_VOICE_GAIN, i, (int)(norm * 100));
-                return;
-            }
-        }
-        return;
-    }
-
-    /* ── Param panel (x >= PANEL_SX, not mixer) ────────────────────────────── */
-    if (tx >= PANEL_SX) {
-        /* Convert to sprite-local coords */
-        int lx = tx - PANEL_SX;
-        int ly = ty - PANEL_SY;
-        for (int row = 0; row < 4; row++) {
-            const ParamRow *pr = &PARAM_ROWS[row];
-            if (!pr->touch.contains(lx, ly)) continue;
-            if (pr->minus.contains(lx, ly)) { param_delta(row, -1); return; }
-            if (pr->plus.contains(lx, ly))  { param_delta(row, +1); return; }
+        // Euclid ring area tap to enter pattern edit and focus
+        if (R_RING.contains(tx, ty)) {
+            postUiAction(UiActionType::CHANGE_MODE, 0, (int)UiMode::PATTERN_EDIT);
+            ui.mode = UiMode::PATTERN_EDIT;
             return;
         }
         return;
     }
-}
 
+    /* ── Tabs (x >= 62, 30 <= y < 50) ────────────────────────────────────────────────── */
+    if (tx >= 62 && ty >= 30 && ty < 50) {
+        if (R_TAB_SEQ.contains(tx, ty)) { postUiAction(UiActionType::CHANGE_MODE, 0, (int)UiMode::PATTERN_EDIT); ui.mode = UiMode::PATTERN_EDIT; return; }
+        if (R_TAB_DSP.contains(tx, ty)) { postUiAction(UiActionType::CHANGE_MODE, 0, (int)UiMode::SOUND_EDIT); ui.mode = UiMode::SOUND_EDIT; return; }
+        if (R_TAB_MIX.contains(tx, ty)) { postUiAction(UiActionType::CHANGE_MODE, 0, (int)UiMode::MIXER); ui.mode = UiMode::MIXER; return; }
+        return;
+    }
+
+    /* ── Tab Content (x >= 62, 50 <= y < 224) ────────────────────────────────────────── */
+    if (tx >= 62 && ty >= 50 && ty < 224) {
+        int lx = tx - PANEL_SX;
+        int ly = ty - PANEL_SY;
+
+        if (ui.mode == UiMode::PATTERN_EDIT) {
+            // Check grid clicks
+            int cell_w = 28;
+            int cell_h = 14;
+            int start_x = 6;
+            int start_y = 7;
+            for (int i = 0; i < 16; i++) {
+                int row = i / 8;
+                int col = i % 8;
+                int x = start_x + col * (cell_w + 2);
+                if (col >= 4) x += 3;
+                int y = start_y + row * (cell_h + 2);
+
+
+            }
+
+            // Check steppers
+            int stepper_y = start_y + 2 * (cell_h + 2) + 6;
+            int step_btn_w = 14;
+            int step_val_w = 30;
+            int step_x = start_x + 28 + 6;
+            int plus_x = step_x + step_btn_w + step_val_w;
+
+            // HITS stepper (row 1 param)
+            if (ly >= stepper_y && ly < stepper_y + step_btn_w) {
+                if (lx >= step_x && lx < step_x + step_btn_w) { param_delta(1, -1); return; }
+                if (lx >= plus_x && lx < plus_x + step_btn_w) { param_delta(1, +1); return; }
+            }
+
+            // ROT stepper (row 2 param)
+            stepper_y += step_btn_w + 6;
+            if (ly >= stepper_y && ly < stepper_y + step_btn_w) {
+                if (lx >= step_x && lx < step_x + step_btn_w) { param_delta(2, -1); return; }
+                if (lx >= plus_x && lx < plus_x + step_btn_w) { param_delta(2, +1); return; }
+            }
+            return;
+        }
+
+        if (ui.mode == UiMode::SOUND_EDIT) {
+            // Click quadrants for DSP
+            int padding = 6;
+            int kw = (PANEL_W - 3*padding) / 2;
+            int kh = (PANEL_H - 3*padding) / 2;
+
+            for (int i=0; i<4; i++) {
+                int row = i / 2;
+                int col = i % 2;
+                int x = padding + col * (kw + padding);
+                int y = padding + row * (kh + padding);
+
+                if (lx >= x && lx < x + kw && ly >= y && ly < y + kh) {
+                    // Tap left half = minus, right half = plus
+                    if (lx < x + kw/2) { param_delta(i, -1); return; }
+                    else { param_delta(i, +1); return; }
+                }
+            }
+            return;
+        }
+
+        if (ui.mode == UiMode::MIXER) {
+            // Vertical click on mixer bars
+            int padding_y = 5;
+            int padding_x = 5;
+            int bar_h = 18;
+            int gap = 4;
+            int lbl_w = 14;
+            int val_w = 24;
+            int total_w = PANEL_W - 2 * padding_x;
+            int bar_w = total_w - lbl_w - val_w - 8;
+
+            int y = padding_y;
+
+            for (int i=0; i < TRACK_COUNT; i++) {
+                int bx = padding_x + lbl_w + 4;
+                if (lx >= bx && lx < bx + bar_w && ly >= y && ly < y + bar_h) {
+                    float norm = (float)(lx - bx) / bar_w;
+                    postUiAction(UiActionType::SET_VOICE_GAIN, i, (int)(norm * 100));
+                    return;
+                }
+
+                // Clicking label toggles mute
+                if (lx >= padding_x && lx < padding_x + lbl_w && ly >= y && ly < y + bar_h) {
+                    postUiAction(UiActionType::TOGGLE_MUTE, 0, i);
+                    return;
+                }
+
+                y += bar_h + gap;
+            }
+            return;
+        }
+    }
+}
 } // namespace
 
 void UiStateSnapshot::capture() {
@@ -757,7 +1055,7 @@ void displayTask(void *parameter) {
   InputMgr.begin();
 
   tft.fillScreen(C_BG);
-  tft.setFont(&fonts::FreeMonoBold9pt7b); // Bold mono for legibility at small sizes
+  tft.setTextSize(1); // Default 6x8 font
 
   /* ── Create sprites ────────────────────────────────────────────────────── */
   s_ring.createSprite(R_RING.w, R_RING.h);
@@ -824,6 +1122,7 @@ void displayTask(void *parameter) {
           tft.fillScreen(C_BG);
           draw_transport();
           draw_tracks();
+          draw_tabs();
           draw_footer();
           draw_params();
           last_full = now;
@@ -845,8 +1144,7 @@ void displayTask(void *parameter) {
                      sizeof(ui.snapshot.trackMutes)) != 0)
               draw_tracks();
 
-          if (any_change) draw_footer();
-          if (any_change) draw_params();
+          if (any_change) { draw_tabs(); draw_footer(); draw_params(); }
       }
 
       tft.endWrite();
