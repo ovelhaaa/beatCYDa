@@ -8,7 +8,7 @@ struct UiInvalidation {
   bool toastDirty = true;
   bool fullScreenDirty = true;
 
-  void markAll() {
+  void invalidateAll() {
     topBarDirty = true;
     ringDirty = true;
     panelDirty = true;
@@ -16,6 +16,8 @@ struct UiInvalidation {
     toastDirty = true;
     fullScreenDirty = true;
   }
+
+  void markAll() { invalidateAll(); }
 
   void clear() {
     topBarDirty = false;
