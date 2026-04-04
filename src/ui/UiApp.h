@@ -22,11 +22,16 @@ private:
   void renderChrome(uint32_t nowMs);
   void renderBottomNav();
   void handleBottomNavTouch();
+  void updateUiStats(uint32_t nowMs);
 
   LgfxDisplay _display;
   TouchPoint _touch;
   UiStateSnapshot _snapshot;
   UiScreenId _activeScreen{UiScreenId::Perform};
+  uint32_t _statsLastMs{0};
+  uint32_t _frameCounter{0};
+  uint16_t _uiFps{0};
+  uint32_t _freeHeap{0};
 
   UiButton _navPerform{};
   UiButton _navPattern{};

@@ -1,5 +1,6 @@
 #include "ProjectScreen.h"
 
+#include "../../CYD_Config.h"
 #include "../core/UiActions.h"
 #include "../theme/UiTheme.h"
 
@@ -145,10 +146,10 @@ bool ProjectScreen::handleTouch(const TouchPoint &tp, const UiStateSnapshot &sna
       if (_pendingAction == PendingAction::Save) {
         dispatchSaveSlot(_selectedSlot);
         _slotOccupied[_selectedSlot] = true;
-        showToast("Slot saved");
+        showToast("Slot saved", UiToastSeverity::Info, CYDConfig::UiToastInfoMs);
       } else if (_pendingAction == PendingAction::Delete) {
         _slotOccupied[_selectedSlot] = false;
-        showToast("Slot cleared", UiToastSeverity::Warning);
+        showToast("Slot cleared", UiToastSeverity::Warning, CYDConfig::UiToastInfoMs);
       }
       closeConfirm();
       _dirty = true;
@@ -157,7 +158,7 @@ bool ProjectScreen::handleTouch(const TouchPoint &tp, const UiStateSnapshot &sna
 
     if (_confirmModal.cancel.hitTest(tp.x, tp.y)) {
       closeConfirm();
-      showToast("Canceled", UiToastSeverity::Warning, 900);
+      showToast("Canceled", UiToastSeverity::Warning, CYDConfig::UiToastWarningMs);
       _dirty = true;
       return true;
     }
@@ -175,7 +176,7 @@ bool ProjectScreen::handleTouch(const TouchPoint &tp, const UiStateSnapshot &sna
 
   if (_loadButton.hitTest(tp.x, tp.y)) {
     dispatchLoadSlot(_selectedSlot);
-    showToast("Slot loaded");
+    showToast("Slot loaded", UiToastSeverity::Info, CYDConfig::UiToastInfoMs);
     _dirty = true;
     return true;
   }
@@ -186,7 +187,7 @@ bool ProjectScreen::handleTouch(const TouchPoint &tp, const UiStateSnapshot &sna
     } else {
       dispatchSaveSlot(_selectedSlot);
       _slotOccupied[_selectedSlot] = true;
-      showToast("Slot saved");
+      showToast("Slot saved", UiToastSeverity::Info, CYDConfig::UiToastInfoMs);
     }
     _dirty = true;
     return true;
