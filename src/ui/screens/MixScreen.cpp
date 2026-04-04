@@ -56,7 +56,9 @@ void MixScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &snapsho
   canvas.printf("MASTER %d%%", static_cast<int>(snapshot.masterVolume * 100.0f));
 
   for (int i = 0; i < TRACK_COUNT; ++i) {
-    _faders[i].value = static_cast<uint8_t>(snapshot.voiceGain[i] * 100.0f);
+    if (_activeFader != i) {
+      _faders[i].value = static_cast<uint8_t>(snapshot.voiceGain[i] * 100.0f);
+    }
     _faders[i].captured = (_activeFader == i);
     _faders[i].draw(canvas);
   }
