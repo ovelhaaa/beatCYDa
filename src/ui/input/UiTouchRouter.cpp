@@ -33,6 +33,25 @@ void paramDelta(UiRuntime &ui, int row, int delta) {
   holdStart(ui, row, delta);
 }
 
+Rect sliderTouchRect(int index) {
+  constexpr int kTouchPadX = 8;
+  constexpr int kTouchPadTop = 14;
+  constexpr int kTouchPadBottom = 18;
+
+  const Rect &visual = R_SLIDERS[index];
+  return {static_cast<int16_t>(visual.x - kTouchPadX),
+          static_cast<int16_t>(visual.y - kTouchPadTop),
+          static_cast<int16_t>(visual.w + (kTouchPadX * 2)),
+          static_cast<int16_t>(visual.h + kTouchPadTop + kTouchPadBottom)};
+}
+
+void dispatchFaderValue(int index, int y) {
+  const Rect &visual = R_SLIDERS[index];
+  float norm = 1.0f - static_cast<float>(y - visual.y) / visual.h;
+  norm = norm < 0.0f ? 0.0f : (norm > 1.0f ? 1.0f : norm);
+  dispatchUiAction(UiActionType::SET_VOICE_GAIN, index, static_cast<int>(norm * 100));
+}
+
 } // namespace
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -41,8 +60,15 @@ void paramDelta(UiRuntime &ui, int row, int delta) {
 void handleTouch(UiRuntime &ui, const TouchPoint &tp) {
   if (tp.justReleased) {
     holdStop(ui);
+    ui.activeFaderIndex = -1;
     return;
   }
+
+  if (tp.pressed && ui.activeFaderIndex >= 0) {
+    dispatchFaderValue(ui.activeFaderIndex, tp.y);
+    return;
+  }
+
   if (!tp.justPressed)
     return;
 
@@ -116,10 +142,9 @@ void handleTouch(UiRuntime &ui, const TouchPoint &tp) {
 
   if (ui.mode == UiMode::MIXER && tx >= 192) {
     for (int i = 0; i < TRACK_COUNT; i++) {
-      if (R_SLIDERS[i].contains(tx, ty)) {
-        float norm = 1.0f - static_cast<float>(ty - R_SLIDERS[i].y) / R_SLIDERS[i].h;
-        norm = norm < 0.0f ? 0.0f : (norm > 1.0f ? 1.0f : norm);
-        dispatchUiAction(UiActionType::SET_VOICE_GAIN, i, static_cast<int>(norm * 100));
+      if (sliderTouchRect(i).contains(tx, ty)) {
+        ui.activeFaderIndex = i;
+        dispatchFaderValue(i, ty);
         return;
       }
     }

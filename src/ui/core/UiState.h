@@ -14,6 +14,7 @@ struct UiRuntime {
   int activeHoldParam = -1;
   uint32_t holdNextTickMs = 0;
   int holdTickCount = 0;
+  int activeFaderIndex = -1;
 
   char status[32] = "CYD ready";
   char lastStatus[32] = "";
