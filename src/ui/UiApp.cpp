@@ -5,26 +5,33 @@
 namespace ui {
 
 UiApp::UiApp() {
+  auto setRect = [](UiRect &rect, int16_t x, int16_t y, int16_t w, int16_t h) {
+    rect.x = x;
+    rect.y = y;
+    rect.w = w;
+    rect.h = h;
+  };
+
   _playButton.label = "PLAY";
   _playButton.variant = UiButtonVariant::Primary;
-  _playButton.rect = UiRect{12, 58, 72, 34};
+  setRect(_playButton.rect, 12, 58, 72, 34);
 
   _statusCard.title = "STATUS";
   _statusCard.value = "NEW UI";
   _statusCard.active = true;
-  _statusCard.rect = UiRect{92, 58, 104, 58};
+  setRect(_statusCard.rect, 92, 58, 104, 58);
 
   _trackChip.trackIndex = 0;
   _trackChip.active = true;
   _trackChip.muted = false;
   _trackChip.selected = true;
-  _trackChip.rect = UiRect{204, 58, 56, 34};
+  setRect(_trackChip.rect, 204, 58, 56, 34);
 
   _macroRow.label = "STEPS";
   _macroRow.valueText = "16";
-  _macroRow.minusRect = UiRect{208, 106, 24, 24};
-  _macroRow.plusRect = UiRect{282, 106, 24, 24};
-  _macroRow.rowRect = UiRect{92, 100, 216, 38};
+  setRect(_macroRow.minusRect, 208, 106, 24, 24);
+  setRect(_macroRow.plusRect, 282, 106, 24, 24);
+  setRect(_macroRow.rowRect, 92, 100, 216, 38);
   _macroRow.showBar = true;
   _macroRow.focus = false;
   _macroRow.barFill = 72;
@@ -32,17 +39,17 @@ UiApp::UiApp() {
   _toast.message = "Sprint 2 em andamento";
   _toast.severity = UiToastSeverity::Info;
   _toast.timeoutMs = 1400;
-  _toast.rect = UiRect{12, 196, 220, 28};
+  setRect(_toast.rect, 12, 196, 220, 28);
 
   _modal.title = "Confirmar";
   _modal.body = "Salvar projeto?";
   _modal.confirm.label = "OK";
   _modal.confirm.variant = UiButtonVariant::Primary;
-  _modal.confirm.rect = UiRect{122, 156, 56, 28};
+  setRect(_modal.confirm.rect, 122, 156, 56, 28);
   _modal.cancel.label = "X";
   _modal.cancel.variant = UiButtonVariant::Secondary;
-  _modal.cancel.rect = UiRect{184, 156, 56, 28};
-  _modal.rect = UiRect{96, 120, 152, 72};
+  setRect(_modal.cancel.rect, 184, 156, 56, 28);
+  setRect(_modal.rect, 96, 120, 152, 72);
   _modal.visible = false;
 }
 
