@@ -32,7 +32,7 @@ PatternScreen::PatternScreen() {
 
   _randomButton.label = "RANDOM";
   _randomButton.variant = UiButtonVariant::Secondary;
-  _randomButton.disabled = true;
+  _randomButton.disabled = false;
   _clearButton.label = "CLEAR";
   _clearButton.variant = UiButtonVariant::Danger;
 
@@ -201,6 +201,7 @@ bool PatternScreen::handleTouch(const TouchPoint &tp, const UiStateSnapshot &sna
     }
 
     if (_randomButton.hitTest(tp.x, tp.y)) {
+      dispatchUiAction(UiActionType::RANDOMIZE_TRACK, snapshot.activeTrack, 0);
       _dirty = true;
       return true;
     }

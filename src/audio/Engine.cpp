@@ -792,6 +792,19 @@ void Engine::handleUiAction(UiAction action) {
     voiceManager.setVoiceGain(track, action.value / 100.0f);
     return;
   }
+
+  if (action.type == UiActionType::RANDOMIZE_TRACK) {
+    const int track = constrain(action.index, 0, TRACK_COUNT - 1);
+    if (lockPattern()) {
+      const int steps = constrain(tracks[track].steps, 1, 64);
+      const int minHits = (track == VOICE_BASS) ? 1 : 0;
+      tracks[track].hits = minHits + static_cast<int>(esp_random() % (steps - minHits + 1));
+      tracks[track].rotationOffset = static_cast<int>(esp_random() % steps);
+      recalculatePatternUnlocked(track);
+      unlockPattern();
+    }
+    return;
+  }
 }
 
 void Engine::play() {
