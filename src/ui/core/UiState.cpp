@@ -4,6 +4,7 @@
 void setStatus(UiRuntime &ui, const char *msg, uint32_t ms) {
   snprintf(ui.status, sizeof(ui.status), "%s", msg);
   ui.statusUntilMs = millis() + ms;
+  ui.invalidation.toastDirty = true;
 }
 
 void updateStatusTimeout(UiRuntime &ui, uint32_t now) {
@@ -11,35 +12,54 @@ void updateStatusTimeout(UiRuntime &ui, uint32_t now) {
     ui.statusUntilMs = 0;
     snprintf(ui.status, sizeof(ui.status), "%s", ui.snapshot.isPlaying ? "PLAYING" : "READY");
     ui.forceRedraw = true;
+    ui.invalidation.topBarDirty = true;
+    ui.invalidation.toastDirty = true;
   }
 }
 
-UiFramePlan buildFramePlan(const UiRuntime &ui, uint32_t now, uint32_t lastFullMs) {
-  const bool slidersDirty =
-      ui.activeHoldParam != -1 ||
-      memcmp(ui.snapshot.trackSteps, ui.lastSnapshot.trackSteps, sizeof(ui.snapshot.trackSteps)) != 0 ||
-      memcmp(ui.snapshot.trackHits, ui.lastSnapshot.trackHits, sizeof(ui.snapshot.trackHits)) != 0 ||
-      memcmp(ui.snapshot.trackRotations, ui.lastSnapshot.trackRotations, sizeof(ui.snapshot.trackRotations)) != 0 ||
-      memcmp(ui.snapshot.voiceParams, ui.lastSnapshot.voiceParams, sizeof(ui.snapshot.voiceParams)) != 0 ||
-      memcmp(ui.snapshot.voiceGain, ui.lastSnapshot.voiceGain, sizeof(ui.snapshot.voiceGain)) != 0 ||
-      memcmp(&ui.snapshot.bassParams, &ui.lastSnapshot.bassParams, sizeof(BassGrooveParams)) != 0;
+void updateUiInvalidation(UiRuntime &ui, uint32_t now, uint32_t lastFullMs) {
+  if (ui.forceRedraw || (now - lastFullMs > 8000u)) {
+    ui.invalidation.markAll();
+    return;
+  }
 
-  UiFramePlan plan;
-  plan.anyChange = slidersDirty || (ui.snapshot.bpm != ui.lastSnapshot.bpm) ||
-                   (ui.snapshot.isPlaying != ui.lastSnapshot.isPlaying) ||
-                   (ui.snapshot.activeTrack != ui.lastSnapshot.activeTrack) ||
-                   (ui.mode != ui.lastMode) || (ui.activeSlot != ui.lastActiveSlot) ||
-                   (strcmp(ui.status, ui.lastStatus) != 0) ||
-                   memcmp(ui.snapshot.trackMutes, ui.lastSnapshot.trackMutes, sizeof(ui.snapshot.trackMutes)) != 0;
+  if (ui.snapshot.bpm != ui.lastSnapshot.bpm || ui.snapshot.isPlaying != ui.lastSnapshot.isPlaying ||
+      ui.activeSlot != ui.lastActiveSlot) {
+    ui.invalidation.topBarDirty = true;
+  }
 
-  plan.patternChange =
-      memcmp(ui.snapshot.patterns, ui.lastSnapshot.patterns, sizeof(ui.snapshot.patterns)) != 0 ||
-      memcmp(ui.snapshot.trackSteps, ui.lastSnapshot.trackSteps, sizeof(ui.snapshot.trackSteps)) != 0 ||
-      ui.snapshot.activeTrack != ui.lastSnapshot.activeTrack;
+  if (ui.snapshot.activeTrack != ui.lastSnapshot.activeTrack || ui.mode != ui.lastMode) {
+    ui.invalidation.ringDirty = true;
+    ui.invalidation.panelDirty = true;
+    ui.invalidation.bottomNavDirty = true;
+  }
 
-  plan.stepChange = (ui.snapshot.currentStep != ui.lastSnapshot.currentStep);
-  plan.full = ui.forceRedraw || (now - lastFullMs > 8000u);
-  return plan;
+  if (ui.snapshot.currentStep != ui.lastSnapshot.currentStep) {
+    ui.invalidation.ringDirty = true;
+  }
+
+  if (strcmp(ui.status, ui.lastStatus) != 0) {
+    ui.invalidation.toastDirty = true;
+  }
+
+  for (int i = 0; i < TRACK_COUNT; ++i) {
+    if (ui.snapshot.trackMutes[i] != ui.lastSnapshot.trackMutes[i]) {
+      ui.invalidation.ringDirty = true;
+      ui.invalidation.panelDirty = true;
+      ui.invalidation.bottomNavDirty = true;
+      break;
+    }
+  }
+
+#ifndef NDEBUG
+  if (memcmp(&ui.snapshot, &ui.lastSnapshot, sizeof(UiStateSnapshot)) != 0 || ui.mode != ui.lastMode ||
+      ui.activeSlot != ui.lastActiveSlot || strcmp(ui.status, ui.lastStatus) != 0) {
+    if (!ui.invalidation.topBarDirty && !ui.invalidation.ringDirty && !ui.invalidation.panelDirty &&
+        !ui.invalidation.bottomNavDirty && !ui.invalidation.toastDirty && !ui.invalidation.fullScreenDirty) {
+      ui.invalidation.markAll();
+    }
+  }
+#endif
 }
 
 void commitFrame(UiRuntime &ui) {
@@ -47,6 +67,7 @@ void commitFrame(UiRuntime &ui) {
   ui.lastMode = ui.mode;
   ui.lastActiveSlot = ui.activeSlot;
   snprintf(ui.lastStatus, sizeof(ui.lastStatus), "%s", ui.status);
+  ui.invalidation.clear();
 }
 
 int getParamDisplayValue(const UiRuntime &ui, int paramIndex) {

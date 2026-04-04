@@ -333,10 +333,10 @@ void initLegacyRender() {
 }
 
 void renderLegacyFrame(UiRuntime &ui, uint32_t now, uint32_t &lastFullMs, uint32_t &lastRingMs) {
-  UiFramePlan plan = buildFramePlan(ui, now, lastFullMs);
+  updateUiInvalidation(ui, now, lastFullMs);
 
   tft.startWrite();
-  if (plan.full) {
+  if (ui.invalidation.fullScreenDirty) {
     tft.fillScreen(C_BG);
     drawTransport(ui);
     drawTracks(ui);
@@ -344,28 +344,30 @@ void renderLegacyFrame(UiRuntime &ui, uint32_t now, uint32_t &lastFullMs, uint32
     drawParams(ui);
     lastFullMs = now;
     ui.forceRedraw = false;
-  } else if (plan.anyChange) {
-    bool transportDirty = (ui.snapshot.bpm != ui.lastSnapshot.bpm ||
-                           ui.snapshot.isPlaying != ui.lastSnapshot.isPlaying ||
-                           ui.activeSlot != ui.lastActiveSlot);
-
-    if (transportDirty) {
+  } else {
+    if (ui.invalidation.topBarDirty) {
       drawTransport(ui);
-    } else if (strcmp(ui.status, ui.lastStatus) != 0) {
+    }
+
+    if (ui.invalidation.toastDirty && !ui.invalidation.topBarDirty) {
       drawStatus(ui);
     }
 
-    if (ui.snapshot.activeTrack != ui.lastSnapshot.activeTrack ||
-        memcmp(ui.snapshot.trackMutes, ui.lastSnapshot.trackMutes, sizeof(ui.snapshot.trackMutes)) != 0) {
+    if (ui.invalidation.ringDirty || ui.invalidation.bottomNavDirty) {
       drawTracks(ui);
     }
 
-    drawFooter(ui);
-    drawParams(ui);
+    if (ui.invalidation.bottomNavDirty) {
+      drawFooter(ui);
+    }
+
+    if (ui.invalidation.panelDirty) {
+      drawParams(ui);
+    }
   }
   tft.endWrite();
 
-  if ((ui.snapshot.isPlaying && plan.stepChange) || plan.patternChange || plan.full) {
+  if (ui.invalidation.ringDirty || ui.invalidation.fullScreenDirty) {
     if (now - lastRingMs >= 33u) {
       drawRing(ui);
       lastRingMs = now;

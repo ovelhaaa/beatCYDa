@@ -6,6 +6,7 @@
 #include "../control/ControlManager.h"
 #include "../control/InputManager.h"
 #include <SPI.h>
+#include <esp_system.h>
 #include <string.h>
 
 LGFX_CYD tft;
@@ -21,6 +22,7 @@ void processStorageFeedback(UiRuntime &ui, uint32_t now) {
       setStatus(ui, event.success ? "Saved!" : "Save Fail");
     } else if (event.type == ControlManager::StorageEventType::LOAD_SLOT_DONE) {
       setStatus(ui, event.success ? "Loaded!" : "Load Fail");
+      ui.invalidation.markAll();
     }
   }
 
@@ -28,6 +30,20 @@ void processStorageFeedback(UiRuntime &ui, uint32_t now) {
     ui.storageOpInProgress = false;
     ui.storageOpDeadlineMs = 0;
     setStatus(ui, "Storage timeout");
+    ui.invalidation.toastDirty = true;
+  }
+}
+
+void updateFrameMetrics(UiRuntime &ui, uint32_t renderMicros) {
+  ui.metrics.frameCount++;
+  ui.metrics.lastRenderMicros = renderMicros;
+  ui.metrics.lastFreeHeap = esp_get_free_heap_size();
+
+  if ((ui.metrics.frameCount % 60u) == 0u) {
+    Serial.printf("[UI] frame=%lu render_us=%lu free_heap=%lu\n",
+                  static_cast<unsigned long>(ui.metrics.frameCount),
+                  static_cast<unsigned long>(ui.metrics.lastRenderMicros),
+                  static_cast<unsigned long>(ui.metrics.lastFreeHeap));
   }
 }
 } // namespace
@@ -94,7 +110,9 @@ void displayTask(void *parameter) {
     tickHold(ui);
 
     // render
+    const uint32_t renderStart = micros();
     renderLegacyFrame(ui, now, lastFull, lastRing);
+    updateFrameMetrics(ui, micros() - renderStart);
     commitFrame(ui);
 
     vTaskDelay(pdMS_TO_TICKS(16));

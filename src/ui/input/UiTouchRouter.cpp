@@ -31,6 +31,8 @@ void holdStop(UiRuntime &ui) {
 
 void paramDelta(UiRuntime &ui, int row, int delta) {
   dispatchParamDelta(ui, row, delta);
+  ui.invalidation.panelDirty = true;
+  ui.invalidation.ringDirty = true;
   holdStart(ui, row, delta);
 }
 
@@ -67,6 +69,7 @@ void handleTouch(UiRuntime &ui, const TouchPoint &tp) {
 
   if (tp.pressed && ui.activeFaderIndex >= 0) {
     dispatchFaderValue(ui.activeFaderIndex, tp.y);
+    ui.invalidation.panelDirty = true;
     return;
   }
 
@@ -79,14 +82,18 @@ void handleTouch(UiRuntime &ui, const TouchPoint &tp) {
   if (ty < 42) {
     if (R_PLAY.contains(tx, ty)) {
       dispatchUiAction(UiActionType::TOGGLE_PLAY, 0, 0);
+      ui.invalidation.topBarDirty = true;
+      ui.invalidation.ringDirty = true;
       return;
     }
     if (R_SLOT_DEC.contains(tx, ty)) {
       ui.activeSlot = (ui.activeSlot == 0) ? (CYDConfig::PatternSlots - 1) : (ui.activeSlot - 1);
+      ui.invalidation.topBarDirty = true;
       return;
     }
     if (R_SLOT_INC.contains(tx, ty)) {
       ui.activeSlot = (ui.activeSlot + 1) % CYDConfig::PatternSlots;
+      ui.invalidation.topBarDirty = true;
       return;
     }
     if (R_SAVE.contains(tx, ty)) {
@@ -113,11 +120,13 @@ void handleTouch(UiRuntime &ui, const TouchPoint &tp) {
     }
     if (R_BPM_DEC.contains(tx, ty)) {
       dispatchUiAction(UiActionType::NUDGE_BPM, 0, -1);
+      ui.invalidation.topBarDirty = true;
       holdStart(ui, 10, -1);
       return;
     }
     if (R_BPM_INC.contains(tx, ty)) {
       dispatchUiAction(UiActionType::NUDGE_BPM, 0, +1);
+      ui.invalidation.topBarDirty = true;
       holdStart(ui, 10, +1);
       return;
     }
@@ -128,6 +137,9 @@ void handleTouch(UiRuntime &ui, const TouchPoint &tp) {
     for (int i = 0; i < TRACK_COUNT; i++) {
       if (R_TRACKS[i].contains(tx, ty)) {
         dispatchUiAction(UiActionType::SELECT_TRACK, 0, i);
+        ui.invalidation.ringDirty = true;
+        ui.invalidation.panelDirty = true;
+        ui.invalidation.bottomNavDirty = true;
         return;
       }
     }
@@ -137,14 +149,21 @@ void handleTouch(UiRuntime &ui, const TouchPoint &tp) {
   if (ty >= 208 && tx < 192) {
     if (R_MUTE.contains(tx, ty)) {
       dispatchUiAction(UiActionType::TOGGLE_MUTE, 0, ui.snapshot.activeTrack);
+      ui.invalidation.ringDirty = true;
+      ui.invalidation.panelDirty = true;
+      ui.invalidation.bottomNavDirty = true;
       return;
     }
     if (R_VOICE.contains(tx, ty)) {
       dispatchModeChange(ui, UiMode::SOUND_EDIT);
+      ui.invalidation.panelDirty = true;
+      ui.invalidation.bottomNavDirty = true;
       return;
     }
     if (R_MIX.contains(tx, ty)) {
       dispatchModeChange(ui, UiMode::MIXER);
+      ui.invalidation.panelDirty = true;
+      ui.invalidation.bottomNavDirty = true;
       return;
     }
     return;
@@ -152,6 +171,8 @@ void handleTouch(UiRuntime &ui, const TouchPoint &tp) {
 
   if (R_RING.contains(tx, ty) && ui.mode != UiMode::PATTERN_EDIT) {
     dispatchModeChange(ui, UiMode::PATTERN_EDIT);
+    ui.invalidation.panelDirty = true;
+    ui.invalidation.bottomNavDirty = true;
     return;
   }
 
@@ -160,6 +181,7 @@ void handleTouch(UiRuntime &ui, const TouchPoint &tp) {
       if (sliderTouchRect(i).contains(tx, ty)) {
         ui.activeFaderIndex = i;
         dispatchFaderValue(i, ty);
+        ui.invalidation.panelDirty = true;
         return;
       }
     }
@@ -204,8 +226,11 @@ void tickHold(UiRuntime &ui) {
 
   if (ui.activeHoldParam == 10) {
     dispatchUiAction(UiActionType::NUDGE_BPM, 0, amount);
+    ui.invalidation.topBarDirty = true;
   } else {
     dispatchParamDelta(ui, ui.activeHoldParam, amount);
+    ui.invalidation.panelDirty = true;
+    ui.invalidation.ringDirty = true;
   }
 
   ui.holdNextTickMs = now + holdInterval(ui.holdTickCount);
