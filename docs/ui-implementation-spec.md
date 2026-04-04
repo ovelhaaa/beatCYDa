@@ -368,9 +368,9 @@ Props:
 **DoD:** troca de track/navegação fluida em hardware real.
 
 ## Sprint 4 — Pattern + Sound
-- [ ] `PatternScreen`
-- [ ] `SoundScreen`
-- [ ] hold-repeat unificado via `CYD_Config.h`
+- [x] `PatternScreen` *(base implementada em `src/ui/screens/PatternScreen.h/.cpp`)*
+- [x] `SoundScreen` *(base implementada em `src/ui/screens/SoundScreen.h/.cpp`)*
+- [x] hold-repeat unificado via `CYD_Config.h` *(usando `HoldRepeat*` nos ajustes de `+/-`)* 
 
 **DoD:** precisão de `+/-` aceitável em touch resistivo.
 
@@ -426,3 +426,11 @@ Props:
 - [x] `UiApp` migrou de smoke test genérico para fluxo com `PerformScreen` + bottom nav consistente (`src/ui/UiApp.h/.cpp`).
 - [x] Integração de ações de UI no `PerformScreen`/nav via dispatcher existente (`dispatchUiAction`, `CHANGE_MODE`, `TOGGLE_PLAY`, `TOGGLE_MUTE`, `SELECT_TRACK`).
 - [ ] Invalidação parcial por regiões ainda pendente nesta etapa (render ainda é full frame por simplicidade/controlar risco).
+
+## 9) Progresso incremental — Sprint 4 (Pattern + Sound) *(atualizado)*
+
+- [x] `PatternScreen` criado com mini resumo de track + macro rows para `steps/hits/rotate/gain`.
+- [x] `SoundScreen` criado com identity card + macro rows para `pitch/decay/timbre/drive`.
+- [x] Navegação bottom (`UiApp`) passou a renderizar/rotear toque para `PatternScreen` e `SoundScreen`.
+- [x] Hold-repeat de `+/-` aplicado nas duas telas usando os tempos/estágios de `CYD_Config.h`.
+- [~] Ações avançadas (`random/copy/paste`) ainda em evolução (botão de random visível, mas desabilitado por ausência de action dedicada no dispatcher atual).

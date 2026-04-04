@@ -5,6 +5,8 @@
 #include "components/UiButton.h"
 #include "core/UiScreenId.h"
 #include "screens/PerformScreen.h"
+#include "screens/PatternScreen.h"
+#include "screens/SoundScreen.h"
 
 namespace ui {
 
@@ -31,6 +33,8 @@ private:
   UiButton _navProject{};
 
   PerformScreen _performScreen{};
+  PatternScreen _patternScreen{};
+  SoundScreen _soundScreen{};
 };
 
 } // namespace ui
