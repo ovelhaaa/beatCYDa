@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../../CYD_Config.h"
 #include "UiRect.h"
 #include <LovyanGFX.hpp>
 
@@ -14,7 +15,7 @@ enum class UiToastSeverity : uint8_t {
 struct UiToast {
   const char *message{""};
   UiToastSeverity severity{UiToastSeverity::Info};
-  uint32_t timeoutMs{1400};
+  uint32_t timeoutMs{CYDConfig::UiToastInfoMs};
   UiRect rect{};
 
   void draw(lgfx::LGFX_Device &canvas) const;

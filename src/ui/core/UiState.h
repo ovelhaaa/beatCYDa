@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../../CYD_Config.h"
 #include "../Display.h"
 #include "UiInvalidation.h"
 
@@ -35,7 +36,7 @@ struct UiRuntime {
   UiFrameMetrics metrics;
 };
 
-void setStatus(UiRuntime &ui, const char *msg, uint32_t ms = 1400);
+void setStatus(UiRuntime &ui, const char *msg, uint32_t ms = CYDConfig::UiToastInfoMs);
 void updateStatusTimeout(UiRuntime &ui, uint32_t now);
 void updateUiInvalidation(UiRuntime &ui, uint32_t now, uint32_t lastFullMs);
 void commitFrame(UiRuntime &ui);
