@@ -192,7 +192,7 @@ bool ProjectScreen::handleTouch(const TouchPoint &tp, const UiStateSnapshot &sna
     return true;
   }
 
-  if (_deleteButton.hitTest(tp.x, tp.y)) {
+  if (_slotOccupied[_selectedSlot] && _deleteButton.hitTest(tp.x, tp.y)) {
     openConfirm(PendingAction::Delete);
     _dirty = true;
     return true;
