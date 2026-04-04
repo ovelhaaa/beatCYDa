@@ -1,93 +1,50 @@
 # Avaliação de progresso das telas (beatCYDa)
 
-Este documento resume o estado **implementado no código** das telas da nova UI (`UiApp`) e traz mockups atualizados para cada uma.
+Este documento consolida o estado **real do código** da nova UI (`UiApp`) e registra a tarefa de Sprint 7 assumida nesta rodada.
 
-## Resumo executivo
+## Resumo executivo (verificado em código)
 
 | Tela | Estado | Progresso estimado | Observações |
 |---|---|---:|---|
-| Perform | Implementada e navegável | 90% | Fluxo principal pronto (play/mute/seleção de trilha). |
-| Pattern | Implementada e navegável | 85% | Edição de steps/hits/rotate/gain com hold acelerado; random ainda desabilitado. |
-| Sound | Implementada e navegável | 85% | Edição de pitch/decay/timbre/drive com hold acelerado. |
-| Mix | Implementada e navegável | 80% | Faders por trilha com captura/drag; foco em ganho por voz. |
-| Project | Navegação criada, conteúdo pendente | 20% | Botão de navegação existe, mas não há render/fluxo dedicado. |
+| Perform | Implementada e navegável | 92% | Play/mute/seleção de trilha funcionando e integrados ao dispatcher. |
+| Pattern | Implementada e navegável | 88% | `steps/hits/rotate/gain` com hold-repeat; `RANDOM` ainda desabilitado. |
+| Sound | Implementada e navegável | 88% | `pitch/decay/timbre/drive` com hold-repeat. |
+| Mix | Implementada e navegável | 86% | Faders com captura + drag contínuo + hitbox expandido. |
+| Project | Implementada e navegável | 85% | Grid de slots + load/save/delete com modal e toast. |
 
-## Critério utilizado
+## Verificação de status vs spec
 
-A avaliação considera:
+- ✅ Sprints 1 a 6 estão implementadas no código (fundação, componentes, telas e fluxos principais).
+- ✅ Métricas de UI já existem no topo (`FPS` + heap livre), cobrindo parte do polimento.
+- ✅ Tempos de toast/refresh centralizados em `CYD_Config.h`.
+- ⏳ Pendências principais remanescentes: invalidação fina por região, contraste/estados visuais finais e limpeza opcional do legado.
 
-1. **Render da tela** (layout e componentes).
-2. **Interação por toque** (tap/hold/drag).
-3. **Integração com ações da engine** (`dispatchUiAction`).
-4. **Nível de acabamento** (estados desabilitados, ações faltantes, fluxos incompletos).
+## Tarefa assumida nesta rodada (Sprint 7)
 
-## Evidências por tela
+### Objetivo
+Implementar **invalidação parcial por regiões** na `UiApp` para evitar redraw completo desnecessário a cada frame.
 
-### 1) Perform
+### O que foi implementado
 
-- Renderiza botões `PLAY/STOP`, `MUTE/UNMUTE`, card de status e chips de trilha.
-- Trata toque para alternar play, mute e seleção de trilha.
-- Reflete estado atual (`bpm`, trilha ativa e mutes).
+1. `UiApp` passou a manter estado de invalidação com `UiInvalidation`.
+2. Pipeline de frame foi separado por regiões:
+   - top bar (`renderChrome`) só redesenha quando suja.
+   - conteúdo da tela ativa só redesenha quando sujo.
+   - bottom nav só redesenha quando suja.
+3. Foi adicionado detecção de mudanças no snapshot (`detectModelChanges`) para invalidar apenas quando o modelo realmente mudou (BPM/play/topo; track/params/conteúdo).
+4. Navegação inferior agora marca a região de nav como suja e troca de tela dispara `invalidateAll()`.
 
-Mockup: `docs/mockups/screen-perform.svg`
+## Checklist do que foi feito até agora (UI nova)
 
-### 2) Pattern
-
-- Renderiza card de cabeçalho, chips de trilha e 4 linhas (`STEPS`, `HITS`, `ROTATE`, `GAIN`).
-- Implementa `+/-` com repetição por hold acelerado.
-- Botão `CLEAR` funcional (zera hits/rotate da trilha ativa).
-- Botão `RANDOM` presente, porém desabilitado.
-
-Mockup: `docs/mockups/screen-pattern.svg`
-
-### 3) Sound
-
-- Renderiza card de identidade da trilha (`KICK`, `SNARE`, etc.), chips de trilha e 4 linhas (`PITCH`, `DECAY`, `TIMBRE`, `DRIVE`).
-- Todas as linhas com barra visual e ajuste por `+/-`.
-- Hold acelerado implementado como em Pattern.
-
-Mockup: `docs/mockups/screen-sound.svg`
-
-### 4) Mix
-
-- Renderiza card `MIX`, leitura de `MASTER` e 5 faders verticais de trilha.
-- Suporta captura no toque, atualização contínua no drag e soltura.
-- Integração com ação `SET_VOICE_GAIN` por trilha.
-
-Mockup: `docs/mockups/screen-mix.svg`
-
-### 5) Project
-
-- A navegação inferior possui botão `PROJ` e troca de `UiScreenId`.
-- Ainda não existe tela de conteúdo específica para Project (render/ações próprias).
-
-Mockup (conceitual de estado atual): `docs/mockups/screen-project.svg`
-
-## Mockups gerados
-
-- ![Mockup Perform](mockups/screen-perform.svg)
-- ![Mockup Pattern](mockups/screen-pattern.svg)
-- ![Mockup Sound](mockups/screen-sound.svg)
-- ![Mockup Mix](mockups/screen-mix.svg)
-- ![Mockup Project](mockups/screen-project.svg)
-
-## Próximos passos recomendados
-
-1. Implementar `ProjectScreen` com save/load de slot e feedback de operação.
-2. Ativar lógica de `RANDOM` na Pattern.
-3. Adicionar indicadores de `dirty`/feedback visual para ajustes contínuos.
-4. Revisar consistência de espaçamentos e nomenclaturas entre telas.
-
-## Próxima etapa assumida (Sprint 7 — Polimento)
-
-Foi iniciada a etapa de polimento com foco em telemetria leve da UI e remoção de timings hardcoded.
-
-### Checklist do que foi feito até agora
-
-- [x] Métricas de frame na UI (FPS) com atualização periódica.
-- [x] Métrica de heap livre exibida na barra superior.
-- [x] Centralização de tempos de toast e refresh de métricas em `CYD_Config.h`.
-- [x] `ProjectScreen` migrada para usar os novos tempos configuráveis.
-- [ ] Revisão final de contraste/estados pressionados em todas as telas.
-- [ ] Invalidação fina por regiões (ainda em full redraw por frame).
-- [ ] Limpeza final do legado opcional.
+- [x] Feature flag e coexistência legado/novo
+- [x] Fundação (`LgfxDisplay`, theme tokens, `UiApp`)
+- [x] Componentes base (`UiButton`, `UiChip`, `UiCard`, `UiMacroRow`, `UiToast`, `UiModal`, `UiFader`)
+- [x] PerformScreen funcional
+- [x] PatternScreen funcional (com hold-repeat)
+- [x] SoundScreen funcional (com hold-repeat)
+- [x] MixScreen funcional (captura + drag)
+- [x] ProjectScreen funcional (save/load/delete + confirmação)
+- [x] Invalidação parcial inicial por regiões na `UiApp`
+- [ ] Revisão final de contraste/estados pressionados em todas as telas
+- [ ] Refinar invalidação para sub-regiões internas por tela (ex.: redraw parcial de componente)
+- [ ] Limpeza final do legado opcional
