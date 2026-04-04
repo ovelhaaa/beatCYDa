@@ -52,6 +52,17 @@ Implementar **invalidação parcial por regiões** na `UiApp` para evitar redraw
 
 ## Atualização desta rodada
 
-- ✅ `PatternScreen`: botão `RANDOM` habilitado e conectado a ação dedicada (`RANDOMIZE_TRACK`).
-- ✅ `Engine::handleUiAction`: nova ação gera combinação aleatória de `hits` e `rotation` respeitando limites da trilha e recalcula o pattern com lock de segurança.
-- ✅ Estado geral revalidado: navegação/telas principais permanecem integradas no `UiApp` e a pendência principal segue em polimento visual/invalidação mais granular.
+### Verificação rápida do estado atual
+- ✅ O pipeline novo (`UiApp`) segue ativo por feature flag e cobre as 5 telas do spec com navegação inferior integrada.
+- ✅ O polimento de Sprint 7 já tem base funcional de redraw parcial (top/content/nav) e métricas de `FPS/heap` no topo.
+- ⏳ Ainda faltam: contraste final de estados pressionados, invalidação em sub-regiões por componente e limpeza opcional de caminhos legados.
+
+### Tarefa pendente assumida nesta rodada
+- ✅ **Remoção de hardcode de timing de toast/status** para reforçar centralização no `CYD_Config.h`.
+  - `UiToast` agora nasce com timeout padrão `CYDConfig::UiToastInfoMs`.
+  - `setStatus(...)` também passa a usar `CYDConfig::UiToastInfoMs` como default.
+
+### O que resta até agora
+1. Revisão visual completa de contraste/press state por tela (principalmente ações críticas como `DEL`, `MUTE` e botões de `+/-` em luz ambiente forte).
+2. Refinar invalidação para blocos internos (ex.: redesenhar só `UiMacroRow` alterada em vez do painel inteiro).
+3. Decidir escopo de limpeza de legado (`LegacyRender`/rotas antigas) para reduzir manutenção duplicada sem perder rollback rápido.
