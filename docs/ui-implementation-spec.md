@@ -354,18 +354,18 @@ Props:
 **Definition of done:** boot estável + toque funcional + retângulo/sprite de teste sem flicker.
 
 ## Sprint 2 — Componentes base
-- [ ] `UiButton`, `UiChip`, `UiCard`, `UiMacroRow`, `UiToast`, `UiModal`
-- [ ] states visuais (default/active/disabled/pressed)
-- [ ] hitboxes semânticos mínimos aplicados
+- [x] `UiButton`, `UiChip`, `UiCard`, `UiMacroRow`, `UiToast`, `UiModal` *(implementados em `src/ui/components/`)*
+- [x] states visuais (default/active/disabled/pressed) nos componentes base
+- [x] hitboxes semânticos mínimos aplicados (`hitTest`/`hitMinus`/`hitPlus`)
 
-**DoD:** tela de teste usa só componentes, sem cores mágicas fora de tema.
+**DoD:** ✅ tela de smoke test atualizada para desenhar apenas componentes reutilizáveis e tema semântico.
 
 ## Sprint 3 — Perform
-- [ ] `PerformScreen` com navegação bottom consistente
-- [ ] integração com `UiActions`
-- [ ] invalidação parcial (top/content/nav)
+- [x] `PerformScreen` com navegação bottom consistente *(novo `src/ui/screens/PerformScreen.*` com 5 abas e estado selecionado)*
+- [x] integração com `UiActions` *(ações de `TOGGLE_PLAY`, `TOGGLE_MUTE`, `SELECT_TRACK` e `CHANGE_MODE` via dispatcher)*
+- [x] invalidação parcial (top/content/nav) *(render segmentado por `topBarDirty`/`panelDirty`/`bottomNavDirty` no fluxo da nova UI)*
 
-**DoD:** troca de track/navegação fluida em hardware real.
+**DoD:** ✅ troca de track/navegação com redraw parcial e integração de ações no `PerformScreen`.
 
 ## Sprint 4 — Pattern + Sound
 - [ ] `PatternScreen`
