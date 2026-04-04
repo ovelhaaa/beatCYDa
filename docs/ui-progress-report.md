@@ -7,7 +7,7 @@ Este documento consolida o estado **real do código** da nova UI (`UiApp`) e reg
 | Tela | Estado | Progresso estimado | Observações |
 |---|---|---:|---|
 | Perform | Implementada e navegável | 92% | Play/mute/seleção de trilha funcionando e integrados ao dispatcher. |
-| Pattern | Implementada e navegável | 88% | `steps/hits/rotate/gain` com hold-repeat; `RANDOM` ainda desabilitado. |
+| Pattern | Implementada e navegável | 88% | `steps/hits/rotate/gain` com hold-repeat + `RANDOM` funcional por trilha. |
 | Sound | Implementada e navegável | 88% | `pitch/decay/timbre/drive` com hold-repeat. |
 | Mix | Implementada e navegável | 86% | Faders com captura + drag contínuo + hitbox expandido. |
 | Project | Implementada e navegável | 85% | Grid de slots + load/save/delete com modal e toast. |
@@ -48,3 +48,10 @@ Implementar **invalidação parcial por regiões** na `UiApp` para evitar redraw
 - [ ] Revisão final de contraste/estados pressionados em todas as telas
 - [ ] Refinar invalidação para sub-regiões internas por tela (ex.: redraw parcial de componente)
 - [ ] Limpeza final do legado opcional
+
+
+## Atualização desta rodada
+
+- ✅ `PatternScreen`: botão `RANDOM` habilitado e conectado a ação dedicada (`RANDOMIZE_TRACK`).
+- ✅ `Engine::handleUiAction`: nova ação gera combinação aleatória de `hits` e `rotation` respeitando limites da trilha e recalcula o pattern com lock de segurança.
+- ✅ Estado geral revalidado: navegação/telas principais permanecem integradas no `UiApp` e a pendência principal segue em polimento visual/invalidação mais granular.

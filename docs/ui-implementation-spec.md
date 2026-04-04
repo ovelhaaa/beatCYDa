@@ -433,7 +433,7 @@ Props:
 - [x] `SoundScreen` criado com identity card + macro rows para `pitch/decay/timbre/drive`.
 - [x] Navegação bottom (`UiApp`) passou a renderizar/rotear toque para `PatternScreen` e `SoundScreen`.
 - [x] Hold-repeat de `+/-` aplicado nas duas telas usando os tempos/estágios de `CYD_Config.h`.
-- [~] Ações avançadas (`random/copy/paste`) ainda em evolução (botão de random visível, mas desabilitado por ausência de action dedicada no dispatcher atual).
+- [~] Ações avançadas (`copy/paste`) ainda em evolução (`random` já habilitado com ação dedicada por trilha).
 
 
 ## 10) Progresso incremental — Sprint 5 (Mix) *(atualizado)*

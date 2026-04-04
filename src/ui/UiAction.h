@@ -45,7 +45,8 @@ enum class UiActionType {
   SET_ROTATION,   // index = track, value = shift
   SET_BASS_PARAM, // index = paramId, value = val
   SET_SOUND_PARAM, // index = paramId, value = val
-  SET_VOICE_GAIN  // index = track, value = gain (0-100)
+  SET_VOICE_GAIN, // index = track, value = gain (0-100)
+  RANDOMIZE_TRACK // index = track, value ignored
 };
 
 struct UiAction {
