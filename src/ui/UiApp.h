@@ -20,7 +20,10 @@ public:
   void runFrame(uint32_t nowMs);
 
 private:
-  void renderChrome(uint32_t nowMs);
+  void renderBackground();
+  void renderTopBarShell();
+  void renderTopBarTransport();
+  void renderTopBarMetrics();
   void renderBottomNav();
   void handleBottomNavTouch();
   void updateUiStats(uint32_t nowMs);
@@ -39,6 +42,8 @@ private:
   uint32_t _frameCounter{0};
   uint16_t _uiFps{0};
   uint32_t _freeHeap{0};
+  bool _topBarTransportDirty{true};
+  bool _topBarMetricsDirty{true};
 
   UiButton _navPerform{};
   UiButton _navPattern{};

@@ -90,8 +90,18 @@ void UiApp::runFrame(uint32_t nowMs) {
     _invalidation.panelDirty = true;
   }
 
+  if (_invalidation.fullScreenDirty) {
+    renderBackground();
+    renderTopBarShell();
+  }
+
   if (_invalidation.fullScreenDirty || _invalidation.topBarDirty) {
-    renderChrome(nowMs);
+    if (_invalidation.fullScreenDirty || _topBarTransportDirty) {
+      renderTopBarTransport();
+    }
+    if (_invalidation.fullScreenDirty || _topBarMetricsDirty) {
+      renderTopBarMetrics();
+    }
   }
 
   if (_invalidation.fullScreenDirty || _invalidation.panelDirty) {
@@ -105,24 +115,38 @@ void UiApp::runFrame(uint32_t nowMs) {
   }
 
   _invalidation.clear();
+  _topBarTransportDirty = false;
+  _topBarMetricsDirty = false;
   _hasPreviousSnapshot = true;
 }
 
-void UiApp::renderChrome(uint32_t nowMs) {
+void UiApp::renderBackground() {
   auto &canvas = _display.canvas();
   canvas.fillScreen(theme::UiTheme::Colors::Bg);
+}
+
+void UiApp::renderTopBarShell() {
+  auto &canvas = _display.canvas();
   canvas.fillRoundRect(theme::UiTheme::Metrics::OuterMargin,
                        theme::UiTheme::Metrics::OuterMargin,
                        theme::UiTheme::Metrics::ScreenW - theme::UiTheme::Metrics::OuterMargin * 2,
                        theme::UiTheme::Metrics::TopBarH,
                        theme::UiTheme::Metrics::RadiusMd,
                        theme::UiTheme::Colors::Surface);
+}
 
+void UiApp::renderTopBarTransport() {
+  auto &canvas = _display.canvas();
+  canvas.fillRect(16, 12, 160, 20, theme::UiTheme::Colors::Surface);
   canvas.setTextColor(theme::UiTheme::Colors::TextPrimary, theme::UiTheme::Colors::Surface);
   canvas.setTextSize(theme::UiTheme::Typography::BodySize);
   canvas.setCursor(16, 16);
   canvas.printf("beatCYDa %s", _snapshot.isPlaying ? "PLAY" : "STOP");
+}
 
+void UiApp::renderTopBarMetrics() {
+  auto &canvas = _display.canvas();
+  canvas.fillRect(188, 12, 124, 20, theme::UiTheme::Colors::Surface);
   canvas.setTextColor(theme::UiTheme::Colors::TextSecondary, theme::UiTheme::Colors::Surface);
   canvas.setCursor(190, 16);
   canvas.printf("BPM %d  %uFPS %luKB", _snapshot.bpm, _uiFps, static_cast<unsigned long>(_freeHeap / 1024UL));
@@ -140,6 +164,7 @@ void UiApp::updateUiStats(uint32_t nowMs) {
   _statsLastMs = nowMs;
   _freeHeap = ESP.getFreeHeap();
   _invalidation.topBarDirty = true;
+  _topBarMetricsDirty = true;
 }
 
 void UiApp::renderBottomNav() {
@@ -232,6 +257,12 @@ bool UiApp::detectModelChanges() {
 
   if (_snapshot.bpm != _previousSnapshot.bpm || _snapshot.isPlaying != _previousSnapshot.isPlaying) {
     _invalidation.topBarDirty = true;
+    if (_snapshot.bpm != _previousSnapshot.bpm) {
+      _topBarMetricsDirty = true;
+    }
+    if (_snapshot.isPlaying != _previousSnapshot.isPlaying) {
+      _topBarTransportDirty = true;
+    }
   }
 
   if (_snapshot.activeTrack != _previousSnapshot.activeTrack ||

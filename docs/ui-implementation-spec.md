@@ -389,10 +389,10 @@ Props:
 **DoD:** fluxo seguro e responsivo mesmo com SD.
 
 ## Sprint 7 — Polimento
-- [ ] métricas de frame/heap
+- [x] métricas de frame/heap *(FPS + heap livre no top bar via `UiApp`)*
 - [ ] revisão de contraste e estados pressionados
 - [ ] remoção de hardcodes de timing
-- [ ] limpeza final do legado opcional
+- [~] limpeza final do legado opcional *(iniciado: redraw do topo separado do full clear para reduzir flicker)*
 
 **DoD:** operação estável em bancada por sessão prolongada.
 
@@ -460,3 +460,11 @@ Props:
 - [x] MixScreen (base + faders com captura e hitbox expandida)
 - [x] ProjectScreen (base funcional com save/load, confirmação e feedback)
 - [ ] Polimento final (invalidação fina/performance/cleanup legado)
+
+## 12) Progresso incremental — Sprint 7 (Polimento) *(atualizado)*
+
+- [x] Métricas de UI ativas no top bar (`FPS` e `heap livre`) em `UiApp`.
+- [x] Primeira otimização de invalidação: redraw do topo desacoplado do `fillScreen` global.
+- [x] Refino da invalidação do topo: render dividido em três passes (`shell`, `status PLAY/STOP`, `métricas BPM/FPS/heap`) para evitar redraw desnecessário e reduzir risco de flicker.
+- [ ] Revisão final de contraste/estado pressionado em todas as telas.
+- [ ] Consolidação de timing restante para `CYD_Config.h`.
