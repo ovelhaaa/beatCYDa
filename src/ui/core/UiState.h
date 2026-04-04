@@ -1,6 +1,13 @@
 #pragma once
 
 #include "../Display.h"
+#include "UiInvalidation.h"
+
+struct UiFrameMetrics {
+  uint32_t frameCount = 0;
+  uint32_t lastRenderMicros = 0;
+  uint32_t lastFreeHeap = 0;
+};
 
 struct UiRuntime {
   UiStateSnapshot snapshot;
@@ -24,17 +31,12 @@ struct UiRuntime {
   uint8_t pendingStorageSlot = 0;
   uint32_t storageOpDeadlineMs = 0;
   bool forceRedraw = true;
-};
-
-struct UiFramePlan {
-  bool anyChange = false;
-  bool patternChange = false;
-  bool stepChange = false;
-  bool full = false;
+  UiInvalidation invalidation;
+  UiFrameMetrics metrics;
 };
 
 void setStatus(UiRuntime &ui, const char *msg, uint32_t ms = 1400);
 void updateStatusTimeout(UiRuntime &ui, uint32_t now);
-UiFramePlan buildFramePlan(const UiRuntime &ui, uint32_t now, uint32_t lastFullMs);
+void updateUiInvalidation(UiRuntime &ui, uint32_t now, uint32_t lastFullMs);
 void commitFrame(UiRuntime &ui);
 int getParamDisplayValue(const UiRuntime &ui, int paramIndex);
