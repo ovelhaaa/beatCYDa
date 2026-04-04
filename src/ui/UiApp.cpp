@@ -110,10 +110,15 @@ void UiApp::runFrame(uint32_t nowMs) {
 
 void UiApp::renderChrome(uint32_t nowMs) {
   auto &canvas = _display.canvas();
-  canvas.fillScreen(theme::UiTheme::Colors::Bg);
+
+  if (_invalidation.fullScreenDirty) {
+    canvas.fillScreen(theme::UiTheme::Colors::Bg);
+  }
+
+  const int topBarW = theme::UiTheme::Metrics::ScreenW - theme::UiTheme::Metrics::OuterMargin * 2;
   canvas.fillRoundRect(theme::UiTheme::Metrics::OuterMargin,
                        theme::UiTheme::Metrics::OuterMargin,
-                       theme::UiTheme::Metrics::ScreenW - theme::UiTheme::Metrics::OuterMargin * 2,
+                       topBarW,
                        theme::UiTheme::Metrics::TopBarH,
                        theme::UiTheme::Metrics::RadiusMd,
                        theme::UiTheme::Colors::Surface);

@@ -361,9 +361,9 @@ Props:
 **DoD:** ✅ tela de smoke test atualizada para desenhar apenas componentes reutilizáveis e tema semântico.
 
 ## Sprint 3 — Perform
-- [ ] `PerformScreen` com navegação bottom consistente
+- [x] `PerformScreen` com navegação bottom consistente
 - [ ] integração com `UiActions`
-- [ ] invalidação parcial (top/content/nav)
+- [~] invalidação parcial (top/content/nav) *(top bar incremental implementada; conteúdo ainda depende de redraw integral por tela)*
 
 **DoD:** troca de track/navegação fluida em hardware real.
 
@@ -425,7 +425,7 @@ Props:
 - [x] `PerformScreen` criado com layout base (play/stop, mute, strip de tracks) e render dedicado (`src/ui/screens/PerformScreen.h/.cpp`).
 - [x] `UiApp` migrou de smoke test genérico para fluxo com `PerformScreen` + bottom nav consistente (`src/ui/UiApp.h/.cpp`).
 - [x] Integração de ações de UI no `PerformScreen`/nav via dispatcher existente (`dispatchUiAction`, `CHANGE_MODE`, `TOGGLE_PLAY`, `TOGGLE_MUTE`, `SELECT_TRACK`).
-- [ ] Invalidação parcial por regiões ainda pendente nesta etapa (render ainda é full frame por simplicidade/controlar risco).
+- [~] Invalidação parcial por regiões em evolução: top bar agora evita `fillScreen` quando apenas stats/BPM mudam; conteúdo ainda em redraw por painel.
 
 ## 9) Progresso incremental — Sprint 4 (Pattern + Sound) *(atualizado)*
 
@@ -449,6 +449,12 @@ Props:
 - [x] Integração no `UiApp` para navegação/touch/render de `UiScreenId::Project`.
 - [x] Fluxo seguro com confirmação em modal para sobrescrever/apagar slot ocupado.
 - [x] Feedback de ação com `UiToast` (save/load/cancel/delete).
+
+### Atualização de verificação (2026-04-04)
+
+- ✅ Verificado no código: `UiApp` já possui métricas de `FPS` e `free heap` no top bar (`updateUiStats` + render).
+- ✅ Tarefa pendente assumida e executada: passo de invalidação parcial começou a ser aplicado no chrome; quando só o top bar está sujo, não há mais `fillScreen`, reduzindo flicker e custo de redraw.
+- 🔜 Pendências principais após esta entrega: invalidação parcial do conteúdo por região de tela, revisão de contraste/pressed states e cleanup legado opcional.
 
 ### Checklist do que foi feito até agora (UI nova)
 
