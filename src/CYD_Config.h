@@ -48,9 +48,19 @@ constexpr uint16_t TouchMinY = 3700;
 constexpr uint16_t TouchMaxY = 200;
 
 constexpr uint16_t UiFrameMs = 33;
+// Resistive-touch ergonomics tuning shared by InputManager + UI hold handling.
+// Keep these centralized so tap/drag/repeat feel remains consistent.
 constexpr uint16_t TouchPollMs = 16;
-constexpr uint16_t HoldMs = 500;
+constexpr uint16_t HoldMs = 400;
 constexpr uint16_t DragThreshold = 8;
+constexpr uint16_t HoldRepeatStartDelayMs = HoldMs;
+constexpr uint8_t HoldRepeatStage1Threshold = 6;
+constexpr uint8_t HoldRepeatStage2Threshold = 15;
+constexpr uint16_t HoldRepeatIntervalStartMs = 300;
+constexpr uint16_t HoldRepeatIntervalStage1Ms = 120;
+constexpr uint16_t HoldRepeatIntervalStage2Ms = 50;
+constexpr uint8_t HoldRepeatStage1Multiplier = 2;
+constexpr uint8_t HoldRepeatStage2Multiplier = 5;
 
 constexpr int PatternSlots = 8;
 constexpr const char *PatternsDir = "/patterns";
