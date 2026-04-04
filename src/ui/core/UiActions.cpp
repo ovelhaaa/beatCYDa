@@ -1,6 +1,5 @@
 #include "UiActions.h"
 #include "../../control/ControlManager.h"
-#include "../../storage/PatternStorage.h"
 
 void dispatchUiAction(UiActionType type, int idx, int val) {
   IPCCommand cmd{};
@@ -53,10 +52,10 @@ void dispatchParamDelta(UiRuntime &ui, int paramIndex, int amount) {
   }
 }
 
-void dispatchSaveSlot(UiRuntime &ui) {
-  setStatus(ui, PatternStore.saveSlot(ui.activeSlot) ? "Saved!" : "Save Fail");
+void dispatchSaveSlot(uint8_t slot) {
+  dispatchUiAction(UiActionType::SAVE_SLOT, slot, 0);
 }
 
-void dispatchLoadSlot(UiRuntime &ui) {
-  setStatus(ui, PatternStore.loadSlot(ui.activeSlot) ? "Loaded!" : "Load Fail");
+void dispatchLoadSlot(uint8_t slot) {
+  dispatchUiAction(UiActionType::LOAD_SLOT, slot, 0);
 }

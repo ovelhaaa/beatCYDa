@@ -90,11 +90,25 @@ void handleTouch(UiRuntime &ui, const TouchPoint &tp) {
       return;
     }
     if (R_SAVE.contains(tx, ty)) {
-      dispatchSaveSlot(ui);
+      if (!ui.storageOpInProgress) {
+        dispatchSaveSlot(ui.activeSlot);
+        ui.storageOpInProgress = true;
+        ui.pendingStorageAction = UiActionType::SAVE_SLOT;
+        ui.pendingStorageSlot = ui.activeSlot;
+        ui.storageOpDeadlineMs = millis() + CYDConfig::StorageOpTimeoutMs;
+        setStatus(ui, "Saving...", CYDConfig::StorageOpTimeoutMs);
+      }
       return;
     }
     if (R_LOAD.contains(tx, ty)) {
-      dispatchLoadSlot(ui);
+      if (!ui.storageOpInProgress) {
+        dispatchLoadSlot(ui.activeSlot);
+        ui.storageOpInProgress = true;
+        ui.pendingStorageAction = UiActionType::LOAD_SLOT;
+        ui.pendingStorageSlot = ui.activeSlot;
+        ui.storageOpDeadlineMs = millis() + CYDConfig::StorageOpTimeoutMs;
+        setStatus(ui, "Loading...", CYDConfig::StorageOpTimeoutMs);
+      }
       return;
     }
     if (R_BPM_DEC.contains(tx, ty)) {

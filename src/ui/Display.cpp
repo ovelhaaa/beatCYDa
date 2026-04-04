@@ -3,11 +3,34 @@
 #include "core/UiState.h"
 #include "input/UiTouchRouter.h"
 #include "render/LegacyRender.h"
+#include "../control/ControlManager.h"
 #include "../control/InputManager.h"
 #include <SPI.h>
 #include <string.h>
 
 LGFX_CYD tft;
+
+namespace {
+void processStorageFeedback(UiRuntime &ui, uint32_t now) {
+  ControlManager::StorageEvent event{};
+  while (CtrlMgr.pollStorageEvent(event)) {
+    ui.storageOpInProgress = false;
+    ui.storageOpDeadlineMs = 0;
+
+    if (event.type == ControlManager::StorageEventType::SAVE_SLOT_DONE) {
+      setStatus(ui, event.success ? "Saved!" : "Save Fail");
+    } else if (event.type == ControlManager::StorageEventType::LOAD_SLOT_DONE) {
+      setStatus(ui, event.success ? "Loaded!" : "Load Fail");
+    }
+  }
+
+  if (ui.storageOpInProgress && ui.storageOpDeadlineMs != 0 && now >= ui.storageOpDeadlineMs) {
+    ui.storageOpInProgress = false;
+    ui.storageOpDeadlineMs = 0;
+    setStatus(ui, "Storage timeout");
+  }
+}
+} // namespace
 
 void UiStateSnapshot::capture() {
   bpm = engine.bpm.load(std::memory_order_relaxed);
@@ -62,6 +85,7 @@ void displayTask(void *parameter) {
 
     // input
     updateStatusTimeout(ui, now);
+    processStorageFeedback(ui, now);
     ui.mode = ui.snapshot.mode;
     InputMgr.update();
     handleTouch(ui, InputMgr.state());
