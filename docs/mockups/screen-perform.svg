@@ -1,0 +1,30 @@
+<svg xmlns='http://www.w3.org/2000/svg' width='960' height='720' viewBox='0 0 320 240'>
+  <rect width='320' height='240' fill='#0f1216'/>
+  <rect x='8' y='8' width='304' height='32' rx='8' fill='#24303c'/>
+  <text x='16' y='28' fill='#eaf2ff' font-size='11' font-family='monospace'>beatCYDa PLAY</text>
+  <text x='190' y='28' fill='#adc3d9' font-size='10' font-family='monospace'>BPM 124</text>
+
+  <rect x='12' y='54' width='88' height='34' rx='6' fill='#2ea56e'/>
+  <text x='43' y='75' fill='white' font-size='11' font-family='monospace'>STOP</text>
+  <rect x='108' y='54' width='88' height='34' rx='6' fill='#405264'/>
+  <text x='135' y='75' fill='white' font-size='11' font-family='monospace'>MUTE</text>
+
+  <rect x='204' y='54' width='104' height='60' rx='8' fill='#2b3642' stroke='#5f7388'/>
+  <text x='212' y='72' fill='#9db3c8' font-size='9' font-family='monospace'>PERFORM</text>
+  <text x='212' y='96' fill='#ffffff' font-size='14' font-family='monospace'>KICK</text>
+
+  <text x='12' y='96' fill='#9db3c8' font-size='10' font-family='monospace'>BPM 124</text>
+
+  <rect x='12' y='124' width='56' height='32' rx='5' fill='#2ea56e'/><text x='31' y='144' fill='white' font-size='10' font-family='monospace'>K</text>
+  <rect x='72' y='124' width='56' height='32' rx='5' fill='#405264'/><text x='91' y='144' fill='white' font-size='10' font-family='monospace'>S</text>
+  <rect x='132' y='124' width='56' height='32' rx='5' fill='#405264'/><text x='151' y='144' fill='white' font-size='10' font-family='monospace'>CH</text>
+  <rect x='192' y='124' width='56' height='32' rx='5' fill='#405264'/><text x='211' y='144' fill='white' font-size='10' font-family='monospace'>OH</text>
+  <rect x='252' y='124' width='56' height='32' rx='5' fill='#405264'/><text x='271' y='144' fill='white' font-size='10' font-family='monospace'>B</text>
+
+  <rect x='0' y='200' width='320' height='40' fill='#24303c'/>
+  <text x='14' y='224' fill='white' font-size='10' font-family='monospace'>PERF</text>
+  <text x='74' y='224' fill='#9db3c8' font-size='10' font-family='monospace'>PATT</text>
+  <text x='136' y='224' fill='#9db3c8' font-size='10' font-family='monospace'>SND</text>
+  <text x='198' y='224' fill='#9db3c8' font-size='10' font-family='monospace'>MIX</text>
+  <text x='260' y='224' fill='#9db3c8' font-size='10' font-family='monospace'>PROJ</text>
+</svg>

@@ -1,0 +1,29 @@
+<svg xmlns='http://www.w3.org/2000/svg' width='960' height='720' viewBox='0 0 320 240'>
+  <rect width='320' height='240' fill='#0f1216'/>
+  <rect x='8' y='8' width='304' height='32' rx='8' fill='#24303c'/>
+  <text x='16' y='28' fill='#eaf2ff' font-size='11' font-family='monospace'>beatCYDa STOP</text>
+
+  <rect x='12' y='46' width='96' height='48' rx='8' fill='#2b3642'/>
+  <text x='20' y='65' fill='#9db3c8' font-size='9' font-family='monospace'>PATTERN</text>
+  <text x='20' y='84' fill='#ffffff' font-size='12' font-family='monospace'>EDIT</text>
+
+  <g font-family='monospace' font-size='9' fill='white'>
+    <rect x='116' y='52' width='34' height='26' rx='4' fill='#2ea56e'/><text x='129' y='68'>K</text>
+    <rect x='154' y='52' width='34' height='26' rx='4' fill='#405264'/><text x='167' y='68'>S</text>
+    <rect x='192' y='52' width='34' height='26' rx='4' fill='#405264'/><text x='203' y='68'>CH</text>
+    <rect x='230' y='52' width='34' height='26' rx='4' fill='#405264'/><text x='241' y='68'>OH</text>
+    <rect x='268' y='52' width='34' height='26' rx='4' fill='#405264'/><text x='281' y='68'>B</text>
+  </g>
+
+  <g font-family='monospace' font-size='9'>
+    <rect x='12' y='100' width='296' height='22' rx='4' fill='#1e2731'/><text x='20' y='114' fill='#d9e6f2'>STEPS 16</text><rect x='208' y='101' width='24' height='20' fill='#3e4f61'/><text x='216' y='114' fill='white'>-</text><rect x='236' y='101' width='24' height='20' fill='#3e4f61'/><text x='244' y='114' fill='white'>+</text>
+    <rect x='12' y='124' width='296' height='22' rx='4' fill='#1e2731'/><text x='20' y='138' fill='#d9e6f2'>HITS 6</text><rect x='208' y='125' width='24' height='20' fill='#3e4f61'/><text x='216' y='138' fill='white'>-</text><rect x='236' y='125' width='24' height='20' fill='#3e4f61'/><text x='244' y='138' fill='white'>+</text>
+    <rect x='12' y='148' width='296' height='22' rx='4' fill='#1e2731'/><text x='20' y='162' fill='#d9e6f2'>ROTATE 0</text><rect x='208' y='149' width='24' height='20' fill='#3e4f61'/><text x='216' y='162' fill='white'>-</text><rect x='236' y='149' width='24' height='20' fill='#3e4f61'/><text x='244' y='162' fill='white'>+</text>
+    <rect x='12' y='172' width='296' height='22' rx='4' fill='#1e2731'/><text x='20' y='186' fill='#d9e6f2'>GAIN 80%</text><rect x='98' y='178' width='90' height='8' fill='#2ea56e'/><rect x='208' y='173' width='24' height='20' fill='#3e4f61'/><text x='216' y='186' fill='white'>-</text><rect x='236' y='173' width='24' height='20' fill='#3e4f61'/><text x='244' y='186' fill='white'>+</text>
+  </g>
+
+  <rect x='12' y='198' width='140' height='30' rx='6' fill='#5a6672'/><text x='55' y='217' fill='#d5dde6' font-size='10' font-family='monospace'>RANDOM</text>
+  <rect x='168' y='198' width='140' height='30' rx='6' fill='#c74d4d'/><text x='221' y='217' fill='white' font-size='10' font-family='monospace'>CLEAR</text>
+
+  <rect x='0' y='200' width='320' height='40' fill='#24303c' opacity='0.85'/>
+</svg>

@@ -1,0 +1,18 @@
+<svg xmlns='http://www.w3.org/2000/svg' width='960' height='720' viewBox='0 0 320 240'>
+  <rect width='320' height='240' fill='#0f1216'/>
+  <rect x='8' y='8' width='304' height='32' rx='8' fill='#24303c'/>
+  <text x='16' y='28' fill='#eaf2ff' font-size='11' font-family='monospace'>beatCYDa STOP</text>
+
+  <rect x='12' y='46' width='120' height='48' rx='8' fill='#2b3642'/>
+  <text x='20' y='65' fill='#9db3c8' font-size='9' font-family='monospace'>MIX</text>
+  <text x='20' y='84' fill='#ffffff' font-size='12' font-family='monospace'>LEVELS</text>
+  <text x='144' y='56' fill='#adc3d9' font-size='10' font-family='monospace'>MASTER 78%</text>
+
+  <g font-family='monospace' font-size='9' fill='white'>
+    <rect x='20' y='102' width='40' height='90' rx='5' fill='#1f2933'/><rect x='26' y='130' width='28' height='56' fill='#2ea56e'/><text x='36' y='205'>K</text>
+    <rect x='80' y='102' width='40' height='90' rx='5' fill='#1f2933'/><rect x='86' y='142' width='28' height='44' fill='#2ea56e'/><text x='96' y='205'>S</text>
+    <rect x='140' y='102' width='40' height='90' rx='5' fill='#1f2933'/><rect x='146' y='120' width='28' height='66' fill='#2ea56e'/><text x='154' y='205'>CH</text>
+    <rect x='200' y='102' width='40' height='90' rx='5' fill='#1f2933'/><rect x='206' y='150' width='28' height='36' fill='#2ea56e'/><text x='214' y='205'>OH</text>
+    <rect x='260' y='102' width='40' height='90' rx='5' fill='#1f2933'/><rect x='266' y='112' width='28' height='74' fill='#2ea56e'/><text x='276' y='205'>B</text>
+  </g>
+</svg>

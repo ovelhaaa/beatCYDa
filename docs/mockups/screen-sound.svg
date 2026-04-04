@@ -1,0 +1,24 @@
+<svg xmlns='http://www.w3.org/2000/svg' width='960' height='720' viewBox='0 0 320 240'>
+  <rect width='320' height='240' fill='#0f1216'/>
+  <rect x='8' y='8' width='304' height='32' rx='8' fill='#24303c'/>
+  <text x='16' y='28' fill='#eaf2ff' font-size='11' font-family='monospace'>beatCYDa STOP</text>
+
+  <rect x='12' y='46' width='130' height='48' rx='8' fill='#2b3642'/>
+  <text x='20' y='65' fill='#9db3c8' font-size='9' font-family='monospace'>SOUND</text>
+  <text x='20' y='84' fill='#ffffff' font-size='12' font-family='monospace'>KICK</text>
+
+  <g font-family='monospace' font-size='8' fill='white'>
+    <rect x='150' y='54' width='30' height='24' rx='4' fill='#2ea56e'/><text x='161' y='69'>K</text>
+    <rect x='182' y='54' width='30' height='24' rx='4' fill='#405264'/><text x='193' y='69'>S</text>
+    <rect x='214' y='54' width='30' height='24' rx='4' fill='#405264'/><text x='222' y='69'>CH</text>
+    <rect x='246' y='54' width='30' height='24' rx='4' fill='#405264'/><text x='254' y='69'>OH</text>
+    <rect x='278' y='54' width='30' height='24' rx='4' fill='#405264'/><text x='289' y='69'>B</text>
+  </g>
+
+  <g font-family='monospace' font-size='9'>
+    <rect x='12' y='102' width='296' height='22' rx='4' fill='#1e2731'/><text x='20' y='116' fill='#d9e6f2'>PITCH 72%</text><rect x='92' y='108' width='96' height='8' fill='#2ea56e'/><rect x='208' y='103' width='24' height='20' fill='#3e4f61'/><text x='216' y='116' fill='white'>-</text><rect x='236' y='103' width='24' height='20' fill='#3e4f61'/><text x='244' y='116' fill='white'>+</text>
+    <rect x='12' y='126' width='296' height='22' rx='4' fill='#1e2731'/><text x='20' y='140' fill='#d9e6f2'>DECAY 55%</text><rect x='92' y='132' width='74' height='8' fill='#2ea56e'/><rect x='208' y='127' width='24' height='20' fill='#3e4f61'/><text x='216' y='140' fill='white'>-</text><rect x='236' y='127' width='24' height='20' fill='#3e4f61'/><text x='244' y='140' fill='white'>+</text>
+    <rect x='12' y='150' width='296' height='22' rx='4' fill='#1e2731'/><text x='20' y='164' fill='#d9e6f2'>TIMBRE 61%</text><rect x='92' y='156' width='82' height='8' fill='#2ea56e'/><rect x='208' y='151' width='24' height='20' fill='#3e4f61'/><text x='216' y='164' fill='white'>-</text><rect x='236' y='151' width='24' height='20' fill='#3e4f61'/><text x='244' y='164' fill='white'>+</text>
+    <rect x='12' y='174' width='296' height='22' rx='4' fill='#1e2731'/><text x='20' y='188' fill='#d9e6f2'>DRIVE 30%</text><rect x='92' y='180' width='40' height='8' fill='#2ea56e'/><rect x='208' y='175' width='24' height='20' fill='#3e4f61'/><text x='216' y='188' fill='white'>-</text><rect x='236' y='175' width='24' height='20' fill='#3e4f61'/><text x='244' y='188' fill='white'>+</text>
+  </g>
+</svg>
