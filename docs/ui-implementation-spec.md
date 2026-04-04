@@ -354,11 +354,11 @@ Props:
 **Definition of done:** boot estável + toque funcional + retângulo/sprite de teste sem flicker.
 
 ## Sprint 2 — Componentes base
-- [ ] `UiButton`, `UiChip`, `UiCard`, `UiMacroRow`, `UiToast`, `UiModal`
-- [ ] states visuais (default/active/disabled/pressed)
-- [ ] hitboxes semânticos mínimos aplicados
+- [x] `UiButton`, `UiChip`, `UiCard`, `UiMacroRow`, `UiToast`, `UiModal` *(implementados em `src/ui/components/`)*
+- [x] states visuais (default/active/disabled/pressed) nos componentes base
+- [x] hitboxes semânticos mínimos aplicados (`hitTest`/`hitMinus`/`hitPlus`)
 
-**DoD:** tela de teste usa só componentes, sem cores mágicas fora de tema.
+**DoD:** ✅ tela de smoke test atualizada para desenhar apenas componentes reutilizáveis e tema semântico.
 
 ## Sprint 3 — Perform
 - [ ] `PerformScreen` com navegação bottom consistente
