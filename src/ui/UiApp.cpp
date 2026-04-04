@@ -1,105 +1,126 @@
 #include "UiApp.h"
 
+#include "core/UiActions.h"
 #include "theme/UiTheme.h"
 
 namespace ui {
+namespace {
+void setRect(UiRect &rect, int16_t x, int16_t y, int16_t w, int16_t h) {
+  rect.x = x;
+  rect.y = y;
+  rect.w = w;
+  rect.h = h;
+}
+
+void styleNavButton(UiButton &button, const char *label, int16_t x) {
+  button.label = label;
+  button.variant = UiButtonVariant::Secondary;
+  setRect(button.rect, x, theme::UiTheme::Metrics::ScreenH - theme::UiTheme::Metrics::BottomNavH + 4, 60, 32);
+}
+} // namespace
 
 UiApp::UiApp() {
-  auto setRect = [](UiRect &rect, int16_t x, int16_t y, int16_t w, int16_t h) {
-    rect.x = x;
-    rect.y = y;
-    rect.w = w;
-    rect.h = h;
-  };
-
-  _playButton.label = "PLAY";
-  _playButton.variant = UiButtonVariant::Primary;
-  setRect(_playButton.rect, 12, 58, 72, 34);
-
-  _statusCard.title = "STATUS";
-  _statusCard.value = "NEW UI";
-  _statusCard.active = true;
-  setRect(_statusCard.rect, 92, 58, 104, 58);
-
-  _trackChip.trackIndex = 0;
-  _trackChip.active = true;
-  _trackChip.muted = false;
-  _trackChip.selected = true;
-  setRect(_trackChip.rect, 204, 58, 56, 34);
-
-  _macroRow.label = "STEPS";
-  _macroRow.valueText = "16";
-  setRect(_macroRow.minusRect, 208, 106, 24, 24);
-  setRect(_macroRow.plusRect, 282, 106, 24, 24);
-  setRect(_macroRow.rowRect, 92, 100, 216, 38);
-  _macroRow.showBar = true;
-  _macroRow.focus = false;
-  _macroRow.barFill = 72;
-
-  _toast.message = "Sprint 2 em andamento";
-  _toast.severity = UiToastSeverity::Info;
-  _toast.timeoutMs = 1400;
-  setRect(_toast.rect, 12, 196, 220, 28);
-
-  _modal.title = "Confirmar";
-  _modal.body = "Salvar projeto?";
-  _modal.confirm.label = "OK";
-  _modal.confirm.variant = UiButtonVariant::Primary;
-  setRect(_modal.confirm.rect, 122, 156, 56, 28);
-  _modal.cancel.label = "X";
-  _modal.cancel.variant = UiButtonVariant::Secondary;
-  setRect(_modal.cancel.rect, 184, 156, 56, 28);
-  setRect(_modal.rect, 96, 120, 152, 72);
-  _modal.visible = false;
+  styleNavButton(_navPerform, "PERF", 8);
+  styleNavButton(_navPattern, "PATT", 70);
+  styleNavButton(_navSound, "SND", 132);
+  styleNavButton(_navMix, "MIX", 194);
+  styleNavButton(_navProject, "PROJ", 256);
 }
 
 bool UiApp::begin() {
-  if (!_display.begin()) {
-    return false;
-  }
-
-  _invalidation.invalidateAll();
-  return true;
+  return _display.begin();
 }
 
 void UiApp::runFrame(uint32_t nowMs) {
+  _snapshot.capture();
   _display.readTouch(_touch);
-  _playButton.pressed = _playButton.hitTest(_touch.x, _touch.y) && _touch.pressed;
-  _macroRow.focus = _macroRow.hitMinus(_touch.x, _touch.y) || _macroRow.hitPlus(_touch.x, _touch.y);
-  _modal.visible = _trackChip.hitTest(_touch.x, _touch.y) && _touch.pressed;
-  renderSmokeTest(nowMs);
-}
 
-void UiApp::renderSmokeTest(uint32_t nowMs) {
-  auto &canvas = _display.canvas();
-  if (_invalidation.fullScreenDirty) {
-    canvas.fillScreen(theme::UiTheme::Colors::Bg);
-    canvas.fillRoundRect(theme::UiTheme::Metrics::OuterMargin,
-                         theme::UiTheme::Metrics::OuterMargin,
-                         theme::UiTheme::Metrics::ScreenW - theme::UiTheme::Metrics::OuterMargin * 2,
-                         theme::UiTheme::Metrics::TopBarH,
-                         theme::UiTheme::Metrics::RadiusMd,
-                         theme::UiTheme::Colors::Surface);
-    canvas.setTextColor(theme::UiTheme::Colors::TextPrimary, theme::UiTheme::Colors::Surface);
-    canvas.setTextSize(theme::UiTheme::Typography::TitleSize);
-    canvas.setCursor(16, 16);
-    canvas.print("beatCYDa New UI");
-    _invalidation.fullScreenDirty = false;
+  if (_activeScreen == UiScreenId::Perform) {
+    _performScreen.handleTouch(_touch, _snapshot);
   }
 
-  canvas.fillRect(10, 46, 300, 188, theme::UiTheme::Colors::Bg);
-  _playButton.draw(canvas);
-  _statusCard.draw(canvas);
-  _trackChip.draw(canvas);
-  _macroRow.draw(canvas);
-  _toast.draw(canvas);
-  _modal.draw(canvas);
+  handleBottomNavTouch();
+  renderChrome(nowMs);
 
-  canvas.setTextColor(theme::UiTheme::Colors::TextSecondary, theme::UiTheme::Colors::Bg);
-  canvas.setTextSize(theme::UiTheme::Typography::CaptionSize);
-  canvas.setCursor(12, 176);
-  canvas.printf("frame=%lu touch=%s %d,%d", static_cast<unsigned long>(nowMs), _touch.pressed ? "down" : "up", _touch.x,
-                _touch.y);
+  if (_activeScreen == UiScreenId::Perform) {
+    _performScreen.render(_display.canvas(), _snapshot);
+  }
+
+  renderBottomNav();
+}
+
+void UiApp::renderChrome(uint32_t nowMs) {
+  auto &canvas = _display.canvas();
+  canvas.fillScreen(theme::UiTheme::Colors::Bg);
+  canvas.fillRoundRect(theme::UiTheme::Metrics::OuterMargin,
+                       theme::UiTheme::Metrics::OuterMargin,
+                       theme::UiTheme::Metrics::ScreenW - theme::UiTheme::Metrics::OuterMargin * 2,
+                       theme::UiTheme::Metrics::TopBarH,
+                       theme::UiTheme::Metrics::RadiusMd,
+                       theme::UiTheme::Colors::Surface);
+
+  canvas.setTextColor(theme::UiTheme::Colors::TextPrimary, theme::UiTheme::Colors::Surface);
+  canvas.setTextSize(theme::UiTheme::Typography::BodySize);
+  canvas.setCursor(16, 16);
+  canvas.printf("beatCYDa %s", _snapshot.isPlaying ? "PLAY" : "STOP");
+
+  canvas.setTextColor(theme::UiTheme::Colors::TextSecondary, theme::UiTheme::Colors::Surface);
+  canvas.setCursor(190, 16);
+  canvas.printf("BPM %d  %lums", _snapshot.bpm, static_cast<unsigned long>(nowMs));
+}
+
+void UiApp::renderBottomNav() {
+  auto &canvas = _display.canvas();
+  canvas.fillRect(0,
+                  theme::UiTheme::Metrics::ScreenH - theme::UiTheme::Metrics::BottomNavH,
+                  theme::UiTheme::Metrics::ScreenW,
+                  theme::UiTheme::Metrics::BottomNavH,
+                  theme::UiTheme::Colors::Surface);
+
+  _navPerform.pressed = (_activeScreen == UiScreenId::Perform);
+  _navPattern.pressed = (_activeScreen == UiScreenId::Pattern);
+  _navSound.pressed = (_activeScreen == UiScreenId::Sound);
+  _navMix.pressed = (_activeScreen == UiScreenId::Mix);
+  _navProject.pressed = (_activeScreen == UiScreenId::Project);
+
+  _navPerform.draw(canvas);
+  _navPattern.draw(canvas);
+  _navSound.draw(canvas);
+  _navMix.draw(canvas);
+  _navProject.draw(canvas);
+}
+
+void UiApp::handleBottomNavTouch() {
+  if (!_touch.justPressed) {
+    return;
+  }
+
+  if (_navPerform.hitTest(_touch.x, _touch.y)) {
+    _activeScreen = UiScreenId::Perform;
+    dispatchUiAction(UiActionType::CHANGE_MODE, 0, static_cast<int>(UiMode::PERFORMANCE));
+    return;
+  }
+
+  if (_navPattern.hitTest(_touch.x, _touch.y)) {
+    _activeScreen = UiScreenId::Pattern;
+    dispatchUiAction(UiActionType::CHANGE_MODE, 0, static_cast<int>(UiMode::PATTERN_EDIT));
+    return;
+  }
+
+  if (_navSound.hitTest(_touch.x, _touch.y)) {
+    _activeScreen = UiScreenId::Sound;
+    dispatchUiAction(UiActionType::CHANGE_MODE, 0, static_cast<int>(UiMode::SOUND_EDIT));
+    return;
+  }
+
+  if (_navMix.hitTest(_touch.x, _touch.y)) {
+    _activeScreen = UiScreenId::Mix;
+    return;
+  }
+
+  if (_navProject.hitTest(_touch.x, _touch.y)) {
+    _activeScreen = UiScreenId::Project;
+  }
 }
 
 } // namespace ui

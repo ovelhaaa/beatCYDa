@@ -416,3 +416,13 @@ Props:
   - **Mitigação:** captura explícita + hitbox expandido + drag threshold em config única.
 - **Risco:** freeze em SD.
   - **Mitigação:** I/O só por ação assíncrona + feedback via toast/modal.
+
+---
+
+## 8) Progresso incremental — Sprint 3 (Perform) *(atualizado)*
+
+- [x] Estrutura de telas iniciada com contrato `IScreen` (`src/ui/screens/IScreen.h`).
+- [x] `PerformScreen` criado com layout base (play/stop, mute, strip de tracks) e render dedicado (`src/ui/screens/PerformScreen.h/.cpp`).
+- [x] `UiApp` migrou de smoke test genérico para fluxo com `PerformScreen` + bottom nav consistente (`src/ui/UiApp.h/.cpp`).
+- [x] Integração de ações de UI no `PerformScreen`/nav via dispatcher existente (`dispatchUiAction`, `CHANGE_MODE`, `TOGGLE_PLAY`, `TOGGLE_MUTE`, `SELECT_TRACK`).
+- [ ] Invalidação parcial por regiões ainda pendente nesta etapa (render ainda é full frame por simplicidade/controlar risco).
