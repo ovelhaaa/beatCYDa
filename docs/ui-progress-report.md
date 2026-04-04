@@ -55,26 +55,27 @@ Implementar **invalidação parcial por regiões** na `UiApp` para evitar redraw
 ### Verificação rápida do estado atual
 - ✅ O pipeline novo (`UiApp`) segue ativo por feature flag e cobre as 5 telas do spec com navegação inferior integrada.
 - ✅ O polimento de Sprint 7 já tem base funcional de redraw parcial (top/content/nav) e métricas de `FPS/heap` no topo.
-- ⏳ Ainda faltam: contraste final de estados pressionados, invalidação em sub-regiões por componente e limpeza opcional de caminhos legados.
+- ✅ O detector de mudanças do modelo ficou mais seletivo por contexto de tela (inclusive `patterns[track][step]`), evitando redraw de painel em alterações irrelevantes para a tela ativa.
+- ⏳ Ainda faltam: contraste final de estados pressionados em validação de hardware, invalidação em sub-regiões por componente e limpeza opcional de caminhos legados.
 
 ### Tarefa pendente assumida nesta rodada
-- ✅ **Revisão de contraste/estado pressionado em ações críticas** para melhorar leitura em uso real.
-  - `UiButton` agora usa paleta de `pressed` por variante (`Primary`, `Secondary`, `Danger`) em vez de um único preenchimento genérico.
-  - Estado `disabled` passou a usar texto secundário para diferenciar melhor ações indisponíveis.
-  - Tela `Perform` destaca `MUTE/UNMUTE` com variante `Danger` quando a trilha ativa está mutada.
+- ✅ **Refino de invalidação para reduzir redraw desnecessário por tela ativa**.
+  - `UiApp::detectModelChanges()` agora decide `panelDirty` com base no contexto da tela (`UiScreenId`) em vez de um gatilho global único.
+  - Foi adicionada comparação explícita de dados de padrão (`patternLens` + matriz `patterns`) para capturar mudanças reais vindas do engine/ações.
+  - `ProjectScreen` passa a invalidar por mudanças realmente relevantes da própria tela (`bpm` e `activeTrack`), evitando redraw de painel quando parâmetros de mix/sound mudam em background.
 
 ### Atualização incremental (rodada atual)
-- ✅ Expandida a revisão de contraste para componentes ainda pendentes:
-  - `UiChip`: estado `muted` com texto secundário e borda neutra; combinação `active + selected` usa `AccentPressed` para reforçar foco.
-  - `UiMacroRow`: botões `-`/`+` agora têm preenchimento dedicado (`Surface`/`SurfacePressed`) para melhor legibilidade tátil.
-  - `UiFader`: feedback de captura reforçado com `AccentPressed` na coluna e badge de trilha com fundo de alto contraste.
+- ✅ Implementado primeiro passo de invalidação de sub-regiões por contexto:
+  - O topo (transport/metrics) continua invalidado de forma independente.
+  - O conteúdo central passa a responder apenas a mudanças de modelo relevantes para a tela atual.
+  - Com isso, alterações de parâmetros fora do contexto de `Project` não forçam redraw do painel dessa tela.
 
 ### O que resta até agora
-1. Concluir revisão visual completa de contraste/press state em **todas** as telas (a rodada atual cobriu botões; ainda falta validar `UiChip`, `UiMacroRow` e `UiFader` em campo).
-2. Refinar invalidação para blocos internos (ex.: redesenhar só `UiMacroRow` alterada em vez do painel inteiro).
+1. Validar em hardware real o contraste final dos componentes revisados (`UiChip`, `UiMacroRow`, `UiFader`) sob iluminação forte.
+2. Avançar de invalidação por **tela** para invalidação por **componente/retângulo** (ex.: redraw seletivo de `UiMacroRow` e cards).
 3. Decidir escopo de limpeza de legado (`LegacyRender`/rotas antigas) para reduzir manutenção duplicada sem perder rollback rápido.
 
 ### Restante atualizado
-1. Validar em hardware real o contraste final dos componentes revisados (`UiChip`, `UiMacroRow`, `UiFader`) sob iluminação forte.
-2. Refinar invalidação para sub-regiões internas por componente, reduzindo redraw de painéis inteiros.
-3. Decidir escopo e janela de limpeza do legado (`LegacyRender`/pipeline antigo), mantendo rollback seguro por flag.
+1. Implementar dirty-rect por componente nas telas com maior custo de redraw (Pattern e Sound primeiro).
+2. Validar contraste/legibilidade em dispositivo real e ajustar tokens finais de estado pressionado se necessário.
+3. Definir janela de remoção/encapsulamento do pipeline legado mantendo rollback via flag em um commit.
