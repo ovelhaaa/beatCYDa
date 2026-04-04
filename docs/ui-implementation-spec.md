@@ -28,6 +28,11 @@ Este documento transforma o plano macro em execução direta por arquivo, com co
 - Build com UI legada intacta.
 - Build com Nova UI inicializando com tela de smoke test.
 
+### Status atual (implementado)
+- ✅ Flag `CYD_USE_NEW_UI` + `UseNewUi` adicionada (`platformio.ini` + `src/Config.h`).
+- ✅ `displayTask()` com roteamento legado/novo (`src/ui/Display.cpp`).
+- ✅ Rollback em 1 commit via troca da flag (default permanece em UI legada).
+
 ---
 
 ## 3) Ordem de criação (implementação incremental)
@@ -89,10 +94,10 @@ private:
 **Responsabilidade:** implementação do contrato acima e init centralizado.
 
 **Checklist interno:**
-- init TFT + touch + backlight
-- rotação aplicada
-- `readTouch()` mapeando pressed/edges
-- sprite de teste operacional
+- [x] init TFT + touch + backlight
+- [x] rotação aplicada
+- [x] `readTouch()` mapeando pressed/edges
+- [x] sprite de teste operacional
 
 ---
 
@@ -142,6 +147,8 @@ struct UiMetrics {
 ### `src/ui/theme/UiTheme.h`
 **Responsabilidade:** agregador (`colors + metrics + typography`).
 
+**Status atual:** ✅ `UiColors`, `UiMetrics`, `UiTypography` e `UiTheme` criados.
+
 ---
 
 ## 4.3 Core de estado/eventos/layout
@@ -158,6 +165,7 @@ enum class UiScreenId : uint8_t {
 };
 }
 ```
+**Status atual:** ✅ criado.
 
 ### `src/ui/core/UiState.h`
 **Responsabilidade:** estado persistente + transitório de UI.
@@ -188,6 +196,7 @@ struct UiState {
 
 ### `src/ui/core/UiEvents.h`
 **Responsabilidade:** eventos de navegação/interação.
+**Status atual:** ✅ criado (eventos básicos de navegação e touch).
 
 ### `src/ui/core/UiInvalidation.h`
 **Responsabilidade:** flags de redraw por região.
@@ -206,6 +215,7 @@ struct UiInvalidation {
 };
 }
 ```
+**Status atual:** ✅ `invalidateAll()` adicionado mantendo compatibilidade com `markAll()`.
 
 ### `src/ui/core/UiLayout.h`
 **Responsabilidade:** retângulos semânticos por tela/região.
@@ -266,6 +276,8 @@ Fluxo recomendado:
 3. update de estado/transientes
 4. redraw por invalidação
 5. overlays por último
+
+**Status atual:** ✅ `UiApp` inicial criado com smoke test de render e leitura de touch.
 
 ---
 
@@ -333,11 +345,11 @@ Props:
 ## 5) Sequência de merge (checklist pronto)
 
 ## Sprint 1 — Fundação
-- [ ] `LgfxDisplay` funcional (init/rotação/touch/sprite)
-- [ ] tokens `UiColors/UiMetrics/UiTypography/UiTheme`
-- [ ] `UiScreenId`, `UiState`, `UiInvalidation`
-- [ ] `UiApp` com tela de teste
-- [ ] feature flag `UseNewUi`
+- [x] `LgfxDisplay` funcional (init/rotação/touch/sprite)
+- [x] tokens `UiColors/UiMetrics/UiTypography/UiTheme`
+- [~] `UiScreenId`, `UiState`, `UiInvalidation` *(feito: `UiScreenId` + update em `UiInvalidation`; `UiState` ainda em evolução para o novo modelo do spec)*
+- [x] `UiApp` com tela de teste
+- [x] feature flag `UseNewUi`
 
 **Definition of done:** boot estável + toque funcional + retângulo/sprite de teste sem flicker.
 
