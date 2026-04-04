@@ -1,7 +1,6 @@
 #include "UiApp.h"
 
 #include "theme/UiTheme.h"
-#include <Arduino.h>
 
 namespace ui {
 
@@ -16,6 +15,9 @@ bool UiApp::begin() {
 
 void UiApp::runFrame(uint32_t nowMs) {
   _display.readTouch(_touch);
+  _playButton.pressed = _playButton.hitTest(_touch.x, _touch.y) && _touch.pressed;
+  _macroRow.focus = _macroRow.hitMinus(_touch.x, _touch.y) || _macroRow.hitPlus(_touch.x, _touch.y);
+  _modal.visible = _trackChip.hitTest(_touch.x, _touch.y) && _touch.pressed;
   renderSmokeTest(nowMs);
 }
 
@@ -36,18 +38,19 @@ void UiApp::renderSmokeTest(uint32_t nowMs) {
     _invalidation.fullScreenDirty = false;
   }
 
-  canvas.fillRect(10, 56, 300, 72, theme::UiTheme::Colors::Bg);
+  canvas.fillRect(10, 46, 300, 188, theme::UiTheme::Colors::Bg);
+  _playButton.draw(canvas);
+  _statusCard.draw(canvas);
+  _trackChip.draw(canvas);
+  _macroRow.draw(canvas);
+  _toast.draw(canvas);
+  _modal.draw(canvas);
+
   canvas.setTextColor(theme::UiTheme::Colors::TextSecondary, theme::UiTheme::Colors::Bg);
-  canvas.setTextSize(theme::UiTheme::Typography::BodySize);
-  canvas.setCursor(12, 58);
-  canvas.printf("smoke test frame=%lu", static_cast<unsigned long>(nowMs));
-
-  canvas.setCursor(12, 74);
-  canvas.printf("touch: %s x=%d y=%d", _touch.pressed ? "down" : "up", _touch.x, _touch.y);
-
-  if (_touch.pressed) {
-    canvas.fillCircle(_touch.x, _touch.y, 6, theme::UiTheme::Colors::Accent);
-  }
+  canvas.setTextSize(theme::UiTheme::Typography::CaptionSize);
+  canvas.setCursor(12, 176);
+  canvas.printf("frame=%lu touch=%s %d,%d", static_cast<unsigned long>(nowMs), _touch.pressed ? "down" : "up", _touch.x,
+                _touch.y);
 }
 
 } // namespace ui
