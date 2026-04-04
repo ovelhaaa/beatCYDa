@@ -58,11 +58,12 @@ Implementar **invalidação parcial por regiões** na `UiApp` para evitar redraw
 - ⏳ Ainda faltam: contraste final de estados pressionados, invalidação em sub-regiões por componente e limpeza opcional de caminhos legados.
 
 ### Tarefa pendente assumida nesta rodada
-- ✅ **Remoção de hardcode de timing de toast/status** para reforçar centralização no `CYD_Config.h`.
-  - `UiToast` agora nasce com timeout padrão `CYDConfig::UiToastInfoMs`.
-  - `setStatus(...)` também passa a usar `CYDConfig::UiToastInfoMs` como default.
+- ✅ **Revisão de contraste/estado pressionado em ações críticas** para melhorar leitura em uso real.
+  - `UiButton` agora usa paleta de `pressed` por variante (`Primary`, `Secondary`, `Danger`) em vez de um único preenchimento genérico.
+  - Estado `disabled` passou a usar texto secundário para diferenciar melhor ações indisponíveis.
+  - Tela `Perform` destaca `MUTE/UNMUTE` com variante `Danger` quando a trilha ativa está mutada.
 
 ### O que resta até agora
-1. Revisão visual completa de contraste/press state por tela (principalmente ações críticas como `DEL`, `MUTE` e botões de `+/-` em luz ambiente forte).
+1. Concluir revisão visual completa de contraste/press state em **todas** as telas (a rodada atual cobriu botões; ainda falta validar `UiChip`, `UiMacroRow` e `UiFader` em campo).
 2. Refinar invalidação para blocos internos (ex.: redesenhar só `UiMacroRow` alterada em vez do painel inteiro).
 3. Decidir escopo de limpeza de legado (`LegacyRender`/rotas antigas) para reduzir manutenção duplicada sem perder rollback rápido.

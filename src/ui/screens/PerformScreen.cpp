@@ -69,6 +69,7 @@ void PerformScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &sna
 
   _playButton.label = snapshot.isPlaying ? "STOP" : "PLAY";
   _muteButton.label = snapshot.trackMutes[snapshot.activeTrack] ? "UNMUTE" : "MUTE";
+  _muteButton.variant = snapshot.trackMutes[snapshot.activeTrack] ? UiButtonVariant::Danger : UiButtonVariant::Secondary;
 
   _statusCard.value = trackLabel(snapshot.activeTrack);
 
