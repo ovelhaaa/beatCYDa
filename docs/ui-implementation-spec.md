@@ -382,9 +382,9 @@ Props:
 **DoD:** sem tremor perceptível no drag; sem toques perdidos frequentes.
 
 ## Sprint 6 — Project
-- [ ] `ProjectScreen`
-- [ ] ações save/load via dispatcher assíncrono
-- [ ] modal de confirmação obrigatório para apagar/substituir
+- [x] `ProjectScreen` *(base implementada em `src/ui/screens/ProjectScreen.h/.cpp`)*
+- [x] ações save/load via dispatcher assíncrono *(via `dispatchSaveSlot`/`dispatchLoadSlot` em `UiActions`)*
+- [x] modal de confirmação para apagar/substituir slot
 
 **DoD:** fluxo seguro e responsivo mesmo com SD.
 
@@ -443,6 +443,13 @@ Props:
 - [x] Navegação `UiApp` integrada para rota/touch/render de `UiScreenId::Mix` e mudança de modo para `UiMode::MIXER`.
 - [x] Drag contínuo implementado: ao capturar um fader, o valor segue o toque até `justReleased`, despachando `SET_VOICE_GAIN` em tempo real.
 
+## 11) Progresso incremental — Sprint 6 (Project) *(atualizado)*
+
+- [x] `ProjectScreen` criado com grid de 8 slots, seleção ativa e ações dedicadas (`LOAD`/`SAVE`/`DEL`).
+- [x] Integração no `UiApp` para navegação/touch/render de `UiScreenId::Project`.
+- [x] Fluxo seguro com confirmação em modal para sobrescrever/apagar slot ocupado.
+- [x] Feedback de ação com `UiToast` (save/load/cancel/delete).
+
 ### Checklist do que foi feito até agora (UI nova)
 
 - [x] Feature flag e coexistência legado/novo
@@ -451,5 +458,5 @@ Props:
 - [x] PerformScreen (base funcional com ações principais)
 - [x] PatternScreen e SoundScreen (base + hold-repeat)
 - [x] MixScreen (base + faders com captura e hitbox expandida)
-- [ ] ProjectScreen
+- [x] ProjectScreen (base funcional com save/load, confirmação e feedback)
 - [ ] Polimento final (invalidação fina/performance/cleanup legado)

@@ -8,6 +8,7 @@
 #include "screens/PatternScreen.h"
 #include "screens/SoundScreen.h"
 #include "screens/MixScreen.h"
+#include "screens/ProjectScreen.h"
 
 namespace ui {
 
@@ -37,6 +38,7 @@ private:
   PatternScreen _patternScreen{};
   SoundScreen _soundScreen{};
   MixScreen _mixScreen{};
+  ProjectScreen _projectScreen{};
 };
 
 } // namespace ui
