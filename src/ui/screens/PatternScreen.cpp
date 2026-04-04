@@ -36,6 +36,10 @@ PatternScreen::PatternScreen() {
   _clearButton.label = "CLEAR";
   _clearButton.variant = UiButtonVariant::Danger;
 
+  _ringsPreview.setCompact(true);
+  _ringsPreview.setInteractive(false);
+  _ringsPreview.setSingleTrack(true);
+
   for (int i = 0; i < TRACK_COUNT; ++i) {
     _trackChips[i].trackIndex = static_cast<uint8_t>(i);
   }
@@ -44,21 +48,25 @@ PatternScreen::PatternScreen() {
 }
 
 void PatternScreen::layout() {
-  setRect(_headerCard.rect, 12, 46, 96, 48);
+  setRect(_headerCard.rect, 12, 46, 104, 48);
+
+  UiRect previewRect{};
+  setRect(previewRect, 124, 40, 84, 84);
+  _ringsPreview.setRect(previewRect);
 
   for (int i = 0; i < TRACK_COUNT; ++i) {
-    setRect(_trackChips[i].rect, 116 + (i * 38), 52, 34, 26);
+    setRect(_trackChips[i].rect, 12 + (i * 60), 96, 56, 26);
   }
 
   for (int i = 0; i < 4; ++i) {
-    const int y = 100 + (i * 24);
-    setRect(_rows[i].rowRect, 12, y, 296, 22);
-    setRect(_rows[i].minusRect, 208, y + 1, 24, 20);
-    setRect(_rows[i].plusRect, 236, y + 1, 24, 20);
+    const int y = 128 + (i * 18);
+    setRect(_rows[i].rowRect, 12, y, 296, 16);
+    setRect(_rows[i].minusRect, 220, y, 20, 16);
+    setRect(_rows[i].plusRect, 244, y, 20, 16);
   }
 
-  setRect(_randomButton.rect, 12, 198, 140, 30);
-  setRect(_clearButton.rect, 168, 198, 140, 30);
+  setRect(_randomButton.rect, 12, 200, 140, 28);
+  setRect(_clearButton.rect, 168, 200, 140, 28);
 }
 
 void PatternScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &snapshot) {
@@ -71,6 +79,7 @@ void PatternScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &sna
 
   _headerCard.active = true;
   _headerCard.draw(canvas);
+  _ringsPreview.draw(canvas, snapshot);
 
   for (int i = 0; i < TRACK_COUNT; ++i) {
     _trackChips[i].active = (i == snapshot.activeTrack);
@@ -130,6 +139,7 @@ bool PatternScreen::handleHoldTick(const TouchPoint &tp, const UiStateSnapshot &
   _holdTickCount++;
   _holdNextTickMs = now + interval;
   _dirty = true;
+  _ringsPreview.invalidateAll();
   return true;
 }
 
@@ -180,6 +190,7 @@ bool PatternScreen::handleTouch(const TouchPoint &tp, const UiStateSnapshot &sna
       if (_trackChips[i].hitTest(tp.x, tp.y)) {
         dispatchUiAction(UiActionType::SELECT_TRACK, 0, i);
         _dirty = true;
+        _ringsPreview.invalidateAll();
         return true;
       }
     }
@@ -189,6 +200,7 @@ bool PatternScreen::handleTouch(const TouchPoint &tp, const UiStateSnapshot &sna
         dispatchRowDelta(snapshot, i, -1);
         startHold(i, -1);
         _dirty = true;
+        _ringsPreview.invalidateAll();
         return true;
       }
 
@@ -196,6 +208,7 @@ bool PatternScreen::handleTouch(const TouchPoint &tp, const UiStateSnapshot &sna
         dispatchRowDelta(snapshot, i, +1);
         startHold(i, +1);
         _dirty = true;
+        _ringsPreview.invalidateAll();
         return true;
       }
     }
@@ -203,6 +216,7 @@ bool PatternScreen::handleTouch(const TouchPoint &tp, const UiStateSnapshot &sna
     if (_randomButton.hitTest(tp.x, tp.y)) {
       dispatchUiAction(UiActionType::RANDOMIZE_TRACK, snapshot.activeTrack, 0);
       _dirty = true;
+      _ringsPreview.invalidateAll();
       return true;
     }
 
@@ -210,6 +224,7 @@ bool PatternScreen::handleTouch(const TouchPoint &tp, const UiStateSnapshot &sna
       dispatchUiAction(UiActionType::SET_HITS, snapshot.activeTrack, 0);
       dispatchUiAction(UiActionType::SET_ROTATION, snapshot.activeTrack, 0);
       _dirty = true;
+      _ringsPreview.invalidateAll();
       return true;
     }
   }
@@ -220,6 +235,7 @@ bool PatternScreen::handleTouch(const TouchPoint &tp, const UiStateSnapshot &sna
 
 void PatternScreen::invalidate() {
   _dirty = true;
+  _ringsPreview.invalidateAll();
 }
 
 } // namespace ui
