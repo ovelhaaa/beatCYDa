@@ -19,6 +19,36 @@ void styleNavButton(UiButton &button, const char *label, int16_t x) {
   button.variant = UiButtonVariant::Secondary;
   setRect(button.rect, x, theme::UiTheme::Metrics::ScreenH - theme::UiTheme::Metrics::BottomNavH + 4, 60, 32);
 }
+
+bool compareTrackMutes(const UiStateSnapshot &lhs, const UiStateSnapshot &rhs) {
+  for (int i = 0; i < TRACK_COUNT; ++i) {
+    if (lhs.trackMutes[i] != rhs.trackMutes[i]) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+bool compareTrackParams(const UiStateSnapshot &lhs, const UiStateSnapshot &rhs) {
+  for (int i = 0; i < TRACK_COUNT; ++i) {
+    if (lhs.trackSteps[i] != rhs.trackSteps[i] || lhs.trackHits[i] != rhs.trackHits[i] ||
+        lhs.trackRotations[i] != rhs.trackRotations[i]) {
+      return false;
+    }
+    if (lhs.voiceGain[i] != rhs.voiceGain[i]) {
+      return false;
+    }
+    if (lhs.voiceParams[i].pitch != rhs.voiceParams[i].pitch ||
+        lhs.voiceParams[i].decay != rhs.voiceParams[i].decay ||
+        lhs.voiceParams[i].timbre != rhs.voiceParams[i].timbre ||
+        lhs.voiceParams[i].drive != rhs.voiceParams[i].drive) {
+      return false;
+    }
+  }
+
+  return true;
+}
 } // namespace
 
 UiApp::UiApp() {
@@ -34,38 +64,48 @@ bool UiApp::begin() {
 }
 
 void UiApp::runFrame(uint32_t nowMs) {
+  _previousSnapshot = _snapshot;
+  _previousScreen = _activeScreen;
   _snapshot.capture();
   _display.readTouch(_touch);
   updateUiStats(nowMs);
 
-  if (_activeScreen == UiScreenId::Perform) {
-    _performScreen.handleTouch(_touch, _snapshot);
-  } else if (_activeScreen == UiScreenId::Pattern) {
-    _patternScreen.handleTouch(_touch, _snapshot);
-  } else if (_activeScreen == UiScreenId::Sound) {
-    _soundScreen.handleTouch(_touch, _snapshot);
-  } else if (_activeScreen == UiScreenId::Mix) {
-    _mixScreen.handleTouch(_touch, _snapshot);
-  } else if (_activeScreen == UiScreenId::Project) {
-    _projectScreen.handleTouch(_touch, _snapshot);
+  IScreen *screen = activeScreen();
+  const bool contentTouched = (screen != nullptr) ? screen->handleTouch(_touch, _snapshot) : false;
+  if (contentTouched) {
+    _invalidation.panelDirty = true;
   }
 
   handleBottomNavTouch();
-  renderChrome(nowMs);
+  screen = activeScreen();
 
-  if (_activeScreen == UiScreenId::Perform) {
-    _performScreen.render(_display.canvas(), _snapshot);
-  } else if (_activeScreen == UiScreenId::Pattern) {
-    _patternScreen.render(_display.canvas(), _snapshot);
-  } else if (_activeScreen == UiScreenId::Sound) {
-    _soundScreen.render(_display.canvas(), _snapshot);
-  } else if (_activeScreen == UiScreenId::Mix) {
-    _mixScreen.render(_display.canvas(), _snapshot);
-  } else if (_activeScreen == UiScreenId::Project) {
-    _projectScreen.render(_display.canvas(), _snapshot);
+  if (_activeScreen != _previousScreen) {
+    _invalidation.invalidateAll();
+    if (screen != nullptr) {
+      screen->invalidate();
+    }
   }
 
-  renderBottomNav();
+  if (detectModelChanges()) {
+    _invalidation.panelDirty = true;
+  }
+
+  if (_invalidation.fullScreenDirty || _invalidation.topBarDirty) {
+    renderChrome(nowMs);
+  }
+
+  if (_invalidation.fullScreenDirty || _invalidation.panelDirty) {
+    if (screen != nullptr) {
+      screen->render(_display.canvas(), _snapshot);
+    }
+  }
+
+  if (_invalidation.fullScreenDirty || _invalidation.bottomNavDirty) {
+    renderBottomNav();
+  }
+
+  _invalidation.clear();
+  _hasPreviousSnapshot = true;
 }
 
 void UiApp::renderChrome(uint32_t nowMs) {
@@ -99,6 +139,7 @@ void UiApp::updateUiStats(uint32_t nowMs) {
   _frameCounter = 0;
   _statsLastMs = nowMs;
   _freeHeap = ESP.getFreeHeap();
+  _invalidation.topBarDirty = true;
 }
 
 void UiApp::renderBottomNav() {
@@ -131,6 +172,7 @@ void UiApp::handleBottomNavTouch() {
     _activeScreen = UiScreenId::Perform;
     dispatchUiAction(UiActionType::CHANGE_MODE, 0, static_cast<int>(UiMode::PERFORMANCE));
     _performScreen.invalidate();
+    _invalidation.bottomNavDirty = true;
     return;
   }
 
@@ -138,6 +180,7 @@ void UiApp::handleBottomNavTouch() {
     _activeScreen = UiScreenId::Pattern;
     dispatchUiAction(UiActionType::CHANGE_MODE, 0, static_cast<int>(UiMode::PATTERN_EDIT));
     _patternScreen.invalidate();
+    _invalidation.bottomNavDirty = true;
     return;
   }
 
@@ -145,6 +188,7 @@ void UiApp::handleBottomNavTouch() {
     _activeScreen = UiScreenId::Sound;
     dispatchUiAction(UiActionType::CHANGE_MODE, 0, static_cast<int>(UiMode::SOUND_EDIT));
     _soundScreen.invalidate();
+    _invalidation.bottomNavDirty = true;
     return;
   }
 
@@ -152,6 +196,7 @@ void UiApp::handleBottomNavTouch() {
     _activeScreen = UiScreenId::Mix;
     dispatchUiAction(UiActionType::CHANGE_MODE, 0, static_cast<int>(UiMode::MIXER));
     _mixScreen.invalidate();
+    _invalidation.bottomNavDirty = true;
     return;
   }
 
@@ -159,7 +204,44 @@ void UiApp::handleBottomNavTouch() {
     _activeScreen = UiScreenId::Project;
     dispatchUiAction(UiActionType::CHANGE_MODE, 0, static_cast<int>(UiMode::SYSTEM));
     _projectScreen.invalidate();
+    _invalidation.bottomNavDirty = true;
   }
+}
+
+IScreen *UiApp::activeScreen() {
+  if (_activeScreen == UiScreenId::Perform) {
+    return &_performScreen;
+  }
+  if (_activeScreen == UiScreenId::Pattern) {
+    return &_patternScreen;
+  }
+  if (_activeScreen == UiScreenId::Sound) {
+    return &_soundScreen;
+  }
+  if (_activeScreen == UiScreenId::Mix) {
+    return &_mixScreen;
+  }
+  return &_projectScreen;
+}
+
+bool UiApp::detectModelChanges() {
+  if (!_hasPreviousSnapshot) {
+    _invalidation.invalidateAll();
+    return true;
+  }
+
+  if (_snapshot.bpm != _previousSnapshot.bpm || _snapshot.isPlaying != _previousSnapshot.isPlaying) {
+    _invalidation.topBarDirty = true;
+  }
+
+  if (_snapshot.activeTrack != _previousSnapshot.activeTrack ||
+      !compareTrackMutes(_snapshot, _previousSnapshot) ||
+      !compareTrackParams(_snapshot, _previousSnapshot) ||
+      _snapshot.masterVolume != _previousSnapshot.masterVolume) {
+    return true;
+  }
+
+  return false;
 }
 
 } // namespace ui

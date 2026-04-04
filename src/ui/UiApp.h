@@ -3,6 +3,7 @@
 #include "Display.h"
 #include "LgfxDisplay.h"
 #include "components/UiButton.h"
+#include "core/UiInvalidation.h"
 #include "core/UiScreenId.h"
 #include "screens/PerformScreen.h"
 #include "screens/PatternScreen.h"
@@ -23,11 +24,17 @@ private:
   void renderBottomNav();
   void handleBottomNavTouch();
   void updateUiStats(uint32_t nowMs);
+  bool detectModelChanges();
+  IScreen *activeScreen();
 
   LgfxDisplay _display;
   TouchPoint _touch;
   UiStateSnapshot _snapshot;
+  UiStateSnapshot _previousSnapshot;
+  bool _hasPreviousSnapshot{false};
   UiScreenId _activeScreen{UiScreenId::Perform};
+  UiScreenId _previousScreen{UiScreenId::Perform};
+  UiInvalidation _invalidation{};
   uint32_t _statsLastMs{0};
   uint32_t _frameCounter{0};
   uint16_t _uiFps{0};
