@@ -111,6 +111,7 @@ void ProjectScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &sna
 
   for (uint8_t i = 0; i < 8; ++i) {
     _slotButtons[i].variant = _slotOccupied[i] ? UiButtonVariant::Primary : UiButtonVariant::Secondary;
+    _slotButtons[i].pressed = (i == _selectedSlot);
     _slotButtons[i].draw(canvas);
   }
 
