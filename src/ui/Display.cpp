@@ -135,7 +135,6 @@ struct UiRuntime {
   int activeHoldParam = -1;
   uint32_t holdNextTickMs = 0;
   int holdTickCount = 0;
-  int activeFaderIndex = -1;
 
   char status[32] = "CYD ready";
   char lastStatus[32] = "";
@@ -211,6 +210,8 @@ static int slider_gain_from_y(int index, int touchY) {
     norm = norm < 0.0f ? 0.0f : (norm > 1.0f ? 1.0f : norm);
     return (int)(norm * 100.0f);
 }
+
+static int s_activeFaderIndex = -1;
 
 /* ═══════════════════════════════════════════════════════════════════════════════
    DRAW — TRANSPORT BAR  (y 0–42)
@@ -653,13 +654,13 @@ static void param_delta(int row, int delta) {
 static void handleTouch(const TouchPoint &tp) {
     if (tp.justReleased) {
         hold_stop();
-        ui.activeFaderIndex = -1;
+        s_activeFaderIndex = -1;
         return;
     }
 
-    if (ui.mode == UiMode::MIXER && tp.pressed && ui.activeFaderIndex >= 0) {
-        postUiAction(UiActionType::SET_VOICE_GAIN, ui.activeFaderIndex,
-                     slider_gain_from_y(ui.activeFaderIndex, tp.y));
+    if (ui.mode == UiMode::MIXER && tp.pressed && s_activeFaderIndex >= 0) {
+        postUiAction(UiActionType::SET_VOICE_GAIN, s_activeFaderIndex,
+                     slider_gain_from_y(s_activeFaderIndex, tp.y));
         return;
     }
 
@@ -720,12 +721,12 @@ static void handleTouch(const TouchPoint &tp) {
     if (ui.mode == UiMode::MIXER && tx >= 192) {
         for (int i = 0; i < TRACK_COUNT; i++) {
             if (slider_hit_rect(i).contains(tx, ty)) {
-                ui.activeFaderIndex = i;
+                s_activeFaderIndex = i;
                 postUiAction(UiActionType::SET_VOICE_GAIN, i, slider_gain_from_y(i, ty));
                 return;
             }
         }
-        ui.activeFaderIndex = -1;
+        s_activeFaderIndex = -1;
         return;
     }
 
