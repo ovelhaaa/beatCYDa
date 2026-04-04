@@ -77,3 +77,17 @@ Mockup (conceitual de estado atual): `docs/mockups/screen-project.svg`
 2. Ativar lógica de `RANDOM` na Pattern.
 3. Adicionar indicadores de `dirty`/feedback visual para ajustes contínuos.
 4. Revisar consistência de espaçamentos e nomenclaturas entre telas.
+
+## Próxima etapa assumida (Sprint 7 — Polimento)
+
+Foi iniciada a etapa de polimento com foco em telemetria leve da UI e remoção de timings hardcoded.
+
+### Checklist do que foi feito até agora
+
+- [x] Métricas de frame na UI (FPS) com atualização periódica.
+- [x] Métrica de heap livre exibida na barra superior.
+- [x] Centralização de tempos de toast e refresh de métricas em `CYD_Config.h`.
+- [x] `ProjectScreen` migrada para usar os novos tempos configuráveis.
+- [ ] Revisão final de contraste/estados pressionados em todas as telas.
+- [ ] Invalidação fina por regiões (ainda em full redraw por frame).
+- [ ] Limpeza final do legado opcional.

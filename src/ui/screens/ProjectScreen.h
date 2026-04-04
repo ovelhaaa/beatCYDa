@@ -4,6 +4,7 @@
 #include "../components/UiCard.h"
 #include "../components/UiModal.h"
 #include "../components/UiToast.h"
+#include "../../CYD_Config.h"
 #include "../Display.h"
 #include "IScreen.h"
 
@@ -28,7 +29,9 @@ private:
     Delete,
   };
 
-  void showToast(const char *message, UiToastSeverity severity = UiToastSeverity::Info, uint32_t timeoutMs = 1400);
+  void showToast(const char *message,
+                 UiToastSeverity severity = UiToastSeverity::Info,
+                 uint32_t timeoutMs = CYDConfig::UiToastInfoMs);
   void openConfirm(PendingAction action);
   void closeConfirm();
   void updateLabels();

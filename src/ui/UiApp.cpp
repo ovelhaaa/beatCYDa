@@ -1,7 +1,9 @@
 #include "UiApp.h"
 
+#include "../CYD_Config.h"
 #include "core/UiActions.h"
 #include "theme/UiTheme.h"
+#include <Arduino.h>
 
 namespace ui {
 namespace {
@@ -34,6 +36,7 @@ bool UiApp::begin() {
 void UiApp::runFrame(uint32_t nowMs) {
   _snapshot.capture();
   _display.readTouch(_touch);
+  updateUiStats(nowMs);
 
   if (_activeScreen == UiScreenId::Perform) {
     _performScreen.handleTouch(_touch, _snapshot);
@@ -82,7 +85,20 @@ void UiApp::renderChrome(uint32_t nowMs) {
 
   canvas.setTextColor(theme::UiTheme::Colors::TextSecondary, theme::UiTheme::Colors::Surface);
   canvas.setCursor(190, 16);
-  canvas.printf("BPM %d  %lums", _snapshot.bpm, static_cast<unsigned long>(nowMs));
+  canvas.printf("BPM %d  %uFPS %luKB", _snapshot.bpm, _uiFps, static_cast<unsigned long>(_freeHeap / 1024UL));
+}
+
+void UiApp::updateUiStats(uint32_t nowMs) {
+  ++_frameCounter;
+  const uint32_t elapsed = nowMs - _statsLastMs;
+  if (elapsed < CYDConfig::UiStatsRefreshMs) {
+    return;
+  }
+
+  _uiFps = static_cast<uint16_t>((_frameCounter * 1000UL) / elapsed);
+  _frameCounter = 0;
+  _statsLastMs = nowMs;
+  _freeHeap = ESP.getFreeHeap();
 }
 
 void UiApp::renderBottomNav() {
