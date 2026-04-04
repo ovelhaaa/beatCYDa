@@ -49,6 +49,38 @@ bool compareTrackParams(const UiStateSnapshot &lhs, const UiStateSnapshot &rhs) 
 
   return true;
 }
+
+bool comparePatternData(const UiStateSnapshot &lhs, const UiStateSnapshot &rhs) {
+  for (int track = 0; track < TRACK_COUNT; ++track) {
+    if (lhs.patternLens[track] != rhs.patternLens[track]) {
+      return false;
+    }
+    for (int step = 0; step < 64; ++step) {
+      if (lhs.patterns[track][step] != rhs.patterns[track][step]) {
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
+
+bool hasCommonPanelChanges(const UiStateSnapshot &lhs, const UiStateSnapshot &rhs) {
+  return lhs.activeTrack != rhs.activeTrack || lhs.currentStep != rhs.currentStep || !compareTrackMutes(lhs, rhs) ||
+         !compareTrackParams(lhs, rhs) || !comparePatternData(lhs, rhs) || lhs.masterVolume != rhs.masterVolume;
+}
+
+bool hasProjectPanelChanges(const UiStateSnapshot &lhs, const UiStateSnapshot &rhs) {
+  return lhs.bpm != rhs.bpm || lhs.activeTrack != rhs.activeTrack;
+}
+
+bool hasPanelChangesForScreen(UiScreenId screenId, const UiStateSnapshot &lhs, const UiStateSnapshot &rhs) {
+  if (screenId == UiScreenId::Project) {
+    return hasProjectPanelChanges(lhs, rhs);
+  }
+
+  return hasCommonPanelChanges(lhs, rhs);
+}
 } // namespace
 
 UiApp::UiApp() {
@@ -265,14 +297,7 @@ bool UiApp::detectModelChanges() {
     }
   }
 
-  if (_snapshot.activeTrack != _previousSnapshot.activeTrack ||
-      !compareTrackMutes(_snapshot, _previousSnapshot) ||
-      !compareTrackParams(_snapshot, _previousSnapshot) ||
-      _snapshot.masterVolume != _previousSnapshot.masterVolume) {
-    return true;
-  }
-
-  return false;
+  return hasPanelChangesForScreen(_activeScreen, _snapshot, _previousSnapshot);
 }
 
 } // namespace ui
