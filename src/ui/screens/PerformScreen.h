@@ -4,6 +4,7 @@
 #include "../components/UiCard.h"
 #include "../Display.h"
 #include "../components/UiChip.h"
+#include "../components/UiEuclideanRings.h"
 #include "IScreen.h"
 
 struct UiStateSnapshot;
@@ -26,6 +27,7 @@ private:
   UiButton _muteButton{};
   UiCard _statusCard{};
   UiChip _trackChips[TRACK_COUNT]{};
+  UiEuclideanRings _rings{};
 };
 
 } // namespace ui

@@ -40,6 +40,10 @@ PerformScreen::PerformScreen() {
   _statusCard.value = "READY";
   _statusCard.active = true;
 
+  _rings.setCompact(false);
+  _rings.setInteractive(true);
+  _rings.setSingleTrack(false);
+
   for (int i = 0; i < TRACK_COUNT; ++i) {
     _trackChips[i].trackIndex = static_cast<uint8_t>(i);
     _trackChips[i].active = (i == 0);
@@ -50,12 +54,16 @@ PerformScreen::PerformScreen() {
 }
 
 void PerformScreen::layout() {
-  setRect(_playButton.rect, 12, 54, 88, 34);
-  setRect(_muteButton.rect, 108, 54, 88, 34);
-  setRect(_statusCard.rect, 204, 54, 104, 60);
+  setRect(_playButton.rect, 204, 46, 104, 34);
+  setRect(_muteButton.rect, 204, 86, 104, 34);
+  setRect(_statusCard.rect, 204, 126, 104, 62);
+
+  UiRect ringRect{};
+  setRect(ringRect, 12, 42, 176, 142);
+  _rings.setRect(ringRect);
 
   for (int i = 0; i < TRACK_COUNT; ++i) {
-    setRect(_trackChips[i].rect, 12 + (i * 60), 124, 56, 32);
+    setRect(_trackChips[i].rect, 12 + (i * 60), 196, 56, 32);
   }
 }
 
@@ -73,13 +81,14 @@ void PerformScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &sna
 
   _statusCard.value = trackLabel(snapshot.activeTrack);
 
+  _rings.draw(canvas, snapshot);
   _playButton.draw(canvas);
   _muteButton.draw(canvas);
   _statusCard.draw(canvas);
 
   canvas.setTextSize(theme::UiTheme::Typography::CaptionSize);
   canvas.setTextColor(theme::UiTheme::Colors::TextSecondary, theme::UiTheme::Colors::Bg);
-  canvas.setCursor(12, 96);
+  canvas.setCursor(206, 196);
   canvas.printf("BPM %d", snapshot.bpm);
 
   for (int i = 0; i < TRACK_COUNT; ++i) {
@@ -100,12 +109,22 @@ bool PerformScreen::handleTouch(const TouchPoint &tp, const UiStateSnapshot &sna
   if (_playButton.hitTest(tp.x, tp.y)) {
     dispatchUiAction(UiActionType::TOGGLE_PLAY, 0, 0);
     _dirty = true;
+    _rings.invalidateAll();
     return true;
   }
 
   if (_muteButton.hitTest(tp.x, tp.y)) {
     dispatchUiAction(UiActionType::TOGGLE_MUTE, 0, snapshot.activeTrack);
     _dirty = true;
+    _rings.invalidateTrack(static_cast<uint8_t>(snapshot.activeTrack));
+    return true;
+  }
+
+  uint8_t ringTrack = 0;
+  if (_rings.hitTestTrack(tp.x, tp.y, ringTrack)) {
+    dispatchUiAction(UiActionType::SELECT_TRACK, 0, ringTrack);
+    _dirty = true;
+    _rings.invalidateAll();
     return true;
   }
 
@@ -113,6 +132,7 @@ bool PerformScreen::handleTouch(const TouchPoint &tp, const UiStateSnapshot &sna
     if (_trackChips[i].hitTest(tp.x, tp.y)) {
       dispatchUiAction(UiActionType::SELECT_TRACK, 0, i);
       _dirty = true;
+      _rings.invalidateAll();
       return true;
     }
   }
@@ -122,6 +142,7 @@ bool PerformScreen::handleTouch(const TouchPoint &tp, const UiStateSnapshot &sna
 
 void PerformScreen::invalidate() {
   _dirty = true;
+  _rings.invalidateAll();
 }
 
 } // namespace ui

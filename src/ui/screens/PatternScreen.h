@@ -4,6 +4,7 @@
 #include "../components/UiCard.h"
 #include "../components/UiChip.h"
 #include "../components/UiMacroRow.h"
+#include "../components/UiEuclideanRings.h"
 #include "../Display.h"
 #include "IScreen.h"
 
@@ -33,6 +34,7 @@ private:
   UiMacroRow _rows[4]{};
   UiButton _randomButton{};
   UiButton _clearButton{};
+  UiEuclideanRings _ringsPreview{};
 
   int _holdRow{-1};
   int _holdDirection{0};
