@@ -1,13 +1,10 @@
 #pragma once
 
+#include "Display.h"
 #include "LgfxDisplay.h"
 #include "components/UiButton.h"
-#include "components/UiCard.h"
-#include "components/UiChip.h"
-#include "components/UiMacroRow.h"
-#include "components/UiModal.h"
-#include "components/UiToast.h"
-#include "core/UiInvalidation.h"
+#include "core/UiScreenId.h"
+#include "screens/PerformScreen.h"
 
 namespace ui {
 
@@ -18,18 +15,22 @@ public:
   void runFrame(uint32_t nowMs);
 
 private:
-  void renderSmokeTest(uint32_t nowMs);
+  void renderChrome(uint32_t nowMs);
+  void renderBottomNav();
+  void handleBottomNavTouch();
 
   LgfxDisplay _display;
-  UiInvalidation _invalidation;
   TouchPoint _touch;
+  UiStateSnapshot _snapshot;
+  UiScreenId _activeScreen{UiScreenId::Perform};
 
-  UiButton _playButton{};
-  UiCard _statusCard{};
-  UiChip _trackChip{};
-  UiMacroRow _macroRow{};
-  UiToast _toast{};
-  UiModal _modal{};
+  UiButton _navPerform{};
+  UiButton _navPattern{};
+  UiButton _navSound{};
+  UiButton _navMix{};
+  UiButton _navProject{};
+
+  PerformScreen _performScreen{};
 };
 
 } // namespace ui
