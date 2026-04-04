@@ -63,7 +63,18 @@ Implementar **invalidação parcial por regiões** na `UiApp` para evitar redraw
   - Estado `disabled` passou a usar texto secundário para diferenciar melhor ações indisponíveis.
   - Tela `Perform` destaca `MUTE/UNMUTE` com variante `Danger` quando a trilha ativa está mutada.
 
+### Atualização incremental (rodada atual)
+- ✅ Expandida a revisão de contraste para componentes ainda pendentes:
+  - `UiChip`: estado `muted` com texto secundário e borda neutra; combinação `active + selected` usa `AccentPressed` para reforçar foco.
+  - `UiMacroRow`: botões `-`/`+` agora têm preenchimento dedicado (`Surface`/`SurfacePressed`) para melhor legibilidade tátil.
+  - `UiFader`: feedback de captura reforçado com `AccentPressed` na coluna e badge de trilha com fundo de alto contraste.
+
 ### O que resta até agora
 1. Concluir revisão visual completa de contraste/press state em **todas** as telas (a rodada atual cobriu botões; ainda falta validar `UiChip`, `UiMacroRow` e `UiFader` em campo).
 2. Refinar invalidação para blocos internos (ex.: redesenhar só `UiMacroRow` alterada em vez do painel inteiro).
 3. Decidir escopo de limpeza de legado (`LegacyRender`/rotas antigas) para reduzir manutenção duplicada sem perder rollback rápido.
+
+### Restante atualizado
+1. Validar em hardware real o contraste final dos componentes revisados (`UiChip`, `UiMacroRow`, `UiFader`) sob iluminação forte.
+2. Refinar invalidação para sub-regiões internas por componente, reduzindo redraw de painéis inteiros.
+3. Decidir escopo e janela de limpeza do legado (`LegacyRender`/pipeline antigo), mantendo rollback seguro por flag.

@@ -54,6 +54,7 @@ void UiFader::endCapture() {
 }
 
 void UiFader::draw(lgfx::LGFX_Device &canvas) const {
+  const uint16_t trackFill = captured ? theme::UiTheme::Colors::SurfacePressed : theme::UiTheme::Colors::Surface;
   canvas.drawRoundRect(visualRect.x,
                        visualRect.y,
                        visualRect.w,
@@ -63,7 +64,7 @@ void UiFader::draw(lgfx::LGFX_Device &canvas) const {
 
   const int fillH = (visualRect.h * value) / 100;
   const int fillY = visualRect.y + visualRect.h - fillH;
-  const uint16_t fillColor = captured ? theme::UiTheme::Colors::Accent : theme::UiTheme::Colors::Surface;
+  const uint16_t fillColor = captured ? theme::UiTheme::Colors::AccentPressed : theme::UiTheme::Colors::Accent;
 
   if (fillH > 0) {
     canvas.fillRoundRect(visualRect.x + 2,
@@ -75,7 +76,8 @@ void UiFader::draw(lgfx::LGFX_Device &canvas) const {
   }
 
   canvas.setTextSize(theme::UiTheme::Typography::CaptionSize);
-  canvas.setTextColor(theme::UiTheme::Colors::TextSecondary, theme::UiTheme::Colors::Bg);
+  canvas.setTextColor(theme::UiTheme::Colors::TextPrimary, trackFill);
+  canvas.fillRoundRect(visualRect.x, visualRect.y + visualRect.h + 2, visualRect.w, 10, theme::UiTheme::Metrics::RadiusSm, trackFill);
   canvas.setCursor(visualRect.x + 2, visualRect.y + visualRect.h + 4);
   canvas.printf("T%u", static_cast<unsigned>(track + 1));
 }
