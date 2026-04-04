@@ -149,7 +149,7 @@ bool ProjectScreen::handleTouch(const TouchPoint &tp, const UiStateSnapshot &sna
         showToast("Slot saved", UiToastSeverity::Info, CYDConfig::UiToastInfoMs);
       } else if (_pendingAction == PendingAction::Delete) {
         _slotOccupied[_selectedSlot] = false;
-        showToast("Slot cleared", UiToastSeverity::Warning, CYDConfig::UiToastInfoMs);
+        showToast("Slot cleared", UiToastSeverity::Warning, CYDConfig::UiToastWarningMs);
       }
       closeConfirm();
       _dirty = true;
