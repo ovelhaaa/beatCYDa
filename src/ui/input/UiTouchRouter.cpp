@@ -1,6 +1,7 @@
 #include "UiTouchRouter.h"
 #include "../core/UiActions.h"
 #include "../core/UiLayout.h"
+#include "../../CYD_Config.h"
 
 namespace {
 
@@ -8,18 +9,18 @@ namespace {
    HOLD-TO-ACCELERATE
    ═══════════════════════════════════════════════════════════════════════════════ */
 uint32_t holdInterval(uint8_t count) {
-  if (count < 6)
-    return 300;
-  if (count < 15)
-    return 120;
-  return 50;
+  if (count < CYDConfig::HoldRepeatStage1Threshold)
+    return CYDConfig::HoldRepeatIntervalStartMs;
+  if (count < CYDConfig::HoldRepeatStage2Threshold)
+    return CYDConfig::HoldRepeatIntervalStage1Ms;
+  return CYDConfig::HoldRepeatIntervalStage2Ms;
 }
 
 void holdStart(UiRuntime &ui, int paramIndex, int delta) {
   ui.activeHoldAction = delta;
   ui.activeHoldParam = paramIndex;
   ui.holdTickCount = 0;
-  ui.holdNextTickMs = millis() + 400;
+  ui.holdNextTickMs = millis() + CYDConfig::HoldRepeatStartDelayMs;
 }
 
 void holdStop(UiRuntime &ui) {
@@ -181,10 +182,10 @@ void tickHold(UiRuntime &ui) {
 
   ui.holdTickCount++;
   int amount = ui.activeHoldAction;
-  if (ui.holdTickCount > 15) {
-    amount *= 5;
-  } else if (ui.holdTickCount > 6) {
-    amount *= 2;
+  if (ui.holdTickCount > CYDConfig::HoldRepeatStage2Threshold) {
+    amount *= CYDConfig::HoldRepeatStage2Multiplier;
+  } else if (ui.holdTickCount > CYDConfig::HoldRepeatStage1Threshold) {
+    amount *= CYDConfig::HoldRepeatStage1Multiplier;
   }
 
   if (ui.activeHoldParam == 10) {
