@@ -114,6 +114,10 @@ static const Rect R_SLIDERS[TRACK_COUNT] = {
     {293, 54, 12, 126},
 };
 
+/* Semantic hit area expansion for resistive touch usability */
+constexpr int16_t SLIDER_HITBOX_PAD_X = 8;
+constexpr int16_t SLIDER_HITBOX_PAD_Y = 10;
+
 /* ═══════════════════════════════════════════════════════════════════════════════
    RUNTIME STATE  (display-local — never touches audio engine directly)
    ═══════════════════════════════════════════════════════════════════════════════ */
@@ -131,6 +135,7 @@ struct UiRuntime {
   int activeHoldParam = -1;
   uint32_t holdNextTickMs = 0;
   int holdTickCount = 0;
+  int activeFaderIndex = -1;
 
   char status[32] = "CYD ready";
   char lastStatus[32] = "";
@@ -188,6 +193,23 @@ static void postUiAction(UiActionType t, int idx=0, int val=0) {
 static void set_status(const char *msg, uint32_t ms = 1400) {
     snprintf(ui.status, sizeof(ui.status), "%s", msg);
     ui.statusUntilMs = millis() + ms;
+}
+
+static Rect slider_hit_rect(int index) {
+    const Rect &r = R_SLIDERS[index];
+    return {
+        (int16_t)(r.x - SLIDER_HITBOX_PAD_X),
+        (int16_t)(r.y - SLIDER_HITBOX_PAD_Y),
+        (int16_t)(r.w + (SLIDER_HITBOX_PAD_X * 2)),
+        (int16_t)(r.h + (SLIDER_HITBOX_PAD_Y * 2))
+    };
+}
+
+static int slider_gain_from_y(int index, int touchY) {
+    const Rect &r = R_SLIDERS[index];
+    float norm = 1.0f - (float)(touchY - r.y) / r.h;
+    norm = norm < 0.0f ? 0.0f : (norm > 1.0f ? 1.0f : norm);
+    return (int)(norm * 100.0f);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -629,7 +651,18 @@ static void param_delta(int row, int delta) {
 }
 
 static void handleTouch(const TouchPoint &tp) {
-    if (tp.justReleased) { hold_stop(); return; }
+    if (tp.justReleased) {
+        hold_stop();
+        ui.activeFaderIndex = -1;
+        return;
+    }
+
+    if (ui.mode == UiMode::MIXER && tp.pressed && ui.activeFaderIndex >= 0) {
+        postUiAction(UiActionType::SET_VOICE_GAIN, ui.activeFaderIndex,
+                     slider_gain_from_y(ui.activeFaderIndex, tp.y));
+        return;
+    }
+
     if (!tp.justPressed) return;
 
     int tx = tp.x, ty = tp.y;
@@ -686,13 +719,13 @@ static void handleTouch(const TouchPoint &tp) {
     /* ── Mixer sliders (x >= 192, mixer mode) ──────────────────────────────── */
     if (ui.mode == UiMode::MIXER && tx >= 192) {
         for (int i = 0; i < TRACK_COUNT; i++) {
-            if (R_SLIDERS[i].contains(tx, ty)) {
-                float norm = 1.0f - (float)(ty - R_SLIDERS[i].y) / R_SLIDERS[i].h;
-                norm = norm < 0.0f ? 0.0f : (norm > 1.0f ? 1.0f : norm);
-                postUiAction(UiActionType::SET_VOICE_GAIN, i, (int)(norm * 100));
+            if (slider_hit_rect(i).contains(tx, ty)) {
+                ui.activeFaderIndex = i;
+                postUiAction(UiActionType::SET_VOICE_GAIN, i, slider_gain_from_y(i, ty));
                 return;
             }
         }
+        ui.activeFaderIndex = -1;
         return;
     }
 
