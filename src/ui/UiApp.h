@@ -7,6 +7,7 @@
 #include "screens/PerformScreen.h"
 #include "screens/PatternScreen.h"
 #include "screens/SoundScreen.h"
+#include "screens/MixScreen.h"
 
 namespace ui {
 
@@ -35,6 +36,7 @@ private:
   PerformScreen _performScreen{};
   PatternScreen _patternScreen{};
   SoundScreen _soundScreen{};
+  MixScreen _mixScreen{};
 };
 
 } // namespace ui

@@ -41,6 +41,8 @@ void UiApp::runFrame(uint32_t nowMs) {
     _patternScreen.handleTouch(_touch, _snapshot);
   } else if (_activeScreen == UiScreenId::Sound) {
     _soundScreen.handleTouch(_touch, _snapshot);
+  } else if (_activeScreen == UiScreenId::Mix) {
+    _mixScreen.handleTouch(_touch, _snapshot);
   }
 
   handleBottomNavTouch();
@@ -52,6 +54,8 @@ void UiApp::runFrame(uint32_t nowMs) {
     _patternScreen.render(_display.canvas(), _snapshot);
   } else if (_activeScreen == UiScreenId::Sound) {
     _soundScreen.render(_display.canvas(), _snapshot);
+  } else if (_activeScreen == UiScreenId::Mix) {
+    _mixScreen.render(_display.canvas(), _snapshot);
   }
 
   renderBottomNav();
@@ -126,6 +130,8 @@ void UiApp::handleBottomNavTouch() {
 
   if (_navMix.hitTest(_touch.x, _touch.y)) {
     _activeScreen = UiScreenId::Mix;
+    dispatchUiAction(UiActionType::CHANGE_MODE, 0, static_cast<int>(UiMode::MIXER));
+    _mixScreen.invalidate();
     return;
   }
 
