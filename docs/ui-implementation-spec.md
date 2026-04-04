@@ -375,9 +375,9 @@ Props:
 **DoD:** precisão de `+/-` aceitável em touch resistivo.
 
 ## Sprint 5 — Mix
-- [ ] `MixScreen`
-- [ ] drag contínuo com captura de fader
-- [ ] hitbox expandido de fader
+- [x] `MixScreen` *(base implementada em `src/ui/screens/MixScreen.h/.cpp`)*
+- [x] drag contínuo com captura de fader *(estado de captura por fader ativo e atualização durante `tp.pressed`)*
+- [x] hitbox expandido de fader *(componente `UiFader` com `hitRectExpandPx`)*
 
 **DoD:** sem tremor perceptível no drag; sem toques perdidos frequentes.
 
@@ -434,3 +434,22 @@ Props:
 - [x] Navegação bottom (`UiApp`) passou a renderizar/rotear toque para `PatternScreen` e `SoundScreen`.
 - [x] Hold-repeat de `+/-` aplicado nas duas telas usando os tempos/estágios de `CYD_Config.h`.
 - [~] Ações avançadas (`random/copy/paste`) ainda em evolução (botão de random visível, mas desabilitado por ausência de action dedicada no dispatcher atual).
+
+
+## 10) Progresso incremental — Sprint 5 (Mix) *(atualizado)*
+
+- [x] Componente `UiFader` criado com API de captura (`beginCapture`/`updateFromY`/`endCapture`) e hitbox expandido configurável.
+- [x] `MixScreen` criado com card de contexto + 5 faders de track e render dedicado.
+- [x] Navegação `UiApp` integrada para rota/touch/render de `UiScreenId::Mix` e mudança de modo para `UiMode::MIXER`.
+- [x] Drag contínuo implementado: ao capturar um fader, o valor segue o toque até `justReleased`, despachando `SET_VOICE_GAIN` em tempo real.
+
+### Checklist do que foi feito até agora (UI nova)
+
+- [x] Feature flag e coexistência legado/novo
+- [x] Fundação (`LgfxDisplay`, theme tokens, `UiApp`)
+- [x] Componentes base (`UiButton`, `UiChip`, `UiCard`, `UiMacroRow`, `UiToast`, `UiModal`)
+- [x] PerformScreen (base funcional com ações principais)
+- [x] PatternScreen e SoundScreen (base + hold-repeat)
+- [x] MixScreen (base + faders com captura e hitbox expandida)
+- [ ] ProjectScreen
+- [ ] Polimento final (invalidação fina/performance/cleanup legado)
