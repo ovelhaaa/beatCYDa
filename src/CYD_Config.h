@@ -63,6 +63,7 @@ constexpr uint8_t HoldRepeatStage1Multiplier = 2;
 constexpr uint8_t HoldRepeatStage2Multiplier = 5;
 
 constexpr int PatternSlots = 8;
+constexpr uint32_t StorageOpTimeoutMs = 2500;
 constexpr const char *PatternsDir = "/patterns";
 constexpr const char *SamplesDir = "/samples";
 } // namespace CYDConfig

@@ -19,6 +19,10 @@ struct UiRuntime {
   char status[32] = "CYD ready";
   char lastStatus[32] = "";
   uint32_t statusUntilMs = 0;
+  bool storageOpInProgress = false;
+  UiActionType pendingStorageAction = UiActionType::SAVE_SLOT;
+  uint8_t pendingStorageSlot = 0;
+  uint32_t storageOpDeadlineMs = 0;
   bool forceRedraw = true;
 };
 

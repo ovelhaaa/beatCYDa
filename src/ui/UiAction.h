@@ -36,6 +36,8 @@ enum class UiActionType {
   TOGGLE_PLAY, // value = 0 (toggle), 1 (play), 2 (stop)
   NUDGE_BPM,   // value = delta
   SET_BPM,     // value = absolute bpm
+  SAVE_SLOT,   // index = slot
+  LOAD_SLOT,   // index = slot
 
   // Parameter Sets (Absolute - primarily for BLE/Web)
   SET_STEPS,      // index = track, value = count
