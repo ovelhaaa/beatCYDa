@@ -1,0 +1,138 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="720" viewBox="0 0 320 240" role="img" aria-labelledby="title desc">
+  <title id="title">Mockup fiel da UI CYD com anéis euclidianos</title>
+  <desc id="desc">Mockup em proporção 320x240 alinhado ao layout do LegacyRender: transporte, trilhas, anéis, painel de parâmetros e navegação inferior.</desc>
+
+  <defs>
+    <style>
+      .bg { fill: #0f1a2a; }
+      .line { stroke: #4a5770; stroke-width: 1; }
+      .panel { fill: #26344a; stroke: #4a5770; stroke-width: 1; }
+      .panel2 { fill: #2c3a4f; stroke: #4a5770; stroke-width: 1; }
+      .txt { fill: #d8e1ec; font-family: 'Inter', 'Segoe UI', sans-serif; font-size: 7px; }
+      .tiny { fill: #a8b6c9; font-family: 'Inter', 'Segoe UI', sans-serif; font-size: 6px; }
+      .accent { fill: #ffd261; }
+      .play { fill: #6df6a2; }
+      .track-k { fill: #cc53ca; }
+      .track-s { fill: #d66842; }
+      .track-c { fill: #4fe6ff; }
+      .track-o { fill: #ffcf6e; }
+      .track-b { fill: #57de66; }
+      .ring-k { stroke: #cc53ca; }
+      .ring-s { stroke: #d66842; }
+      .ring-c { stroke: #4fe6ff; }
+      .ring-o { stroke: #ffcf6e; }
+      .ring-b { stroke: #57de66; }
+      .ring { fill: none; stroke-width: 1.4; opacity: .7; }
+      .step-on { opacity: 1; }
+      .step-off { opacity: .25; }
+      .btn { fill: #26344a; stroke: #4a5770; stroke-width: 1; }
+      .btn-round { rx: 3; ry: 3; }
+    </style>
+  </defs>
+
+  <!-- Fundo -->
+  <rect class="bg" x="0" y="0" width="320" height="240"/>
+
+  <!-- Barra superior (0..41) -->
+  <rect x="0" y="0" width="320" height="42" class="bg"/>
+
+  <!-- R_PLAY {4,8,62,30} -->
+  <rect x="4" y="8" width="62" height="30" class="play" stroke="#4a5770"/>
+  <polygon points="24,14 24,32 46,23" fill="#0f1a2a"/>
+
+  <!-- SLOT controls -->
+  <rect x="80" y="8" width="20" height="30" class="btn btn-round"/><text x="90" y="26" class="txt" text-anchor="middle">&lt;</text>
+  <rect x="104" y="8" width="28" height="30" class="panel2 btn-round"/><text x="118" y="26" class="txt" text-anchor="middle">3</text>
+  <rect x="136" y="8" width="20" height="30" class="btn btn-round"/><text x="146" y="26" class="txt" text-anchor="middle">&gt;</text>
+
+  <!-- SAVE/LOAD (labels reais: S/L) -->
+  <rect x="160" y="8" width="24" height="14" class="panel2 btn-round"/><text x="172" y="18" class="tiny" text-anchor="middle">S</text>
+  <rect x="160" y="24" width="24" height="14" class="panel2 btn-round"/><text x="172" y="34" class="tiny" text-anchor="middle">L</text>
+
+  <!-- BPM -->
+  <rect x="196" y="8" width="28" height="30" class="btn btn-round"/><text x="210" y="26" class="txt" text-anchor="middle">-</text>
+  <rect x="228" y="8" width="52" height="30" class="panel2 btn-round"/><text x="254" y="26" class="txt accent" text-anchor="middle">128</text>
+  <rect x="284" y="8" width="28" height="30" class="btn btn-round"/><text x="298" y="26" class="txt" text-anchor="middle">+</text>
+
+  <line x1="0" y1="41" x2="320" y2="41" class="line"/>
+
+  <!-- Trilhas à esquerda: R_TRACKS -->
+  <rect x="4" y="48" width="28" height="34" class="btn btn-round"/><text x="18" y="68" class="txt track-k" text-anchor="middle">K</text>
+  <rect x="4" y="86" width="28" height="34" class="btn btn-round"/><text x="18" y="106" class="txt track-s" text-anchor="middle">S</text>
+  <rect x="4" y="124" width="28" height="34" class="btn btn-round"/><text x="18" y="144" class="txt track-c" text-anchor="middle">C</text>
+  <rect x="4" y="162" width="28" height="34" class="btn btn-round"/><text x="18" y="182" class="txt track-o" text-anchor="middle">O</text>
+  <rect x="4" y="200" width="28" height="34" class="panel2 btn-round"/><text x="18" y="220" class="txt track-b" text-anchor="middle">B</text>
+
+  <!-- Região de anéis R_RING {36,52,140,140}; centro (70,70) relativo -->
+  <g transform="translate(36 52)">
+    <rect x="0" y="0" width="140" height="140" fill="#0f1a2a"/>
+
+    <!-- Anéis com raios reais: 58,48,38,28,18 -->
+    <circle class="ring ring-k" cx="70" cy="70" r="58"/>
+    <circle class="ring ring-s" cx="70" cy="70" r="48"/>
+    <circle class="ring ring-c" cx="70" cy="70" r="38"/>
+    <circle class="ring ring-o" cx="70" cy="70" r="28"/>
+    <circle class="ring ring-b" cx="70" cy="70" r="18"/>
+
+    <!-- playhead visual -->
+    <line x1="70" y1="70" x2="70" y2="4" stroke="#dff8ff" stroke-width="1" opacity=".7"/>
+
+    <!-- passos ilustrativos -->
+    <g fill="#cc53ca">
+      <circle class="step-on" cx="70" cy="12" r="2"/>
+      <circle class="step-off" cx="111" cy="29" r="1.6"/>
+      <circle class="step-on" cx="128" cy="70" r="2"/>
+      <circle class="step-off" cx="111" cy="111" r="1.6"/>
+      <circle class="step-on" cx="70" cy="128" r="2"/>
+      <circle class="step-off" cx="29" cy="111" r="1.6"/>
+      <circle class="step-on" cx="12" cy="70" r="2"/>
+      <circle class="step-off" cx="29" cy="29" r="1.6"/>
+    </g>
+
+    <g fill="#57de66">
+      <circle class="step-on" cx="70" cy="52" r="2"/>
+      <circle class="step-off" cx="83" cy="57" r="1.5"/>
+      <circle class="step-on" cx="88" cy="70" r="2"/>
+      <circle class="step-off" cx="83" cy="83" r="1.5"/>
+      <circle class="step-on" cx="70" cy="88" r="2"/>
+      <circle class="step-off" cx="57" cy="83" r="1.5"/>
+      <circle class="step-on" cx="52" cy="70" r="2"/>
+      <circle class="step-off" cx="57" cy="57" r="1.5"/>
+    </g>
+
+    <circle cx="70" cy="70" r="5" fill="#6df6a2"/>
+    <circle cx="70" cy="70" r="1.5" fill="#0f1a2a"/>
+  </g>
+
+  <!-- Painel direito (PANEL_SX=188, PANEL_SY=44, W=132, H=168) -->
+  <g transform="translate(188 44)">
+    <rect x="0" y="0" width="132" height="168" class="panel"/>
+    <text x="66" y="12" class="txt" text-anchor="middle">KICK</text>
+
+    <!-- 4 linhas de parâmetro conforme PARAM_ROWS -->
+    <text x="66" y="16" class="tiny" text-anchor="middle">STEPS / HITS / ROT / GAIN</text>
+
+    <rect x="8" y="18" width="28" height="26" class="btn btn-round"/><text x="22" y="34" class="txt" text-anchor="middle">-</text>
+    <rect x="40" y="18" width="52" height="26" class="panel2 btn-round"/><text x="66" y="34" class="txt" text-anchor="middle">16</text>
+    <rect x="96" y="18" width="28" height="26" class="btn btn-round"/><text x="110" y="34" class="txt" text-anchor="middle">+</text>
+
+    <rect x="8" y="68" width="28" height="26" class="btn btn-round"/><text x="22" y="84" class="txt" text-anchor="middle">-</text>
+    <rect x="40" y="68" width="52" height="26" class="panel2 btn-round"/><text x="66" y="84" class="txt" text-anchor="middle">5</text>
+    <rect x="96" y="68" width="28" height="26" class="btn btn-round"/><text x="110" y="84" class="txt" text-anchor="middle">+</text>
+
+    <rect x="8" y="118" width="28" height="26" class="btn btn-round"/><text x="22" y="134" class="txt" text-anchor="middle">-</text>
+    <rect x="40" y="118" width="52" height="26" class="panel2 btn-round"/><text x="66" y="134" class="txt" text-anchor="middle">2</text>
+    <rect x="96" y="118" width="28" height="26" class="btn btn-round"/><text x="110" y="134" class="txt" text-anchor="middle">+</text>
+
+    <rect x="8" y="142" width="28" height="26" class="btn btn-round"/><text x="22" y="158" class="txt" text-anchor="middle">-</text>
+    <rect x="40" y="142" width="52" height="26" class="panel2 btn-round"/>
+    <rect x="42" y="152" width="36" height="6" rx="2" fill="#4a5770"/>
+    <rect x="42" y="152" width="25" height="6" rx="2" fill="#4fe6ff"/>
+    <rect x="96" y="142" width="28" height="26" class="btn btn-round"/><text x="110" y="158" class="txt" text-anchor="middle">+</text>
+  </g>
+
+  <!-- Rodapé (R_MUTE/R_VOICE/R_MIX) -->
+  <rect x="36" y="208" width="52" height="26" class="panel2 btn-round"/><text x="62" y="224" class="tiny" text-anchor="middle">MUTE</text>
+  <rect x="88" y="208" width="52" height="26" class="panel2 btn-round"/><text x="114" y="224" class="tiny" text-anchor="middle">VOICE</text>
+  <rect x="140" y="208" width="52" height="26" class="panel2 btn-round"/><text x="166" y="224" class="tiny" text-anchor="middle">MIX</text>
+</svg>
