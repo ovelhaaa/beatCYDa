@@ -3,6 +3,9 @@
 #include "core/UiState.h"
 #include "input/UiTouchRouter.h"
 #include "render/LegacyRender.h"
+
+#include "UiApp.h"
+#include "../Config.h"
 #include "../control/ControlManager.h"
 #include "../control/InputManager.h"
 #include <SPI.h>
@@ -78,6 +81,20 @@ void UiStateSnapshot::capture() {
 void displayTask(void *parameter) {
   while (!engine.engineReady.load()) {
     vTaskDelay(pdMS_TO_TICKS(20));
+  }
+
+  if (UseNewUi) {
+    ui::UiApp app;
+    if (!app.begin()) {
+      Serial.println("[UI] New UI init failed, halting display task");
+      vTaskDelete(nullptr);
+      return;
+    }
+
+    for (;;) {
+      app.runFrame(millis());
+      vTaskDelay(pdMS_TO_TICKS(16));
+    }
   }
 
   pinMode(CYDConfig::TftBacklight, OUTPUT);
