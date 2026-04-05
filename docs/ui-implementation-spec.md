@@ -483,3 +483,22 @@ Implementado:
 Pendências imediatas ainda abertas:
 - Ajustar contraste/pressed state dos demais componentes visuais (`UiChip`, `UiMacroRow`, `UiFader`, `UiModal`) com os mesmos critérios semânticos.
 - Fechar checklist de consolidação de timings remanescentes em `CYD_Config.h`.
+
+### Atualização de implementação — 2026-04-05
+
+Tarefa assumida nesta rodada: **consolidação de timings remanescentes em `CYD_Config.h`**.
+
+Implementado:
+- Novos tokens adicionados em `CYD_Config.h` para cadência de UI/render legado:
+  - `UiTaskTickMs`
+  - `UiEngineReadyPollMs`
+  - `UiLegacyFullRefreshFallbackMs`
+  - `UiLegacyRingRefreshMs`
+- `displayTask()` passou a usar tokens de config no polling de boot do engine e no tick do loop de render (UI nova + legado).
+- `updateUiInvalidation()` migrou o fallback de full redraw periódico (`8000ms`) para token de config.
+- `renderLegacyFrame()` migrou o throttle de redraw do ring (`33ms`) para token de config.
+
+Pendências imediatas ainda abertas:
+- Ajustes finais de contraste/pressed state em hardware real (calibração visual final).
+- Evoluir invalidação de nível de tela para sub-regiões/componentes em telas de maior custo de redraw.
+- Definir escopo de limpeza opcional do pipeline legado preservando rollback por feature flag.

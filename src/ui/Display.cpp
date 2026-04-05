@@ -80,7 +80,7 @@ void UiStateSnapshot::capture() {
 
 void displayTask(void *parameter) {
   while (!engine.engineReady.load()) {
-    vTaskDelay(pdMS_TO_TICKS(20));
+    vTaskDelay(pdMS_TO_TICKS(CYDConfig::UiEngineReadyPollMs));
   }
 
   if (UseNewUi) {
@@ -93,7 +93,7 @@ void displayTask(void *parameter) {
 
     for (;;) {
       app.runFrame(millis());
-      vTaskDelay(pdMS_TO_TICKS(16));
+      vTaskDelay(pdMS_TO_TICKS(CYDConfig::UiTaskTickMs));
     }
   }
 
@@ -132,6 +132,6 @@ void displayTask(void *parameter) {
     updateFrameMetrics(ui, micros() - renderStart);
     commitFrame(ui);
 
-    vTaskDelay(pdMS_TO_TICKS(16));
+    vTaskDelay(pdMS_TO_TICKS(CYDConfig::UiTaskTickMs));
   }
 }
