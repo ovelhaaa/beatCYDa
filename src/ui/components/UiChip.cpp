@@ -17,8 +17,9 @@ void UiChip::draw(lgfx::LGFX_Device &canvas) const {
     fill = theme::UiTheme::Colors::Disabled;
     border = theme::UiTheme::Colors::Outline;
     text = theme::UiTheme::Colors::TextSecondary;
-  } else if (active && selected) {
-    fill = theme::UiTheme::Colors::AccentPressed;
+  } else if (pressed || (active && selected)) {
+    fill = active ? theme::UiTheme::Colors::AccentPressed : theme::UiTheme::Colors::SurfacePressed;
+    text = active ? theme::UiTheme::Colors::TextOnAccent : theme::UiTheme::Colors::TextPrimary;
   }
 
   canvas.fillRoundRect(rect.x, rect.y, rect.w, rect.h, theme::UiTheme::Metrics::RadiusSm, fill);

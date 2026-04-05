@@ -22,18 +22,14 @@ Este documento consolida o estado **real do código** da nova UI (`UiApp`) e reg
 ## Tarefa assumida nesta rodada (Sprint 7)
 
 ### Objetivo
-Avançar na pendência de Sprint 7 de **consolidação de timings remanescentes em `CYD_Config.h`**, removendo números mágicos do loop/render da UI.
+Avançar na pendência de Sprint 7 de **revisão de contraste/estado pressionado** nos componentes que ainda não tinham refinamento visual final.
 
 ### O que foi implementado
 
-1. Novas constantes de timing de UI foram centralizadas em `CYD_Config.h`:
-   - `UiTaskTickMs`
-   - `UiEngineReadyPollMs`
-   - `UiLegacyFullRefreshFallbackMs`
-   - `UiLegacyRingRefreshMs`
-2. `displayTask()` (UI nova e legado) passou a usar os tokens de config no `vTaskDelay`, removendo `16/20ms` hardcoded.
-3. `updateUiInvalidation()` passou a usar `UiLegacyFullRefreshFallbackMs` no fallback de redraw total periódico.
-4. `renderLegacyFrame()` passou a usar `UiLegacyRingRefreshMs` para controle de refresh do ring no legado.
+1. `UiChip` recebeu estado explícito de `pressed`, com variação de preenchimento em inativo/ativo sem perda de contraste.
+2. `UiMacroRow` passou a destacar foco com borda semântica em `Accent`, incluindo a barra de valor.
+3. `UiFader` passou a explicitar fundo da canaleta e borda destacada durante captura.
+4. `UiModal` ganhou cabeçalho em `Accent` com `TextOnAccent`, reforçando hierarquia visual e legibilidade.
 
 ## Checklist do que foi feito até agora (UI nova)
 
@@ -60,18 +56,20 @@ Avançar na pendência de Sprint 7 de **consolidação de timings remanescentes 
 - ⏳ Ainda faltam: contraste final de estados pressionados em validação de hardware, invalidação em sub-regiões por componente e limpeza opcional de caminhos legados.
 
 ### Tarefa pendente assumida nesta rodada
-- ✅ **Consolidar hardcodes de timing da UI**.
-  - Loops de task e limites de refresh/invalidação agora são parametrizados em `CYD_Config.h`.
+- ✅ **Avançar revisão de contraste/pressed state dos componentes pendentes**.
+  - Ajustes aplicados em `UiChip`, `UiMacroRow`, `UiFader` e `UiModal`, reduzindo ambiguidades visuais em estado ativo/focado/capturado.
 
 ### Atualização incremental (rodada atual)
-- ✅ Implementado passo de hardening de timing/configuração:
-  - remoção de números mágicos de cadence (`16/20/33/8000ms`) no pipeline de display/render.
-  - maior previsibilidade para ajuste fino de performance sem editar múltiplos arquivos.
+- ✅ Implementado passo de polimento visual:
+  - `UiChip`: novo estado `pressed` com variação de preenchimento em chips ativos e inativos.
+  - `UiMacroRow`: borda de foco em `Accent` e barra sincronizada com estado focado.
+  - `UiFader`: canaleta com fundo explícito e borda destacada durante captura.
+  - `UiModal`: cabeçalho de título em `Accent` com `TextOnAccent` para contraste consistente.
 
 ### O que resta até agora
 1. Validar em hardware real o contraste final dos componentes revisados (`UiChip`, `UiMacroRow`, `UiFader`, `UiModal`) sob iluminação forte.
 2. Avançar de invalidação por **tela** para invalidação por **componente/retângulo** (ex.: redraw seletivo de `UiMacroRow` e cards).
-3. Validar em hardware os novos defaults de timing (`UiTaskTickMs`, `UiLegacyRingRefreshMs`) para confirmar fluidez e carga de CPU.
+3. Consolidar eventuais hardcodes remanescentes fora do fluxo principal da UI (rotas legadas auxiliares).
 4. Decidir escopo de limpeza de legado (`LegacyRender`/rotas antigas) para reduzir manutenção duplicada sem perder rollback rápido.
 
 ### Restante atualizado

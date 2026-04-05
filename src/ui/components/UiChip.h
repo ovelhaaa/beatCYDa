@@ -10,6 +10,7 @@ struct UiChip {
   bool active{false};
   bool muted{false};
   bool selected{false};
+  bool pressed{false};
   UiRect rect{};
 
   bool hitTest(int16_t x, int16_t y) const;

@@ -6,14 +6,14 @@ namespace ui {
 
 void UiMacroRow::draw(lgfx::LGFX_Device &canvas) const {
   const uint16_t fill = focus ? theme::UiTheme::Colors::Surface : theme::UiTheme::Colors::Bg;
+  const uint16_t rowBorder = focus ? theme::UiTheme::Colors::Accent : theme::UiTheme::Colors::Outline;
   const uint16_t baseControlFill = focus ? theme::UiTheme::Colors::SurfacePressed : theme::UiTheme::Colors::Surface;
   const uint16_t minusFill = minusPressed ? theme::UiTheme::Colors::AccentPressed : baseControlFill;
   const uint16_t plusFill = plusPressed ? theme::UiTheme::Colors::AccentPressed : baseControlFill;
   const uint16_t minusText = minusPressed ? theme::UiTheme::Colors::TextOnAccent : theme::UiTheme::Colors::TextPrimary;
   const uint16_t plusText = plusPressed ? theme::UiTheme::Colors::TextOnAccent : theme::UiTheme::Colors::TextPrimary;
   canvas.fillRoundRect(rowRect.x, rowRect.y, rowRect.w, rowRect.h, theme::UiTheme::Metrics::RadiusSm, fill);
-  canvas.drawRoundRect(rowRect.x, rowRect.y, rowRect.w, rowRect.h, theme::UiTheme::Metrics::RadiusSm,
-                       theme::UiTheme::Colors::Outline);
+  canvas.drawRoundRect(rowRect.x, rowRect.y, rowRect.w, rowRect.h, theme::UiTheme::Metrics::RadiusSm, rowBorder);
 
   canvas.setTextColor(theme::UiTheme::Colors::TextSecondary, fill);
   canvas.setTextSize(theme::UiTheme::Typography::CaptionSize);
@@ -43,7 +43,7 @@ void UiMacroRow::draw(lgfx::LGFX_Device &canvas) const {
     const int barY = rowRect.y + rowRect.h - 10;
     const int barW = rowRect.w - 92;
     const int fillW = (barW * barFill) / 100;
-    canvas.drawRect(barX, barY, barW, 6, theme::UiTheme::Colors::Outline);
+    canvas.drawRect(barX, barY, barW, 6, rowBorder);
     canvas.fillRect(barX + 1, barY + 1, fillW > 1 ? fillW - 1 : 0, 4, theme::UiTheme::Colors::Accent);
   }
 }
