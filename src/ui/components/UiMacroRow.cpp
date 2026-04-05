@@ -6,7 +6,9 @@ namespace ui {
 
 void UiMacroRow::draw(lgfx::LGFX_Device &canvas) const {
   const uint16_t fill = focus ? theme::UiTheme::Colors::Surface : theme::UiTheme::Colors::Bg;
-  const uint16_t controlFill = focus ? theme::UiTheme::Colors::SurfacePressed : theme::UiTheme::Colors::Surface;
+  const uint16_t baseControlFill = focus ? theme::UiTheme::Colors::SurfacePressed : theme::UiTheme::Colors::Surface;
+  const uint16_t minusFill = minusPressed ? theme::UiTheme::Colors::AccentPressed : baseControlFill;
+  const uint16_t plusFill = plusPressed ? theme::UiTheme::Colors::AccentPressed : baseControlFill;
   canvas.fillRoundRect(rowRect.x, rowRect.y, rowRect.w, rowRect.h, theme::UiTheme::Metrics::RadiusSm, fill);
   canvas.drawRoundRect(rowRect.x, rowRect.y, rowRect.w, rowRect.h, theme::UiTheme::Metrics::RadiusSm,
                        theme::UiTheme::Colors::Outline);
@@ -20,17 +22,17 @@ void UiMacroRow::draw(lgfx::LGFX_Device &canvas) const {
   canvas.setCursor(rowRect.x + 6, rowRect.y + 16);
   canvas.print(valueText);
 
-  canvas.fillRoundRect(minusRect.x, minusRect.y, minusRect.w, minusRect.h, theme::UiTheme::Metrics::RadiusSm, controlFill);
+  canvas.fillRoundRect(minusRect.x, minusRect.y, minusRect.w, minusRect.h, theme::UiTheme::Metrics::RadiusSm, minusFill);
   canvas.drawRoundRect(minusRect.x, minusRect.y, minusRect.w, minusRect.h, theme::UiTheme::Metrics::RadiusSm,
                        theme::UiTheme::Colors::Outline);
-  canvas.setTextColor(theme::UiTheme::Colors::TextPrimary, controlFill);
+  canvas.setTextColor(minusPressed ? theme::UiTheme::Colors::TextOnAccent : theme::UiTheme::Colors::TextPrimary, minusFill);
   canvas.setCursor(minusRect.x + 9, minusRect.y + 9);
   canvas.print("-");
 
-  canvas.fillRoundRect(plusRect.x, plusRect.y, plusRect.w, plusRect.h, theme::UiTheme::Metrics::RadiusSm, controlFill);
+  canvas.fillRoundRect(plusRect.x, plusRect.y, plusRect.w, plusRect.h, theme::UiTheme::Metrics::RadiusSm, plusFill);
   canvas.drawRoundRect(plusRect.x, plusRect.y, plusRect.w, plusRect.h, theme::UiTheme::Metrics::RadiusSm,
                        theme::UiTheme::Colors::Outline);
-  canvas.setTextColor(theme::UiTheme::Colors::TextPrimary, controlFill);
+  canvas.setTextColor(plusPressed ? theme::UiTheme::Colors::TextOnAccent : theme::UiTheme::Colors::TextPrimary, plusFill);
   canvas.setCursor(plusRect.x + 9, plusRect.y + 9);
   canvas.print("+");
 

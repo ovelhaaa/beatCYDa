@@ -10,8 +10,8 @@ bool UiChip::hitTest(int16_t x, int16_t y) const {
 
 void UiChip::draw(lgfx::LGFX_Device &canvas) const {
   uint16_t fill = active ? theme::UiTheme::Colors::Accent : theme::UiTheme::Colors::Surface;
-  uint16_t border = selected ? theme::UiTheme::Colors::TextPrimary : theme::UiTheme::Colors::Outline;
-  uint16_t text = theme::UiTheme::Colors::TextPrimary;
+  uint16_t border = selected ? theme::UiTheme::Colors::Accent : theme::UiTheme::Colors::Outline;
+  uint16_t text = active ? theme::UiTheme::Colors::TextOnAccent : theme::UiTheme::Colors::TextPrimary;
 
   if (muted) {
     fill = theme::UiTheme::Colors::Disabled;
@@ -19,6 +19,7 @@ void UiChip::draw(lgfx::LGFX_Device &canvas) const {
     text = theme::UiTheme::Colors::TextSecondary;
   } else if (active && selected) {
     fill = theme::UiTheme::Colors::AccentPressed;
+    text = theme::UiTheme::Colors::TextOnAccent;
   }
 
   canvas.fillRoundRect(rect.x, rect.y, rect.w, rect.h, theme::UiTheme::Metrics::RadiusSm, fill);

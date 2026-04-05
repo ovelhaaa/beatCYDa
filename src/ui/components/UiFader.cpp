@@ -54,7 +54,8 @@ void UiFader::endCapture() {
 }
 
 void UiFader::draw(lgfx::LGFX_Device &canvas) const {
-  const uint16_t trackFill = captured ? theme::UiTheme::Colors::SurfacePressed : theme::UiTheme::Colors::Surface;
+  const uint16_t trackFill = captured ? theme::UiTheme::Colors::AccentPressed : theme::UiTheme::Colors::Surface;
+  const uint16_t trackText = captured ? theme::UiTheme::Colors::TextOnAccent : theme::UiTheme::Colors::TextPrimary;
   canvas.drawRoundRect(visualRect.x,
                        visualRect.y,
                        visualRect.w,
@@ -76,7 +77,7 @@ void UiFader::draw(lgfx::LGFX_Device &canvas) const {
   }
 
   canvas.setTextSize(theme::UiTheme::Typography::CaptionSize);
-  canvas.setTextColor(theme::UiTheme::Colors::TextPrimary, trackFill);
+  canvas.setTextColor(trackText, trackFill);
   canvas.fillRoundRect(visualRect.x, visualRect.y + visualRect.h + 2, visualRect.w, 10, theme::UiTheme::Metrics::RadiusSm, trackFill);
   canvas.setCursor(visualRect.x + 2, visualRect.y + visualRect.h + 4);
   canvas.printf("T%u", static_cast<unsigned>(track + 1));
