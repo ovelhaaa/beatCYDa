@@ -56,12 +56,19 @@ void UiFader::endCapture() {
 void UiFader::draw(lgfx::LGFX_Device &canvas) const {
   const uint16_t trackFill = captured ? theme::UiTheme::Colors::AccentPressed : theme::UiTheme::Colors::Surface;
   const uint16_t trackText = captured ? theme::UiTheme::Colors::TextOnAccent : theme::UiTheme::Colors::TextPrimary;
+  const uint16_t border = captured ? theme::UiTheme::Colors::Accent : theme::UiTheme::Colors::Outline;
+  canvas.fillRoundRect(visualRect.x,
+                       visualRect.y,
+                       visualRect.w,
+                       visualRect.h,
+                       theme::UiTheme::Metrics::RadiusSm,
+                       theme::UiTheme::Colors::Bg);
   canvas.drawRoundRect(visualRect.x,
                        visualRect.y,
                        visualRect.w,
                        visualRect.h,
                        theme::UiTheme::Metrics::RadiusSm,
-                       theme::UiTheme::Colors::Outline);
+                       border);
 
   const int fillH = (visualRect.h * value) / 100;
   const int fillY = visualRect.y + visualRect.h - fillH;

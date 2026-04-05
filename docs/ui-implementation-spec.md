@@ -502,3 +502,18 @@ Pendências imediatas ainda abertas:
 - Ajustes finais de contraste/pressed state em hardware real (calibração visual final).
 - Evoluir invalidação de nível de tela para sub-regiões/componentes em telas de maior custo de redraw.
 - Definir escopo de limpeza opcional do pipeline legado preservando rollback por feature flag.
+
+### Atualização de implementação — 2026-04-05 (rodada de contraste)
+
+Tarefa assumida nesta rodada: **avançar a revisão de contraste e estados pressionados nos componentes pendentes**.
+
+Implementado:
+- `UiChip` recebeu estado explícito `pressed` e passou a renderizar variação visual para toque em chip inativo (`SurfacePressed`) e ativo (`AccentPressed`), mantendo contraste de texto adequado.
+- `UiMacroRow` passou a destacar linha focada com borda em `Accent`, incluindo consistência visual da barra de valor.
+- `UiFader` passou a usar borda destacada quando capturado e fundo explícito da canaleta para melhorar leitura em fundo escuro.
+- `UiModal` ganhou cabeçalho de título em `Accent` com `TextOnAccent`, melhorando hierarquia/legibilidade do conteúdo.
+
+Pendências imediatas ainda abertas:
+- Validar contraste final em hardware real (luz ambiente forte) e ajustar eventuais offsets finos de tipografia/alinhamento.
+- Evoluir invalidação de nível de tela para sub-regiões/componentes nas telas de maior custo de redraw.
+- Definir escopo de limpeza opcional do pipeline legado preservando rollback por feature flag.
