@@ -101,6 +101,8 @@ void SoundScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &snaps
 
   for (int i = 0; i < 4; ++i) {
     _rows[i].focus = (_holdRow == i);
+    _rows[i].minusPressed = (_holdRow == i && _holdDirection < 0);
+    _rows[i].plusPressed = (_holdRow == i && _holdDirection > 0);
     _rows[i].valueText = values[i];
     _rows[i].barFill = fills[i];
     _rows[i].draw(canvas);

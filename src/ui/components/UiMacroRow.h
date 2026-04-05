@@ -13,6 +13,8 @@ struct UiMacroRow {
   UiRect rowRect{};
   bool showBar{false};
   bool focus{false};
+  bool minusPressed{false};
+  bool plusPressed{false};
   uint8_t barFill{0};
 
   void draw(lgfx::LGFX_Device &canvas) const;

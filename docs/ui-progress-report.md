@@ -22,17 +22,17 @@ Este documento consolida o estado **real do código** da nova UI (`UiApp`) e reg
 ## Tarefa assumida nesta rodada (Sprint 7)
 
 ### Objetivo
-Implementar **invalidação parcial por regiões** na `UiApp` para evitar redraw completo desnecessário a cada frame.
+Avançar na pendência de Sprint 7 de **revisão de contraste e estado pressionado** em componentes ainda sem tratamento visual consistente.
 
 ### O que foi implementado
 
-1. `UiApp` passou a manter estado de invalidação com `UiInvalidation`.
-2. Pipeline de frame foi separado por regiões:
-   - top bar (`renderChrome`) só redesenha quando suja.
-   - conteúdo da tela ativa só redesenha quando sujo.
-   - bottom nav só redesenha quando suja.
-3. Foi adicionado detecção de mudanças no snapshot (`detectModelChanges`) para invalidar apenas quando o modelo realmente mudou (BPM/play/topo; track/params/conteúdo).
-4. Navegação inferior agora marca a região de nav como suja e troca de tela dispara `invalidateAll()`.
+1. `UiChip` recebeu contraste semântico por estado:
+   - borda ativa/selecionada com `Accent`.
+   - texto em estados ativos usando `TextOnAccent`.
+2. `UiMacroRow` ganhou estados de pressão explícitos por controle (`minusPressed`/`plusPressed`) e cores dedicadas quando segurado no hold-repeat.
+3. `PatternScreen` e `SoundScreen` passaram a propagar o estado real de hold para renderizar `+/-` pressionado durante o toque contínuo.
+4. `UiFader` agora destaca o rótulo do canal com `AccentPressed` + `TextOnAccent` quando capturado.
+5. `UiModal` deixou de usar cor mágica no scrim e passou a usar token (`ModalScrim`) + diferenciação de tipografia do corpo (`TextSecondary`).
 
 ## Checklist do que foi feito até agora (UI nova)
 
@@ -45,7 +45,7 @@ Implementar **invalidação parcial por regiões** na `UiApp` para evitar redraw
 - [x] MixScreen funcional (captura + drag)
 - [x] ProjectScreen funcional (save/load/delete + confirmação)
 - [x] Invalidação parcial inicial por regiões na `UiApp`
-- [ ] Revisão final de contraste/estados pressionados em todas as telas
+- [~] Revisão final de contraste/estados pressionados em todas as telas
 - [ ] Refinar invalidação para sub-regiões internas por tela (ex.: redraw parcial de componente)
 - [ ] Limpeza final do legado opcional
 
@@ -59,23 +59,24 @@ Implementar **invalidação parcial por regiões** na `UiApp` para evitar redraw
 - ⏳ Ainda faltam: contraste final de estados pressionados em validação de hardware, invalidação em sub-regiões por componente e limpeza opcional de caminhos legados.
 
 ### Tarefa pendente assumida nesta rodada
-- ✅ **Refino de invalidação para reduzir redraw desnecessário por tela ativa**.
-  - `UiApp::detectModelChanges()` agora decide `panelDirty` com base no contexto da tela (`UiScreenId`) em vez de um gatilho global único.
-  - Foi adicionada comparação explícita de dados de padrão (`patternLens` + matriz `patterns`) para capturar mudanças reais vindas do engine/ações.
-  - `ProjectScreen` passa a invalidar por mudanças realmente relevantes da própria tela (`bpm` e `activeTrack`), evitando redraw de painel quando parâmetros de mix/sound mudam em background.
+- ✅ **Refino de contraste e pressed state** em componentes pendentes.
+  - `UiChip`, `UiMacroRow`, `UiFader` e `UiModal` foram ajustados para usar tokens semânticos de contraste.
+  - `PatternScreen` e `SoundScreen` agora expõem visual de pressão real no `+/-` durante hold-repeat.
 
 ### Atualização incremental (rodada atual)
-- ✅ Implementado primeiro passo de invalidação de sub-regiões por contexto:
-  - O topo (transport/metrics) continua invalidado de forma independente.
-  - O conteúdo central passa a responder apenas a mudanças de modelo relevantes para a tela atual.
-  - Com isso, alterações de parâmetros fora do contexto de `Project` não forçam redraw do painel dessa tela.
+- ✅ Implementado primeiro passo de padronização de contraste/feedback tátil:
+  - chips de trilha e rótulos de fader agora reforçam estado ativo/capturado por token semântico.
+  - controles `+/-` de macro rows exibem estado pressionado durante hold-repeat.
+  - modal usa token de scrim e hierarquia de texto mais legível.
 
 ### O que resta até agora
-1. Validar em hardware real o contraste final dos componentes revisados (`UiChip`, `UiMacroRow`, `UiFader`) sob iluminação forte.
+1. Validar em hardware real o contraste final dos componentes revisados (`UiChip`, `UiMacroRow`, `UiFader`, `UiModal`) sob iluminação forte.
 2. Avançar de invalidação por **tela** para invalidação por **componente/retângulo** (ex.: redraw seletivo de `UiMacroRow` e cards).
-3. Decidir escopo de limpeza de legado (`LegacyRender`/rotas antigas) para reduzir manutenção duplicada sem perder rollback rápido.
+3. Consolidar hardcodes de timing remanescentes em `CYD_Config.h`.
+4. Decidir escopo de limpeza de legado (`LegacyRender`/rotas antigas) para reduzir manutenção duplicada sem perder rollback rápido.
 
 ### Restante atualizado
 1. Implementar dirty-rect por componente nas telas com maior custo de redraw (Pattern e Sound primeiro).
 2. Validar contraste/legibilidade em dispositivo real e ajustar tokens finais de estado pressionado se necessário.
-3. Definir janela de remoção/encapsulamento do pipeline legado mantendo rollback via flag em um commit.
+3. Consolidar tempos/thresholds dispersos em `CYD_Config.h`.
+4. Definir janela de remoção/encapsulamento do pipeline legado mantendo rollback via flag em um commit.

@@ -6,6 +6,7 @@ namespace ui::theme {
 
 struct UiColors {
   static constexpr uint16_t Bg = 0x0000;
+  static constexpr uint16_t ModalScrim = 0x3186;
   static constexpr uint16_t Surface = 0x18C3;
   static constexpr uint16_t SurfacePressed = 0x10E2;
   static constexpr uint16_t Outline = 0x39E7;

@@ -98,6 +98,8 @@ void PatternScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &sna
 
   for (int i = 0; i < 4; ++i) {
     _rows[i].focus = (_holdRow == i);
+    _rows[i].minusPressed = (_holdRow == i && _holdDirection < 0);
+    _rows[i].plusPressed = (_holdRow == i && _holdDirection > 0);
     _rows[i].valueText = valueBuffers[i];
     _rows[i].barFill = (i == 3) ? gainFill : 0;
     _rows[i].draw(canvas);
