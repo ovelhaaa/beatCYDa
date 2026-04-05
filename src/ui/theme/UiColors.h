@@ -11,6 +11,9 @@ struct UiColors {
   static constexpr uint16_t Outline = 0x39E7;
   static constexpr uint16_t TextPrimary = 0xFFFF;
   static constexpr uint16_t TextSecondary = 0xBDF7;
+  static constexpr uint16_t TextOnAccent = 0xFFFF;
+  static constexpr uint16_t TextOnWarning = 0x2124;
+  static constexpr uint16_t TextOnDanger = 0xFFFF;
   static constexpr uint16_t Accent = 0x2D7F;
   static constexpr uint16_t AccentPressed = 0x1C8B;
   static constexpr uint16_t Warning = 0xFD20;

@@ -212,6 +212,11 @@ void UiApp::renderBottomNav() {
   _navSound.pressed = (_activeScreen == UiScreenId::Sound);
   _navMix.pressed = (_activeScreen == UiScreenId::Mix);
   _navProject.pressed = (_activeScreen == UiScreenId::Project);
+  _navPerform.variant = _navPerform.pressed ? UiButtonVariant::Primary : UiButtonVariant::Secondary;
+  _navPattern.variant = _navPattern.pressed ? UiButtonVariant::Primary : UiButtonVariant::Secondary;
+  _navSound.variant = _navSound.pressed ? UiButtonVariant::Primary : UiButtonVariant::Secondary;
+  _navMix.variant = _navMix.pressed ? UiButtonVariant::Primary : UiButtonVariant::Secondary;
+  _navProject.variant = _navProject.pressed ? UiButtonVariant::Primary : UiButtonVariant::Secondary;
 
   _navPerform.draw(canvas);
   _navPattern.draw(canvas);

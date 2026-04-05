@@ -466,5 +466,20 @@ Props:
 - [x] Métricas de UI ativas no top bar (`FPS` e `heap livre`) em `UiApp`.
 - [x] Primeira otimização de invalidação: redraw do topo desacoplado do `fillScreen` global.
 - [x] Refino da invalidação do topo: render dividido em três passes (`shell`, `status PLAY/STOP`, `métricas BPM/FPS/heap`) para evitar redraw desnecessário e reduzir risco de flicker.
-- [ ] Revisão final de contraste/estado pressionado em todas as telas.
+- [~] Revisão de contraste/estado pressionado em andamento *(2026-04-04: melhoria aplicada em `UiButton`, `UiCard`, `UiToast` e destaque ativo da bottom nav; faltam ajustes finos em componentes/telas restantes)*.
 - [ ] Consolidação de timing restante para `CYD_Config.h`.
+
+### Atualização de implementação — 2026-04-04
+
+Tarefa assumida nesta rodada: **revisão de contraste e estados pressionados (parcial)**.
+
+Implementado:
+- Novos tokens semânticos para contraste de texto por contexto (`TextOnAccent`, `TextOnWarning`, `TextOnDanger`) em `UiColors`.
+- `UiButton` passou a escolher cor de texto por variante (Primary/Secondary/Danger) e estado (`disabled`).
+- `UiCard` ativo passou a usar texto de alto contraste sobre fundo de destaque.
+- `UiToast` passou a usar texto específico por severidade (melhor legibilidade no `Warning`).
+- Bottom nav no `UiApp` agora evidencia a aba ativa também por **variant** (Primary), além de `pressed`.
+
+Pendências imediatas ainda abertas:
+- Ajustar contraste/pressed state dos demais componentes visuais (`UiChip`, `UiMacroRow`, `UiFader`, `UiModal`) com os mesmos critérios semânticos.
+- Fechar checklist de consolidação de timings remanescentes em `CYD_Config.h`.
