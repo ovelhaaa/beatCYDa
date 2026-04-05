@@ -12,16 +12,20 @@ bool UiButton::hitTest(int16_t x, int16_t y) const {
 void UiButton::draw(lgfx::LGFX_Device &canvas) const {
   uint16_t fill = theme::UiTheme::Colors::Accent;
   uint16_t fillPressed = theme::UiTheme::Colors::AccentPressed;
+  uint16_t textColor = theme::UiTheme::Colors::TextOnAccent;
   if (variant == UiButtonVariant::Secondary) {
     fill = theme::UiTheme::Colors::Surface;
     fillPressed = theme::UiTheme::Colors::SurfacePressed;
+    textColor = theme::UiTheme::Colors::TextPrimary;
   } else if (variant == UiButtonVariant::Danger) {
     fill = theme::UiTheme::Colors::Danger;
     fillPressed = theme::UiTheme::Colors::DangerPressed;
+    textColor = theme::UiTheme::Colors::TextOnDanger;
   }
 
   if (disabled) {
     fill = theme::UiTheme::Colors::Disabled;
+    textColor = theme::UiTheme::Colors::TextSecondary;
   } else if (pressed) {
     fill = fillPressed;
   }
@@ -31,7 +35,6 @@ void UiButton::draw(lgfx::LGFX_Device &canvas) const {
                        theme::UiTheme::Colors::Outline);
 
   canvas.setTextSize(theme::UiTheme::Typography::BodySize);
-  const uint16_t textColor = disabled ? theme::UiTheme::Colors::TextSecondary : theme::UiTheme::Colors::TextPrimary;
   canvas.setTextColor(textColor, fill);
   const int textWidth = static_cast<int>(strlen(label)) * 6 * theme::UiTheme::Typography::BodySize;
   const int tx = rect.x + (rect.w - textWidth) / 2;
