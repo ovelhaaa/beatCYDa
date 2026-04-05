@@ -18,7 +18,7 @@ void updateStatusTimeout(UiRuntime &ui, uint32_t now) {
 }
 
 void updateUiInvalidation(UiRuntime &ui, uint32_t now, uint32_t lastFullMs) {
-  if (ui.forceRedraw || (now - lastFullMs > 8000u)) {
+  if (ui.forceRedraw || (now - lastFullMs > CYDConfig::UiLegacyFullRefreshFallbackMs)) {
     ui.invalidation.markAll();
     return;
   }

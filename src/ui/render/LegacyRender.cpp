@@ -368,7 +368,7 @@ void renderLegacyFrame(UiRuntime &ui, uint32_t now, uint32_t &lastFullMs, uint32
   tft.endWrite();
 
   if (ui.invalidation.ringDirty || ui.invalidation.fullScreenDirty) {
-    if (now - lastRingMs >= 33u) {
+    if (now - lastRingMs >= CYDConfig::UiLegacyRingRefreshMs) {
       drawRing(ui);
       lastRingMs = now;
     }

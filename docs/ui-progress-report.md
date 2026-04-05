@@ -22,17 +22,18 @@ Este documento consolida o estado **real do código** da nova UI (`UiApp`) e reg
 ## Tarefa assumida nesta rodada (Sprint 7)
 
 ### Objetivo
-Avançar na pendência de Sprint 7 de **revisão de contraste e estado pressionado** em componentes ainda sem tratamento visual consistente.
+Avançar na pendência de Sprint 7 de **consolidação de timings remanescentes em `CYD_Config.h`**, removendo números mágicos do loop/render da UI.
 
 ### O que foi implementado
 
-1. `UiChip` recebeu contraste semântico por estado:
-   - borda ativa/selecionada com `Accent`.
-   - texto em estados ativos usando `TextOnAccent`.
-2. `UiMacroRow` ganhou estados de pressão explícitos por controle (`minusPressed`/`plusPressed`) e cores dedicadas quando segurado no hold-repeat.
-3. `PatternScreen` e `SoundScreen` passaram a propagar o estado real de hold para renderizar `+/-` pressionado durante o toque contínuo.
-4. `UiFader` agora destaca o rótulo do canal com `AccentPressed` + `TextOnAccent` quando capturado.
-5. `UiModal` deixou de usar cor mágica no scrim e passou a usar token (`ModalScrim`) + diferenciação de tipografia do corpo (`TextSecondary`).
+1. Novas constantes de timing de UI foram centralizadas em `CYD_Config.h`:
+   - `UiTaskTickMs`
+   - `UiEngineReadyPollMs`
+   - `UiLegacyFullRefreshFallbackMs`
+   - `UiLegacyRingRefreshMs`
+2. `displayTask()` (UI nova e legado) passou a usar os tokens de config no `vTaskDelay`, removendo `16/20ms` hardcoded.
+3. `updateUiInvalidation()` passou a usar `UiLegacyFullRefreshFallbackMs` no fallback de redraw total periódico.
+4. `renderLegacyFrame()` passou a usar `UiLegacyRingRefreshMs` para controle de refresh do ring no legado.
 
 ## Checklist do que foi feito até agora (UI nova)
 
@@ -59,24 +60,22 @@ Avançar na pendência de Sprint 7 de **revisão de contraste e estado pressiona
 - ⏳ Ainda faltam: contraste final de estados pressionados em validação de hardware, invalidação em sub-regiões por componente e limpeza opcional de caminhos legados.
 
 ### Tarefa pendente assumida nesta rodada
-- ✅ **Refino de contraste e pressed state** em componentes pendentes.
-  - `UiChip`, `UiMacroRow`, `UiFader` e `UiModal` foram ajustados para usar tokens semânticos de contraste.
-  - `PatternScreen` e `SoundScreen` agora expõem visual de pressão real no `+/-` durante hold-repeat.
+- ✅ **Consolidar hardcodes de timing da UI**.
+  - Loops de task e limites de refresh/invalidação agora são parametrizados em `CYD_Config.h`.
 
 ### Atualização incremental (rodada atual)
-- ✅ Implementado primeiro passo de padronização de contraste/feedback tátil:
-  - chips de trilha e rótulos de fader agora reforçam estado ativo/capturado por token semântico.
-  - controles `+/-` de macro rows exibem estado pressionado durante hold-repeat.
-  - modal usa token de scrim e hierarquia de texto mais legível.
+- ✅ Implementado passo de hardening de timing/configuração:
+  - remoção de números mágicos de cadence (`16/20/33/8000ms`) no pipeline de display/render.
+  - maior previsibilidade para ajuste fino de performance sem editar múltiplos arquivos.
 
 ### O que resta até agora
 1. Validar em hardware real o contraste final dos componentes revisados (`UiChip`, `UiMacroRow`, `UiFader`, `UiModal`) sob iluminação forte.
 2. Avançar de invalidação por **tela** para invalidação por **componente/retângulo** (ex.: redraw seletivo de `UiMacroRow` e cards).
-3. Consolidar hardcodes de timing remanescentes em `CYD_Config.h`.
+3. Validar em hardware os novos defaults de timing (`UiTaskTickMs`, `UiLegacyRingRefreshMs`) para confirmar fluidez e carga de CPU.
 4. Decidir escopo de limpeza de legado (`LegacyRender`/rotas antigas) para reduzir manutenção duplicada sem perder rollback rápido.
 
 ### Restante atualizado
 1. Implementar dirty-rect por componente nas telas com maior custo de redraw (Pattern e Sound primeiro).
 2. Validar contraste/legibilidade em dispositivo real e ajustar tokens finais de estado pressionado se necessário.
-3. Consolidar tempos/thresholds dispersos em `CYD_Config.h`.
+3. Revisar se ainda existem timings hardcoded fora da UI principal (ex.: caminhos legados auxiliares).
 4. Definir janela de remoção/encapsulamento do pipeline legado mantendo rollback via flag em um commit.

@@ -48,6 +48,10 @@ constexpr uint16_t TouchMinY = 3700;
 constexpr uint16_t TouchMaxY = 200;
 
 constexpr uint16_t UiFrameMs = 33;
+constexpr uint16_t UiTaskTickMs = 16;
+constexpr uint16_t UiEngineReadyPollMs = 20;
+constexpr uint32_t UiLegacyFullRefreshFallbackMs = 8000;
+constexpr uint16_t UiLegacyRingRefreshMs = UiFrameMs;
 // Resistive-touch ergonomics tuning shared by InputManager + UI hold handling.
 // Keep these centralized so tap/drag/repeat feel remains consistent.
 constexpr uint16_t TouchPollMs = 16;
