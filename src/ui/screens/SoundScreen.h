@@ -27,12 +27,16 @@ private:
   void dispatchRowDelta(const UiStateSnapshot &snapshot, int rowIndex, int amount);
 
   bool _dirty{true};
+  bool _hasLastSnapshot{false};
+  UiStateSnapshot _lastSnapshot{};
   UiCard _identityCard{};
   UiChip _trackChips[TRACK_COUNT]{};
   UiMacroRow _rows[4]{};
 
   int _holdRow{-1};
   int _holdDirection{0};
+  int _lastHoldRow{-1};
+  int _lastHoldDirection{0};
   uint32_t _holdNextTickMs{0};
   uint8_t _holdTickCount{0};
 };

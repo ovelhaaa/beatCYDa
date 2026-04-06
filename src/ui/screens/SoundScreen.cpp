@@ -17,6 +17,15 @@ void formatPercent(char *buffer, size_t size, float value) {
   snprintf(buffer, size, "%d%%", static_cast<int>(value * 100.0f));
 }
 
+bool hasMuteChanges(const UiStateSnapshot &lhs, const UiStateSnapshot &rhs) {
+  for (int i = 0; i < TRACK_COUNT; ++i) {
+    if (lhs.trackMutes[i] != rhs.trackMutes[i]) {
+      return true;
+    }
+  }
+  return false;
+}
+
 const char *trackName(int track) {
   switch (track) {
   case 0:
@@ -70,44 +79,78 @@ void SoundScreen::layout() {
 }
 
 void SoundScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &snapshot) {
-  canvas.fillRect(0,
-                  theme::UiTheme::Metrics::TopBarH,
-                  theme::UiTheme::Metrics::ScreenW,
-                  theme::UiTheme::Metrics::ScreenH -
-                      theme::UiTheme::Metrics::TopBarH - theme::UiTheme::Metrics::BottomNavH,
-                  theme::UiTheme::Colors::Bg);
+  const bool forceFullRender = _dirty || !_hasLastSnapshot;
+  const bool trackChanged = forceFullRender || snapshot.activeTrack != _lastSnapshot.activeTrack;
+  const int prevActiveTrack = _hasLastSnapshot ? _lastSnapshot.activeTrack : snapshot.activeTrack;
 
-  _identityCard.value = trackName(snapshot.activeTrack);
-  _identityCard.draw(canvas);
+  const bool identityDirty = forceFullRender || trackChanged;
+  const bool chipsDirty = forceFullRender || trackChanged || hasMuteChanges(snapshot, _lastSnapshot);
+  const bool rowsDirty =
+      forceFullRender || trackChanged ||
+      snapshot.voiceParams[snapshot.activeTrack].pitch != _lastSnapshot.voiceParams[prevActiveTrack].pitch ||
+      snapshot.voiceParams[snapshot.activeTrack].decay != _lastSnapshot.voiceParams[prevActiveTrack].decay ||
+      snapshot.voiceParams[snapshot.activeTrack].timbre != _lastSnapshot.voiceParams[prevActiveTrack].timbre ||
+      snapshot.voiceParams[snapshot.activeTrack].drive != _lastSnapshot.voiceParams[prevActiveTrack].drive ||
+      _holdRow != _lastHoldRow || _holdDirection != _lastHoldDirection;
 
-  for (int i = 0; i < TRACK_COUNT; ++i) {
-    _trackChips[i].active = (i == snapshot.activeTrack);
-    _trackChips[i].selected = (i == snapshot.activeTrack);
-    _trackChips[i].muted = snapshot.trackMutes[i];
-    _trackChips[i].draw(canvas);
+  if (forceFullRender) {
+    canvas.fillRect(0,
+                    theme::UiTheme::Metrics::TopBarH,
+                    theme::UiTheme::Metrics::ScreenW,
+                    theme::UiTheme::Metrics::ScreenH -
+                        theme::UiTheme::Metrics::TopBarH - theme::UiTheme::Metrics::BottomNavH,
+                    theme::UiTheme::Colors::Bg);
   }
 
-  char values[4][16];
-  formatPercent(values[0], sizeof(values[0]), snapshot.voiceParams[snapshot.activeTrack].pitch);
-  formatPercent(values[1], sizeof(values[1]), snapshot.voiceParams[snapshot.activeTrack].decay);
-  formatPercent(values[2], sizeof(values[2]), snapshot.voiceParams[snapshot.activeTrack].timbre);
-  formatPercent(values[3], sizeof(values[3]), snapshot.voiceParams[snapshot.activeTrack].drive);
-
-  const uint8_t fill0 = static_cast<uint8_t>(snapshot.voiceParams[snapshot.activeTrack].pitch * 100.0f);
-  const uint8_t fill1 = static_cast<uint8_t>(snapshot.voiceParams[snapshot.activeTrack].decay * 100.0f);
-  const uint8_t fill2 = static_cast<uint8_t>(snapshot.voiceParams[snapshot.activeTrack].timbre * 100.0f);
-  const uint8_t fill3 = static_cast<uint8_t>(snapshot.voiceParams[snapshot.activeTrack].drive * 100.0f);
-  const uint8_t fills[4] = {fill0, fill1, fill2, fill3};
-
-  for (int i = 0; i < 4; ++i) {
-    _rows[i].focus = (_holdRow == i);
-    _rows[i].minusPressed = (_holdRow == i && _holdDirection < 0);
-    _rows[i].plusPressed = (_holdRow == i && _holdDirection > 0);
-    _rows[i].valueText = values[i];
-    _rows[i].barFill = fills[i];
-    _rows[i].draw(canvas);
+  if (identityDirty) {
+    canvas.fillRect(_identityCard.rect.x,
+                    _identityCard.rect.y,
+                    _identityCard.rect.w,
+                    _identityCard.rect.h,
+                    theme::UiTheme::Colors::Bg);
+    _identityCard.value = trackName(snapshot.activeTrack);
+    _identityCard.draw(canvas);
   }
 
+  if (chipsDirty) {
+    canvas.fillRect(150, 54, 158, 24, theme::UiTheme::Colors::Bg);
+    for (int i = 0; i < TRACK_COUNT; ++i) {
+      _trackChips[i].active = (i == snapshot.activeTrack);
+      _trackChips[i].selected = (i == snapshot.activeTrack);
+      _trackChips[i].muted = snapshot.trackMutes[i];
+      _trackChips[i].draw(canvas);
+    }
+  }
+
+  if (rowsDirty) {
+    canvas.fillRect(12, 102, 296, 94, theme::UiTheme::Colors::Bg);
+
+    char values[4][16];
+    formatPercent(values[0], sizeof(values[0]), snapshot.voiceParams[snapshot.activeTrack].pitch);
+    formatPercent(values[1], sizeof(values[1]), snapshot.voiceParams[snapshot.activeTrack].decay);
+    formatPercent(values[2], sizeof(values[2]), snapshot.voiceParams[snapshot.activeTrack].timbre);
+    formatPercent(values[3], sizeof(values[3]), snapshot.voiceParams[snapshot.activeTrack].drive);
+
+    const uint8_t fill0 = static_cast<uint8_t>(snapshot.voiceParams[snapshot.activeTrack].pitch * 100.0f);
+    const uint8_t fill1 = static_cast<uint8_t>(snapshot.voiceParams[snapshot.activeTrack].decay * 100.0f);
+    const uint8_t fill2 = static_cast<uint8_t>(snapshot.voiceParams[snapshot.activeTrack].timbre * 100.0f);
+    const uint8_t fill3 = static_cast<uint8_t>(snapshot.voiceParams[snapshot.activeTrack].drive * 100.0f);
+    const uint8_t fills[4] = {fill0, fill1, fill2, fill3};
+
+    for (int i = 0; i < 4; ++i) {
+      _rows[i].focus = (_holdRow == i);
+      _rows[i].minusPressed = (_holdRow == i && _holdDirection < 0);
+      _rows[i].plusPressed = (_holdRow == i && _holdDirection > 0);
+      _rows[i].valueText = values[i];
+      _rows[i].barFill = fills[i];
+      _rows[i].draw(canvas);
+    }
+  }
+
+  _lastSnapshot = snapshot;
+  _hasLastSnapshot = true;
+  _lastHoldRow = _holdRow;
+  _lastHoldDirection = _holdDirection;
   _dirty = false;
 }
 
@@ -184,6 +227,10 @@ bool SoundScreen::handleTouch(const TouchPoint &tp, const UiStateSnapshot &snaps
   bool consumed = false;
 
   if (tp.justReleased) {
+    if (_holdRow >= 0) {
+      consumed = true;
+      _dirty = true;
+    }
     stopHold();
   }
 
@@ -219,6 +266,7 @@ bool SoundScreen::handleTouch(const TouchPoint &tp, const UiStateSnapshot &snaps
 
 void SoundScreen::invalidate() {
   _dirty = true;
+  _hasLastSnapshot = false;
 }
 
 } // namespace ui

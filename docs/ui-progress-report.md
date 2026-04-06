@@ -98,3 +98,15 @@ Avançar na pendência de Sprint 7 de **revisão de contraste/estado pressionado
   1. Replicar estratégia de invalidação interna no `SoundScreen` (segundo maior alvo de macro rows).
   2. Validar em hardware real se houve redução perceptível de flicker/custo de redraw em Pattern.
   3. Evoluir para granularidade de sub-região também em componentes de preview/ring, quando aplicável.
+
+### Atualização incremental (2026-04-06 — invalidação interna em SoundScreen)
+- ✅ **Tarefa pendente assumida**: replicar invalidação por sub-regiões no `SoundScreen`.
+- ✅ **Implementado em código**:
+  - `SoundScreen` migrou de redraw completo do conteúdo para redraw seletivo por blocos (`identity card`, chips de trilha e macro rows).
+  - Comparação com snapshot anterior foi adicionada para detectar mudanças relevantes (`activeTrack`, `trackMutes` e parâmetros `pitch/decay/timbre/drive`).
+  - Estado de hold (`_holdRow/_holdDirection`) passou a participar da invalidação para atualizar feedback visual de botão pressionado sem repaint total da tela.
+  - No `justReleased`, o fim do hold agora marca dirty do bloco de rows para retorno imediato ao estado visual neutro.
+- ⏳ **Próximos passos após esta rodada**:
+  1. Validar em hardware real ganho de fluidez/redução de redraw no `SoundScreen`.
+  2. Avançar invalidação em granularidade menor (sub-retângulos por macro row) nas telas Pattern/Sound.
+  3. Consolidar validação final de contraste e estados pressionados sob luz forte.
