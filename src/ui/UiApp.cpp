@@ -35,26 +35,6 @@ bool compareTrackMutes(const UiStateSnapshot &lhs, const UiStateSnapshot &rhs) {
   return true;
 }
 
-bool compareTrackParams(const UiStateSnapshot &lhs, const UiStateSnapshot &rhs) {
-  for (int i = 0; i < TRACK_COUNT; ++i) {
-    if (lhs.trackSteps[i] != rhs.trackSteps[i] || lhs.trackHits[i] != rhs.trackHits[i] ||
-        lhs.trackRotations[i] != rhs.trackRotations[i]) {
-      return false;
-    }
-    if (lhs.voiceGain[i] != rhs.voiceGain[i]) {
-      return false;
-    }
-    if (lhs.voiceParams[i].pitch != rhs.voiceParams[i].pitch ||
-        lhs.voiceParams[i].decay != rhs.voiceParams[i].decay ||
-        lhs.voiceParams[i].timbre != rhs.voiceParams[i].timbre ||
-        lhs.voiceParams[i].drive != rhs.voiceParams[i].drive) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
 bool comparePatternData(const UiStateSnapshot &lhs, const UiStateSnapshot &rhs) {
   for (int track = 0; track < TRACK_COUNT; ++track) {
     if (lhs.patternLens[track] != rhs.patternLens[track]) {
@@ -70,9 +50,55 @@ bool comparePatternData(const UiStateSnapshot &lhs, const UiStateSnapshot &rhs) 
   return true;
 }
 
-bool hasCommonPanelChanges(const UiStateSnapshot &lhs, const UiStateSnapshot &rhs) {
-  return lhs.activeTrack != rhs.activeTrack || lhs.currentStep != rhs.currentStep || !compareTrackMutes(lhs, rhs) ||
-         !compareTrackParams(lhs, rhs) || !comparePatternData(lhs, rhs) || lhs.masterVolume != rhs.masterVolume;
+bool hasTrackSelectionChanges(const UiStateSnapshot &lhs, const UiStateSnapshot &rhs) {
+  return lhs.activeTrack != rhs.activeTrack;
+}
+
+bool hasTransportChanges(const UiStateSnapshot &lhs, const UiStateSnapshot &rhs) {
+  return lhs.isPlaying != rhs.isPlaying || lhs.currentStep != rhs.currentStep;
+}
+
+bool hasPerformPanelChanges(const UiStateSnapshot &lhs, const UiStateSnapshot &rhs) {
+  return hasTrackSelectionChanges(lhs, rhs) || hasTransportChanges(lhs, rhs) || lhs.bpm != rhs.bpm ||
+         !compareTrackMutes(lhs, rhs) || !comparePatternData(lhs, rhs);
+}
+
+bool hasPatternPanelChanges(const UiStateSnapshot &lhs, const UiStateSnapshot &rhs) {
+  if (hasTrackSelectionChanges(lhs, rhs) || !compareTrackMutes(lhs, rhs) || !comparePatternData(lhs, rhs)) {
+    return true;
+  }
+
+  const uint8_t activeTrack = lhs.activeTrack;
+  return lhs.trackSteps[activeTrack] != rhs.trackSteps[activeTrack] ||
+         lhs.trackHits[activeTrack] != rhs.trackHits[activeTrack] ||
+         lhs.trackRotations[activeTrack] != rhs.trackRotations[activeTrack] ||
+         lhs.voiceGain[activeTrack] != rhs.voiceGain[activeTrack];
+}
+
+bool hasSoundPanelChanges(const UiStateSnapshot &lhs, const UiStateSnapshot &rhs) {
+  if (hasTrackSelectionChanges(lhs, rhs) || !compareTrackMutes(lhs, rhs)) {
+    return true;
+  }
+
+  const uint8_t activeTrack = lhs.activeTrack;
+  return lhs.voiceParams[activeTrack].pitch != rhs.voiceParams[activeTrack].pitch ||
+         lhs.voiceParams[activeTrack].decay != rhs.voiceParams[activeTrack].decay ||
+         lhs.voiceParams[activeTrack].timbre != rhs.voiceParams[activeTrack].timbre ||
+         lhs.voiceParams[activeTrack].drive != rhs.voiceParams[activeTrack].drive;
+}
+
+bool hasMixPanelChanges(const UiStateSnapshot &lhs, const UiStateSnapshot &rhs) {
+  if (lhs.masterVolume != rhs.masterVolume) {
+    return true;
+  }
+
+  for (int i = 0; i < TRACK_COUNT; ++i) {
+    if (lhs.voiceGain[i] != rhs.voiceGain[i]) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 bool hasProjectPanelChanges(const UiStateSnapshot &lhs, const UiStateSnapshot &rhs) {
@@ -80,11 +106,23 @@ bool hasProjectPanelChanges(const UiStateSnapshot &lhs, const UiStateSnapshot &r
 }
 
 bool hasPanelChangesForScreen(UiScreenId screenId, const UiStateSnapshot &lhs, const UiStateSnapshot &rhs) {
+  if (screenId == UiScreenId::Perform) {
+    return hasPerformPanelChanges(lhs, rhs);
+  }
+  if (screenId == UiScreenId::Pattern) {
+    return hasPatternPanelChanges(lhs, rhs);
+  }
+  if (screenId == UiScreenId::Sound) {
+    return hasSoundPanelChanges(lhs, rhs);
+  }
+  if (screenId == UiScreenId::Mix) {
+    return hasMixPanelChanges(lhs, rhs);
+  }
   if (screenId == UiScreenId::Project) {
     return hasProjectPanelChanges(lhs, rhs);
   }
 
-  return hasCommonPanelChanges(lhs, rhs);
+  return true;
 }
 } // namespace
 

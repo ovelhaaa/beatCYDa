@@ -518,6 +518,32 @@ Pendências imediatas ainda abertas:
 - Evoluir invalidação de nível de tela para sub-regiões/componentes nas telas de maior custo de redraw.
 - Definir escopo de limpeza opcional do pipeline legado preservando rollback por feature flag.
 
+### Atualização de implementação — 2026-04-06
+
+Tarefa assumida nesta rodada: **evoluir invalidação de nível de tela para reduzir redraw desnecessário por contexto ativo**.
+
+Verificação de estado atual:
+- O pipeline novo com `UiApp` já estava com invalidação separada para topo/nav, porém a decisão de redraw de conteúdo ainda usava um comparador “genérico” para quase todas as telas.
+- Esse comparador validava estruturas custosas (inclusive `patternData` completo) mesmo quando a tela ativa não consumia esses dados.
+
+Implementado:
+- `UiApp` passou a usar detectores de mudança por tela (`Perform`, `Pattern`, `Sound`, `Mix`, `Project`) para decidir `panelDirty`.
+- `Perform` mantém checagem completa de transporte + mutes + dados de pattern (necessários para ring principal).
+- `Pattern` mantém checagem de pattern, mutes e macro-parâmetros apenas da trilha ativa.
+- `Sound` passou a observar apenas seleção/mute + parâmetros sonoros da trilha ativa.
+- `Mix` passou a observar apenas `masterVolume` + ganhos de voz.
+- `Project` mantém critério minimalista (`bpm` e trilha ativa) já utilizado.
+
+Impacto esperado:
+- Menor custo de comparação por frame em telas que não dependem de todos os dados globais.
+- Menos marcações de `panelDirty` por mudanças irrelevantes ao contexto visível.
+- Base mais segura para próximo passo de invalidação por sub-regiões/componentes.
+
+Pendências imediatas ainda abertas:
+- Validar em hardware real se a redução de comparações/refesh melhora estabilidade visual sob carga.
+- Evoluir da invalidação por “painel inteiro” para invalidação por sub-regiões/componentes dentro de cada tela.
+- Fechar escopo de limpeza opcional do pipeline legado preservando rollback por feature flag.
+
 ### Atualização de implementação — 2026-04-05 (verificação + redução de hardcodes de layout)
 
 Tarefa assumida nesta rodada: **verificar estado real da implementação e avançar pendência de polimento estrutural**.
