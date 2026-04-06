@@ -363,7 +363,7 @@ Props:
 ## Sprint 3 — Perform
 - [ ] `PerformScreen` com navegação bottom consistente
 - [ ] integração com `UiActions`
-- [ ] invalidação parcial (top/content/nav)
+- [~] invalidação parcial (top/content/nav) *(iniciado em `PerformScreen` com redraw por sub-regiões; pendente expandir para demais telas)*
 
 **DoD:** troca de track/navegação fluida em hardware real.
 
@@ -425,7 +425,7 @@ Props:
 - [x] `PerformScreen` criado com layout base (play/stop, mute, strip de tracks) e render dedicado (`src/ui/screens/PerformScreen.h/.cpp`).
 - [x] `UiApp` migrou de smoke test genérico para fluxo com `PerformScreen` + bottom nav consistente (`src/ui/UiApp.h/.cpp`).
 - [x] Integração de ações de UI no `PerformScreen`/nav via dispatcher existente (`dispatchUiAction`, `CHANGE_MODE`, `TOGGLE_PLAY`, `TOGGLE_MUTE`, `SELECT_TRACK`).
-- [ ] Invalidação parcial por regiões ainda pendente nesta etapa (render ainda é full frame por simplicidade/controlar risco).
+- [~] Invalidação parcial por regiões em evolução: `PerformScreen` agora usa redraw por sub-regiões (rings, bloco de controles, strip de tracks e texto de BPM); falta aplicar abordagem equivalente nas demais telas.
 
 ## 9) Progresso incremental — Sprint 4 (Pattern + Sound) *(atualizado)*
 
@@ -574,4 +574,29 @@ Implementado:
 Pendências imediatas ainda abertas:
 - Validar contraste final em hardware real (luz ambiente forte) e ajustar offsets finos se necessário.
 - Evoluir invalidação de nível de tela para sub-regiões/componentes nas telas de maior custo de redraw.
+- Definir escopo de limpeza opcional do pipeline legado preservando rollback por feature flag.
+
+### Atualização de implementação — 2026-04-06 (verificação + pendência assumida)
+
+Tarefa assumida nesta rodada: **verificar o estado atual da implementação e avançar a pendência de invalidação por sub-regiões no `PerformScreen`**.
+
+Verificação de estado atual:
+- A fundação da UI nova e as telas principais (`Perform`, `Pattern`, `Sound`, `Mix`, `Project`) já estavam integradas em `UiApp`.
+- `MixScreen` já operava com invalidação granular por regiões, enquanto `PerformScreen` ainda usava repaint integral do painel.
+- Pendência mais imediata e de menor risco: reduzir redraw desnecessário em `PerformScreen` mantendo o fluxo de ações existente.
+
+Implementado:
+- `PerformScreen` migrou de full repaint fixo para estratégia híbrida com flags de sujeira:
+  - **full redraw** apenas em `invalidate()`/primeiro frame;
+  - **partial redraw** por sub-regiões para:
+    - rings euclidianos;
+    - bloco de controles (`PLAY/STOP`, `MUTE/UNMUTE`, card de status);
+    - strip de chips de trilha;
+    - texto de BPM.
+- Cache local de último estado renderizado (`playing`, `bpm`, `activeTrack`, `trackMutes`) para disparar redraw apenas quando necessário.
+- `handleTouch()` passou a marcar apenas as regiões relevantes como sujas conforme a ação tocada (play, mute, seleção de trilha por ring/chip).
+
+Pendências imediatas ainda abertas:
+- Validar em hardware real se o novo recorte de redraw do `PerformScreen` reduz flicker sem artefatos durante interação intensa.
+- Aplicar granularidade equivalente de invalidação em `PatternScreen` e `SoundScreen`.
 - Definir escopo de limpeza opcional do pipeline legado preservando rollback por feature flag.
