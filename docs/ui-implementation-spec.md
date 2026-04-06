@@ -518,6 +518,23 @@ Pendências imediatas ainda abertas:
 - Evoluir invalidação de nível de tela para sub-regiões/componentes nas telas de maior custo de redraw.
 - Definir escopo de limpeza opcional do pipeline legado preservando rollback por feature flag.
 
+### Atualização de implementação — 2026-04-06 (MixScreen sub-regiões)
+
+Tarefa assumida nesta rodada: **evoluir invalidação de tela para sub-regiões na `MixScreen`**.
+
+Implementado:
+- `MixScreen` passou a operar com duas estratégias de redraw:
+  - **full redraw** apenas em `invalidate()`/primeiro frame;
+  - **partial redraw** por sub-região para título de master e faders alterados.
+- Drag de fader agora marca somente o canal capturado como sujo durante `tp.pressed`, evitando repaint completo do painel.
+- Troca de captura (`captured` on/off) entre estados passou a invalidar apenas os faders afetados (anterior e atual).
+- Mudança de valor de `masterVolume` agora redesenha somente a caixa de texto `"MASTER xx%"`.
+
+Pendências imediatas ainda abertas:
+- Validar comportamento/flicker da `MixScreen` em hardware real durante drag contínuo (toque resistivo sob ruído).
+- Aplicar a mesma granularidade de invalidação em `PerformScreen` e, depois, em `PatternScreen`/`SoundScreen`.
+- Definir escopo de limpeza opcional do pipeline legado preservando rollback por feature flag.
+
 ### Atualização de implementação — 2026-04-06
 
 Tarefa assumida nesta rodada: **evoluir invalidação de nível de tela para reduzir redraw desnecessário por contexto ativo**.
