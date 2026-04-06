@@ -86,3 +86,15 @@ Avançar na pendência de Sprint 7 de **revisão de contraste/estado pressionado
 2. Validar contraste/legibilidade em dispositivo real e ajustar tokens finais de estado pressionado se necessário.
 3. Revisar se ainda existem timings hardcoded fora da UI principal (ex.: caminhos legados auxiliares).
 4. Definir janela de remoção/encapsulamento do pipeline legado mantendo rollback via flag em um commit.
+
+### Atualização incremental (2026-04-06 — invalidação interna em PatternScreen)
+- ✅ **Tarefa pendente assumida**: iniciar invalidação por sub-regiões/componentes em tela de maior custo (`PatternScreen`).
+- ✅ **Implementado em código**:
+  - `PatternScreen` passou a renderizar por blocos (`preview`, chips de trilha, macro rows), evitando redraw total do painel a cada alteração.
+  - Re-render de botões de ação (`RANDOM`/`CLEAR`) mantido apenas no ciclo de render completo.
+  - Comparações de estado locais foram adicionadas para detectar mudanças relevantes por seção (seleção de trilha, mute, padrões e hold state).
+  - Correção de estado pressionado no hold-repeat: ao soltar o toque, a linha volta ao estado visual neutro no frame seguinte.
+- ⏳ **Próximos passos após esta rodada**:
+  1. Replicar estratégia de invalidação interna no `SoundScreen` (segundo maior alvo de macro rows).
+  2. Validar em hardware real se houve redução perceptível de flicker/custo de redraw em Pattern.
+  3. Evoluir para granularidade de sub-região também em componentes de preview/ring, quando aplicável.
