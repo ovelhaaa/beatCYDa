@@ -16,6 +16,29 @@ void setRect(UiRect &rect, int16_t x, int16_t y, int16_t w, int16_t h) {
 void formatPercent(char *buffer, size_t size, int value) {
   snprintf(buffer, size, "%d%%", value);
 }
+
+bool hasMuteChanges(const UiStateSnapshot &lhs, const UiStateSnapshot &rhs) {
+  for (int i = 0; i < TRACK_COUNT; ++i) {
+    if (lhs.trackMutes[i] != rhs.trackMutes[i]) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool hasPatternChanges(const UiStateSnapshot &lhs, const UiStateSnapshot &rhs) {
+  for (int track = 0; track < TRACK_COUNT; ++track) {
+    if (lhs.patternLens[track] != rhs.patternLens[track]) {
+      return true;
+    }
+    for (int step = 0; step < 64; ++step) {
+      if (lhs.patterns[track][step] != rhs.patterns[track][step]) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
 } // namespace
 
 PatternScreen::PatternScreen() {
@@ -70,43 +93,74 @@ void PatternScreen::layout() {
 }
 
 void PatternScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &snapshot) {
-  canvas.fillRect(0,
-                  theme::UiTheme::Metrics::TopBarH,
-                  theme::UiTheme::Metrics::ScreenW,
-                  theme::UiTheme::Metrics::ScreenH -
-                      theme::UiTheme::Metrics::TopBarH - theme::UiTheme::Metrics::BottomNavH,
-                  theme::UiTheme::Colors::Bg);
+  const bool forceFullRender = _dirty || !_hasLastSnapshot;
+  const bool chipsDirty = forceFullRender || snapshot.activeTrack != _lastSnapshot.activeTrack ||
+                          hasMuteChanges(snapshot, _lastSnapshot);
+  const bool previewDirty = forceFullRender || snapshot.activeTrack != _lastSnapshot.activeTrack ||
+                            snapshot.currentStep != _lastSnapshot.currentStep || hasPatternChanges(snapshot, _lastSnapshot);
+  const bool rowsDirty = forceFullRender || snapshot.activeTrack != _lastSnapshot.activeTrack ||
+                         snapshot.trackSteps[snapshot.activeTrack] != _lastSnapshot.trackSteps[_lastSnapshot.activeTrack] ||
+                         snapshot.trackHits[snapshot.activeTrack] != _lastSnapshot.trackHits[_lastSnapshot.activeTrack] ||
+                         snapshot.trackRotations[snapshot.activeTrack] != _lastSnapshot.trackRotations[_lastSnapshot.activeTrack] ||
+                         snapshot.voiceGain[snapshot.activeTrack] != _lastSnapshot.voiceGain[_lastSnapshot.activeTrack] ||
+                         _holdRow != _lastHoldRow || _holdDirection != _lastHoldDirection;
+  const bool actionButtonsDirty = forceFullRender;
 
-  _headerCard.active = true;
-  _headerCard.draw(canvas);
-  _ringsPreview.draw(canvas, snapshot);
-
-  for (int i = 0; i < TRACK_COUNT; ++i) {
-    _trackChips[i].active = (i == snapshot.activeTrack);
-    _trackChips[i].selected = (i == snapshot.activeTrack);
-    _trackChips[i].muted = snapshot.trackMutes[i];
-    _trackChips[i].draw(canvas);
+  if (forceFullRender) {
+    canvas.fillRect(0,
+                    theme::UiTheme::Metrics::TopBarH,
+                    theme::UiTheme::Metrics::ScreenW,
+                    theme::UiTheme::Metrics::ScreenH -
+                        theme::UiTheme::Metrics::TopBarH - theme::UiTheme::Metrics::BottomNavH,
+                    theme::UiTheme::Colors::Bg);
+    _headerCard.active = true;
+    _headerCard.draw(canvas);
   }
 
-  char valueBuffers[4][16];
-  snprintf(valueBuffers[0], sizeof(valueBuffers[0]), "%d", snapshot.trackSteps[snapshot.activeTrack]);
-  snprintf(valueBuffers[1], sizeof(valueBuffers[1]), "%d", snapshot.trackHits[snapshot.activeTrack]);
-  snprintf(valueBuffers[2], sizeof(valueBuffers[2]), "%d", snapshot.trackRotations[snapshot.activeTrack]);
-  formatPercent(valueBuffers[3], sizeof(valueBuffers[3]), static_cast<int>(snapshot.voiceGain[snapshot.activeTrack] * 100.0f));
-
-  const uint8_t gainFill = static_cast<uint8_t>(snapshot.voiceGain[snapshot.activeTrack] * 100.0f);
-
-  for (int i = 0; i < 4; ++i) {
-    _rows[i].focus = (_holdRow == i);
-    _rows[i].minusPressed = (_holdRow == i && _holdDirection < 0);
-    _rows[i].plusPressed = (_holdRow == i && _holdDirection > 0);
-    _rows[i].valueText = valueBuffers[i];
-    _rows[i].barFill = (i == 3) ? gainFill : 0;
-    _rows[i].draw(canvas);
+  if (previewDirty) {
+    canvas.fillRect(124, 40, 84, 84, theme::UiTheme::Colors::Bg);
+    _ringsPreview.draw(canvas, snapshot);
   }
 
-  _randomButton.draw(canvas);
-  _clearButton.draw(canvas);
+  if (chipsDirty) {
+    canvas.fillRect(12, 96, 296, 26, theme::UiTheme::Colors::Bg);
+    for (int i = 0; i < TRACK_COUNT; ++i) {
+      _trackChips[i].active = (i == snapshot.activeTrack);
+      _trackChips[i].selected = (i == snapshot.activeTrack);
+      _trackChips[i].muted = snapshot.trackMutes[i];
+      _trackChips[i].draw(canvas);
+    }
+  }
+
+  if (rowsDirty) {
+    canvas.fillRect(12, 128, 296, 70, theme::UiTheme::Colors::Bg);
+    char valueBuffers[4][16];
+    snprintf(valueBuffers[0], sizeof(valueBuffers[0]), "%d", snapshot.trackSteps[snapshot.activeTrack]);
+    snprintf(valueBuffers[1], sizeof(valueBuffers[1]), "%d", snapshot.trackHits[snapshot.activeTrack]);
+    snprintf(valueBuffers[2], sizeof(valueBuffers[2]), "%d", snapshot.trackRotations[snapshot.activeTrack]);
+    formatPercent(valueBuffers[3], sizeof(valueBuffers[3]), static_cast<int>(snapshot.voiceGain[snapshot.activeTrack] * 100.0f));
+
+    const uint8_t gainFill = static_cast<uint8_t>(snapshot.voiceGain[snapshot.activeTrack] * 100.0f);
+
+    for (int i = 0; i < 4; ++i) {
+      _rows[i].focus = (_holdRow == i);
+      _rows[i].minusPressed = (_holdRow == i && _holdDirection < 0);
+      _rows[i].plusPressed = (_holdRow == i && _holdDirection > 0);
+      _rows[i].valueText = valueBuffers[i];
+      _rows[i].barFill = (i == 3) ? gainFill : 0;
+      _rows[i].draw(canvas);
+    }
+  }
+
+  if (actionButtonsDirty) {
+    _randomButton.draw(canvas);
+    _clearButton.draw(canvas);
+  }
+
+  _lastSnapshot = snapshot;
+  _hasLastSnapshot = true;
+  _lastHoldRow = _holdRow;
+  _lastHoldDirection = _holdDirection;
   _dirty = false;
 }
 
@@ -184,6 +238,10 @@ bool PatternScreen::handleTouch(const TouchPoint &tp, const UiStateSnapshot &sna
   bool consumed = false;
 
   if (tp.justReleased) {
+    if (_holdRow >= 0) {
+      consumed = true;
+      _dirty = true;
+    }
     stopHold();
   }
 
@@ -237,6 +295,7 @@ bool PatternScreen::handleTouch(const TouchPoint &tp, const UiStateSnapshot &sna
 
 void PatternScreen::invalidate() {
   _dirty = true;
+  _hasLastSnapshot = false;
   _ringsPreview.invalidateAll();
 }
 
