@@ -517,3 +517,18 @@ Pendências imediatas ainda abertas:
 - Validar contraste final em hardware real (luz ambiente forte) e ajustar eventuais offsets finos de tipografia/alinhamento.
 - Evoluir invalidação de nível de tela para sub-regiões/componentes nas telas de maior custo de redraw.
 - Definir escopo de limpeza opcional do pipeline legado preservando rollback por feature flag.
+
+### Atualização de implementação — 2026-04-05 (verificação + redução de hardcodes de layout)
+
+Tarefa assumida nesta rodada: **verificar estado real da implementação e avançar pendência de polimento estrutural**.
+
+Implementado:
+- Verificação do estado atual da UI nova (`UiApp`) contra o checklist de sprint e progresso incremental.
+- Consolidação de hardcodes de layout do shell visual:
+  - novos tokens em `UiMetrics` para bloco de transporte, bloco de métricas e botões da bottom nav;
+  - `UiApp` migrado para usar os tokens semânticos em vez de coordenadas/tamanhos literais.
+
+Pendências imediatas ainda abertas:
+- Validar contraste final em hardware real (luz ambiente forte) e ajustar offsets finos se necessário.
+- Evoluir invalidação de nível de tela para sub-regiões/componentes nas telas de maior custo de redraw.
+- Definir escopo de limpeza opcional do pipeline legado preservando rollback por feature flag.

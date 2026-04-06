@@ -17,7 +17,12 @@ void setRect(UiRect &rect, int16_t x, int16_t y, int16_t w, int16_t h) {
 void styleNavButton(UiButton &button, const char *label, int16_t x) {
   button.label = label;
   button.variant = UiButtonVariant::Secondary;
-  setRect(button.rect, x, theme::UiTheme::Metrics::ScreenH - theme::UiTheme::Metrics::BottomNavH + 4, 60, 32);
+  setRect(button.rect,
+          x,
+          theme::UiTheme::Metrics::ScreenH - theme::UiTheme::Metrics::BottomNavH +
+              theme::UiTheme::Metrics::BottomNavButtonYInset,
+          theme::UiTheme::Metrics::BottomNavButtonW,
+          theme::UiTheme::Metrics::BottomNavButtonH);
 }
 
 bool compareTrackMutes(const UiStateSnapshot &lhs, const UiStateSnapshot &rhs) {
@@ -169,18 +174,26 @@ void UiApp::renderTopBarShell() {
 
 void UiApp::renderTopBarTransport() {
   auto &canvas = _display.canvas();
-  canvas.fillRect(16, 12, 160, 20, theme::UiTheme::Colors::Surface);
+  canvas.fillRect(theme::UiTheme::Metrics::TopBarTransportX,
+                  theme::UiTheme::Metrics::TopBarTransportY,
+                  theme::UiTheme::Metrics::TopBarTransportW,
+                  theme::UiTheme::Metrics::TopBarTransportH,
+                  theme::UiTheme::Colors::Surface);
   canvas.setTextColor(theme::UiTheme::Colors::TextPrimary, theme::UiTheme::Colors::Surface);
   canvas.setTextSize(theme::UiTheme::Typography::BodySize);
-  canvas.setCursor(16, 16);
+  canvas.setCursor(theme::UiTheme::Metrics::TopBarTransportX, theme::UiTheme::Metrics::TopBarTextBaselineY);
   canvas.printf("beatCYDa %s", _snapshot.isPlaying ? "PLAY" : "STOP");
 }
 
 void UiApp::renderTopBarMetrics() {
   auto &canvas = _display.canvas();
-  canvas.fillRect(188, 12, 124, 20, theme::UiTheme::Colors::Surface);
+  canvas.fillRect(theme::UiTheme::Metrics::TopBarMetricsX,
+                  theme::UiTheme::Metrics::TopBarMetricsY,
+                  theme::UiTheme::Metrics::TopBarMetricsW,
+                  theme::UiTheme::Metrics::TopBarMetricsH,
+                  theme::UiTheme::Colors::Surface);
   canvas.setTextColor(theme::UiTheme::Colors::TextSecondary, theme::UiTheme::Colors::Surface);
-  canvas.setCursor(190, 16);
+  canvas.setCursor(theme::UiTheme::Metrics::TopBarMetricsX + 2, theme::UiTheme::Metrics::TopBarTextBaselineY);
   canvas.printf("BPM %d  %uFPS %luKB", _snapshot.bpm, _uiFps, static_cast<unsigned long>(_freeHeap / 1024UL));
 }
 
