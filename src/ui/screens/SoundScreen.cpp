@@ -26,6 +26,19 @@ bool hasMuteChanges(const UiStateSnapshot &lhs, const UiStateSnapshot &rhs) {
   return false;
 }
 
+float rowValueFromSnapshot(const UiStateSnapshot &snapshot, int rowIndex) {
+  switch (rowIndex) {
+  case 1:
+    return snapshot.voiceParams[snapshot.activeTrack].decay;
+  case 2:
+    return snapshot.voiceParams[snapshot.activeTrack].timbre;
+  case 3:
+    return snapshot.voiceParams[snapshot.activeTrack].drive;
+  default:
+    return snapshot.voiceParams[snapshot.activeTrack].pitch;
+  }
+}
+
 const char *trackName(int track) {
   switch (track) {
   case 0:
@@ -81,17 +94,26 @@ void SoundScreen::layout() {
 void SoundScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &snapshot) {
   const bool forceFullRender = _dirty || !_hasLastSnapshot;
   const bool trackChanged = forceFullRender || snapshot.activeTrack != _lastSnapshot.activeTrack;
-  const int prevActiveTrack = _hasLastSnapshot ? _lastSnapshot.activeTrack : snapshot.activeTrack;
 
   const bool identityDirty = forceFullRender || trackChanged;
   const bool chipsDirty = forceFullRender || trackChanged || hasMuteChanges(snapshot, _lastSnapshot);
-  const bool rowsDirty =
-      forceFullRender || trackChanged ||
-      snapshot.voiceParams[snapshot.activeTrack].pitch != _lastSnapshot.voiceParams[prevActiveTrack].pitch ||
-      snapshot.voiceParams[snapshot.activeTrack].decay != _lastSnapshot.voiceParams[prevActiveTrack].decay ||
-      snapshot.voiceParams[snapshot.activeTrack].timbre != _lastSnapshot.voiceParams[prevActiveTrack].timbre ||
-      snapshot.voiceParams[snapshot.activeTrack].drive != _lastSnapshot.voiceParams[prevActiveTrack].drive ||
-      _holdRow != _lastHoldRow || _holdDirection != _lastHoldDirection;
+  bool rowDirty[4] = {forceFullRender || trackChanged, forceFullRender || trackChanged,
+                      forceFullRender || trackChanged, forceFullRender || trackChanged};
+
+  for (int i = 0; i < 4; ++i) {
+    if (rowDirty[i]) {
+      continue;
+    }
+
+    const float currentValue = rowValueFromSnapshot(snapshot, i);
+    const float previousValue = rowValueFromSnapshot(_lastSnapshot, i);
+    const bool valueChanged = currentValue != previousValue;
+
+    const bool focusChanged = ((_holdRow == i) != (_lastHoldRow == i));
+    const bool minusChanged = ((_holdRow == i && _holdDirection < 0) != (_lastHoldRow == i && _lastHoldDirection < 0));
+    const bool plusChanged = ((_holdRow == i && _holdDirection > 0) != (_lastHoldRow == i && _lastHoldDirection > 0));
+    rowDirty[i] = valueChanged || focusChanged || minusChanged || plusChanged;
+  }
 
   if (forceFullRender) {
     canvas.fillRect(0,
@@ -122,29 +144,23 @@ void SoundScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &snaps
     }
   }
 
-  if (rowsDirty) {
-    canvas.fillRect(12, 102, 296, 94, theme::UiTheme::Colors::Bg);
-
-    char values[4][16];
-    formatPercent(values[0], sizeof(values[0]), snapshot.voiceParams[snapshot.activeTrack].pitch);
-    formatPercent(values[1], sizeof(values[1]), snapshot.voiceParams[snapshot.activeTrack].decay);
-    formatPercent(values[2], sizeof(values[2]), snapshot.voiceParams[snapshot.activeTrack].timbre);
-    formatPercent(values[3], sizeof(values[3]), snapshot.voiceParams[snapshot.activeTrack].drive);
-
-    const uint8_t fill0 = static_cast<uint8_t>(snapshot.voiceParams[snapshot.activeTrack].pitch * 100.0f);
-    const uint8_t fill1 = static_cast<uint8_t>(snapshot.voiceParams[snapshot.activeTrack].decay * 100.0f);
-    const uint8_t fill2 = static_cast<uint8_t>(snapshot.voiceParams[snapshot.activeTrack].timbre * 100.0f);
-    const uint8_t fill3 = static_cast<uint8_t>(snapshot.voiceParams[snapshot.activeTrack].drive * 100.0f);
-    const uint8_t fills[4] = {fill0, fill1, fill2, fill3};
-
-    for (int i = 0; i < 4; ++i) {
-      _rows[i].focus = (_holdRow == i);
-      _rows[i].minusPressed = (_holdRow == i && _holdDirection < 0);
-      _rows[i].plusPressed = (_holdRow == i && _holdDirection > 0);
-      _rows[i].valueText = values[i];
-      _rows[i].barFill = fills[i];
-      _rows[i].draw(canvas);
+  for (int i = 0; i < 4; ++i) {
+    if (!rowDirty[i]) {
+      continue;
     }
+
+    canvas.fillRect(_rows[i].rowRect.x, _rows[i].rowRect.y, _rows[i].rowRect.w, _rows[i].rowRect.h, theme::UiTheme::Colors::Bg);
+
+    char value[16];
+    const float rowValue = rowValueFromSnapshot(snapshot, i);
+    formatPercent(value, sizeof(value), rowValue);
+
+    _rows[i].focus = (_holdRow == i);
+    _rows[i].minusPressed = (_holdRow == i && _holdDirection < 0);
+    _rows[i].plusPressed = (_holdRow == i && _holdDirection > 0);
+    _rows[i].valueText = value;
+    _rows[i].barFill = static_cast<uint8_t>(rowValue * 100.0f);
+    _rows[i].draw(canvas);
   }
 
   _lastSnapshot = snapshot;
