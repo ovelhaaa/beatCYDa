@@ -59,6 +59,15 @@ Avançar na pendência de Sprint 7 de **revisão de contraste/estado pressionado
 - ✅ **Avançar revisão de contraste/pressed state dos componentes pendentes**.
   - Ajustes aplicados em `UiChip`, `UiMacroRow`, `UiFader` e `UiModal`, reduzindo ambiguidades visuais em estado ativo/focado/capturado.
 
+### Atualização incremental (2026-04-05 — verificação + hardcodes de layout)
+- ✅ **Verificação do estado real da implementação** concluída contra o spec:
+  - Pipeline novo (`UiApp`) ativo por feature flag, com 5 telas navegáveis.
+  - Sprints 1–6 seguem entregues; Sprint 7 permanece com foco em invalidação fina e validação visual final em hardware.
+- ✅ **Tarefa pendente assumida**: reduzir hardcodes visuais de layout no shell da UI.
+  - `UiMetrics` recebeu novos tokens semânticos para top bar e botões de navegação inferior.
+  - `UiApp` migrou coordenadas/tamanhos hardcoded da top bar/nav para os tokens de `UiMetrics`.
+  - Resultado: manutenção mais previsível e menor risco de drift visual entre telas/rodadas.
+
 ### Atualização incremental (rodada atual)
 - ✅ Implementado passo de polimento visual:
   - `UiChip`: novo estado `pressed` com variação de preenchimento em chips ativos e inativos.
