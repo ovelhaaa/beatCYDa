@@ -121,3 +121,18 @@ Avançar na pendência de Sprint 7 de **revisão de contraste/estado pressionado
   1. Aplicar a mesma granularidade por row na `PatternScreen` (atualmente por bloco de rows).
   2. Validar em hardware real redução de redraw/flicker nas interações de hold no `SoundScreen`.
   3. Evoluir para dirty-rect ainda menor em componentes internos da row (value/bar/botões), caso necessário.
+
+### Atualização incremental (2026-04-06 — sub-regiões por macro row em PatternScreen)
+- ✅ **Verificação do estado atual**:
+  - `PatternScreen` já tinha invalidação por blocos (`preview`, `chips` e bloco único de macro rows), mas ainda repintava todas as rows ao alterar apenas uma linha.
+  - O restante das telas segue funcional com navegação integrada via `UiApp`.
+- ✅ **Tarefa pendente assumida**: aplicar granularidade de invalidação por `UiMacroRow` também em `PatternScreen`.
+- ✅ **Implementado em código**:
+  - O redraw das rows deixou de limpar a área inteira (`12x128..296x70`) e passou a limpar/renderizar somente as rows marcadas como dirty.
+  - Cada row agora calcula dirty individual por mudança de valor (`steps`, `hits`, `rotate`, `gain`) e por transição visual de hold (`focus`, `minusPressed`, `plusPressed`).
+  - Em troca de trilha ativa, as 4 rows continuam sendo invalidadas em conjunto para consistência imediata.
+- ⏳ **O que resta até agora**:
+  1. Validar em hardware real o ganho de fluidez e redução de flicker no `PatternScreen` durante hold-repeat.
+  2. Avaliar granularidade ainda mais fina em cada row (sub-retângulos internos de label/valor/barra/botões), se necessário.
+  3. Fechar validação final de contraste/estados pressionados sob iluminação forte.
+  4. Definir recorte final da limpeza opcional do pipeline legado mantendo rollback por feature flag.
