@@ -219,6 +219,8 @@ bool PatternScreen::handleHoldTick(const TouchPoint &tp, const UiStateSnapshot &
   dispatchRowDelta(snapshot, _holdRow, _holdDirection * multiplier);
   _holdTickCount++;
   _holdNextTickMs = now + interval;
+  // Não forçar _dirty aqui: o render incremental usa diff de snapshot/hold state
+  // e evita forceFullRender (flicker) a cada tick de hold.
   _ringsPreview.invalidateAll();
   return true;
 }
@@ -260,6 +262,9 @@ void PatternScreen::stopHold() {
 
 bool PatternScreen::handleTouch(const TouchPoint &tp, const UiStateSnapshot &snapshot) {
   bool consumed = false;
+  // Importante: não marcar _dirty durante interação normal.
+  // O UiApp já agenda panelDirty quando há toque consumido e o render incremental
+  // decide as sub-regiões por comparação de estado.
 
   if (tp.justReleased) {
     if (_holdRow >= 0) {
