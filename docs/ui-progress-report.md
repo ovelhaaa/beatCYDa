@@ -110,3 +110,14 @@ Avançar na pendência de Sprint 7 de **revisão de contraste/estado pressionado
   1. Validar em hardware real ganho de fluidez/redução de redraw no `SoundScreen`.
   2. Avançar invalidação em granularidade menor (sub-retângulos por macro row) nas telas Pattern/Sound.
   3. Consolidar validação final de contraste e estados pressionados sob luz forte.
+
+### Atualização incremental (2026-04-06 — sub-regiões por macro row em SoundScreen)
+- ✅ **Tarefa pendente assumida**: iniciar granularidade de invalidação em nível de `UiMacroRow` no `SoundScreen`.
+- ✅ **Implementado em código**:
+  - O redraw das macro rows deixou de limpar o bloco inteiro (`12x102..296x94`) e passou a limpar/desenhar apenas as linhas realmente alteradas.
+  - Cada row agora calcula `dirty` individual por mudança de valor (`pitch/decay/timbre/drive`) e por transição de estado visual (`focus`, `minusPressed`, `plusPressed`).
+  - Em troca de trilha ativa (`activeTrack`), as 4 rows continuam sendo invalidadas em conjunto para manter consistência visual imediata.
+- ⏳ **Próximos passos após esta rodada**:
+  1. Aplicar a mesma granularidade por row na `PatternScreen` (atualmente por bloco de rows).
+  2. Validar em hardware real redução de redraw/flicker nas interações de hold no `SoundScreen`.
+  3. Evoluir para dirty-rect ainda menor em componentes internos da row (value/bar/botões), caso necessário.
