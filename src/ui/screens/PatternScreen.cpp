@@ -219,7 +219,6 @@ bool PatternScreen::handleHoldTick(const TouchPoint &tp, const UiStateSnapshot &
   dispatchRowDelta(snapshot, _holdRow, _holdDirection * multiplier);
   _holdTickCount++;
   _holdNextTickMs = now + interval;
-  _dirty = true;
   _ringsPreview.invalidateAll();
   return true;
 }
@@ -265,7 +264,6 @@ bool PatternScreen::handleTouch(const TouchPoint &tp, const UiStateSnapshot &sna
   if (tp.justReleased) {
     if (_holdRow >= 0) {
       consumed = true;
-      _dirty = true;
     }
     stopHold();
   }
@@ -274,7 +272,6 @@ bool PatternScreen::handleTouch(const TouchPoint &tp, const UiStateSnapshot &sna
     for (int i = 0; i < TRACK_COUNT; ++i) {
       if (_trackChips[i].hitTest(tp.x, tp.y)) {
         dispatchUiAction(UiActionType::SELECT_TRACK, 0, i);
-        _dirty = true;
         _ringsPreview.invalidateAll();
         return true;
       }
@@ -284,7 +281,6 @@ bool PatternScreen::handleTouch(const TouchPoint &tp, const UiStateSnapshot &sna
       if (_rows[i].hitMinus(tp.x, tp.y)) {
         dispatchRowDelta(snapshot, i, -1);
         startHold(i, -1);
-        _dirty = true;
         _ringsPreview.invalidateAll();
         return true;
       }
@@ -292,7 +288,6 @@ bool PatternScreen::handleTouch(const TouchPoint &tp, const UiStateSnapshot &sna
       if (_rows[i].hitPlus(tp.x, tp.y)) {
         dispatchRowDelta(snapshot, i, +1);
         startHold(i, +1);
-        _dirty = true;
         _ringsPreview.invalidateAll();
         return true;
       }
@@ -300,7 +295,6 @@ bool PatternScreen::handleTouch(const TouchPoint &tp, const UiStateSnapshot &sna
 
     if (_randomButton.hitTest(tp.x, tp.y)) {
       dispatchUiAction(UiActionType::RANDOMIZE_TRACK, snapshot.activeTrack, 0);
-      _dirty = true;
       _ringsPreview.invalidateAll();
       return true;
     }
@@ -308,7 +302,6 @@ bool PatternScreen::handleTouch(const TouchPoint &tp, const UiStateSnapshot &sna
     if (_clearButton.hitTest(tp.x, tp.y)) {
       dispatchUiAction(UiActionType::SET_HITS, snapshot.activeTrack, 0);
       dispatchUiAction(UiActionType::SET_ROTATION, snapshot.activeTrack, 0);
-      _dirty = true;
       _ringsPreview.invalidateAll();
       return true;
     }

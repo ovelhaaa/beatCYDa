@@ -131,6 +131,7 @@ Avançar na pendência de Sprint 7 de **revisão de contraste/estado pressionado
   - O redraw das rows deixou de limpar a área inteira (`12x128..296x70`) e passou a limpar/renderizar somente as rows marcadas como dirty.
   - Cada row agora calcula dirty individual por mudança de valor (`steps`, `hits`, `rotate`, `gain`) e por transição visual de hold (`focus`, `minusPressed`, `plusPressed`).
   - Em troca de trilha ativa, as 4 rows continuam sendo invalidadas em conjunto para consistência imediata.
+  - Ajuste pós-review: interações (`handleTouch`/`handleHoldTick`) deixaram de forçar `_dirty = true`, evitando `forceFullRender` em cada toque/tick e preservando os ganhos da invalidação granular por row.
 - ⏳ **O que resta até agora**:
   1. Validar em hardware real o ganho de fluidez e redução de flicker no `PatternScreen` durante hold-repeat.
   2. Avaliar granularidade ainda mais fina em cada row (sub-retângulos internos de label/valor/barra/botões), se necessário.
