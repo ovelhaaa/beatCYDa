@@ -153,3 +153,12 @@ Avançar na pendência de Sprint 7 de **revisão de contraste/estado pressionado
   2. Revisar se `MixScreen` também merece granularidade adicional além dos faders/mestre.
   3. Fechar validação final de contraste/pressed state sob luz ambiente forte.
   4. Definir escopo final da limpeza opcional do legado mantendo rollback via flag.
+
+### Atualização incremental (2026-04-07 — ciclo de redraw para overlays no Project)
+- ✅ **Passo extra executado após review**:
+  - `IScreen` ganhou o hook `wantsContinuousRedraw(nowMs)` para sinalizar telas com necessidade de repaint contínuo temporário.
+  - `UiApp` passou a respeitar esse hook e marcar `panelDirty` quando a tela ativa solicitar.
+  - `ProjectScreen` implementou `wantsContinuousRedraw` para manter atualização enquanto toast/modal estiver visível e garantir um frame de limpeza quando o overlay expirar/fechar.
+  - Render de overlay no `ProjectScreen` passou a desenhar apenas quando `_overlayDirty` (evitando redraw redundante a cada frame).
+- 🎯 **Motivação**:
+  - Evitar “toast preso”/overlay não limpo em ciclos sem toque e sem mudança de modelo.

@@ -532,6 +532,11 @@ Pendências imediatas ainda abertas:
 - Avaliar necessidade de granularidade adicional em telas já parciais (`MixScreen`/`PerformScreen`) conforme profiling visual.
 - Definir recorte final da limpeza opcional do pipeline legado mantendo rollback por feature flag.
 
+Passo adicional aplicado após revisão:
+- `IScreen` recebeu hook `wantsContinuousRedraw(nowMs)` para suportar overlays/transientes dependentes de tempo.
+- `UiApp` passou a consultar o hook da tela ativa e forçar `panelDirty` quando necessário.
+- `ProjectScreen` passou a usar esse hook para ciclo de vida de `toast/modal`, incluindo frame de limpeza quando o overlay deixa de estar visível.
+
 ### Atualização de implementação — 2026-04-07
 
 Tarefa assumida nesta rodada: **reduzir full redraw desnecessário na `SoundScreen` durante interação (`+/-`, hold-repeat e troca de track)**.

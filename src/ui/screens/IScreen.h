@@ -2,6 +2,7 @@
 
 #include "../LgfxDisplay.h"
 #include "../core/UiScreenId.h"
+#include <cstdint>
 
 struct UiStateSnapshot;
 
@@ -13,6 +14,10 @@ public:
   virtual void layout() = 0;
   virtual void render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &snapshot) = 0;
   virtual bool handleTouch(const TouchPoint &tp, const UiStateSnapshot &snapshot) = 0;
+  virtual bool wantsContinuousRedraw(uint32_t nowMs) {
+    (void)nowMs;
+    return false;
+  }
   virtual void invalidate() = 0;
   virtual UiScreenId id() const = 0;
 };

@@ -210,13 +210,6 @@ void ProjectScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &sna
       _confirmModal.draw(canvas);
     }
     _overlayDirty = false;
-  } else {
-    if (toastVisible) {
-      _toast.draw(canvas);
-    }
-    if (_confirmModal.visible) {
-      _confirmModal.draw(canvas);
-    }
   }
 
   for (uint8_t i = 0; i < 8; ++i) {
@@ -229,6 +222,16 @@ void ProjectScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &sna
   _lastModalVisible = _confirmModal.visible;
   _hasFrame = true;
   _dirty = false;
+}
+
+bool ProjectScreen::wantsContinuousRedraw(uint32_t nowMs) {
+  const bool toastVisible = _toastUntilMs > nowMs;
+  if (_confirmModal.visible || toastVisible) {
+    return true;
+  }
+
+  // Garante um frame de limpeza quando o overlay mudou de visibilidade.
+  return _lastToastVisible != toastVisible || _lastModalVisible != _confirmModal.visible;
 }
 
 bool ProjectScreen::handleTouch(const TouchPoint &tp, const UiStateSnapshot &snapshot) {

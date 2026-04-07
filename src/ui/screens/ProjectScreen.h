@@ -19,6 +19,7 @@ public:
   void layout() override;
   void render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &snapshot) override;
   bool handleTouch(const TouchPoint &tp, const UiStateSnapshot &snapshot) override;
+  bool wantsContinuousRedraw(uint32_t nowMs) override;
   void invalidate() override;
   UiScreenId id() const override { return UiScreenId::Project; }
 
