@@ -161,6 +161,10 @@ void UiApp::runFrame(uint32_t nowMs) {
     }
   }
 
+  if (screen != nullptr && screen->wantsContinuousRedraw(nowMs)) {
+    _invalidation.panelDirty = true;
+  }
+
   if (detectModelChanges()) {
     _invalidation.panelDirty = true;
   }
