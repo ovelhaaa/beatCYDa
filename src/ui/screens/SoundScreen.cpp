@@ -235,17 +235,19 @@ bool SoundScreen::handleHoldTick(const TouchPoint &tp, const UiStateSnapshot &sn
   dispatchRowDelta(snapshot, _holdRow, _holdDirection * multiplier);
   _holdTickCount++;
   _holdNextTickMs = now + interval;
-  _dirty = true;
+  // Não forçar full redraw: o render incremental detecta mudanças por diff
+  // de snapshot e estado de hold, reduzindo flicker durante repetição.
   return true;
 }
 
 bool SoundScreen::handleTouch(const TouchPoint &tp, const UiStateSnapshot &snapshot) {
   bool consumed = false;
+  // Evita marcar _dirty durante interação normal para preservar redraw parcial.
+  // O UiApp já agenda panelDirty quando o toque é consumido.
 
   if (tp.justReleased) {
     if (_holdRow >= 0) {
       consumed = true;
-      _dirty = true;
     }
     stopHold();
   }
@@ -254,7 +256,6 @@ bool SoundScreen::handleTouch(const TouchPoint &tp, const UiStateSnapshot &snaps
     for (int i = 0; i < TRACK_COUNT; ++i) {
       if (_trackChips[i].hitTest(tp.x, tp.y)) {
         dispatchUiAction(UiActionType::SELECT_TRACK, 0, i);
-        _dirty = true;
         return true;
       }
     }
@@ -263,14 +264,12 @@ bool SoundScreen::handleTouch(const TouchPoint &tp, const UiStateSnapshot &snaps
       if (_rows[i].hitMinus(tp.x, tp.y)) {
         dispatchRowDelta(snapshot, i, -1);
         startHold(i, -1);
-        _dirty = true;
         return true;
       }
 
       if (_rows[i].hitPlus(tp.x, tp.y)) {
         dispatchRowDelta(snapshot, i, +1);
         startHold(i, +1);
-        _dirty = true;
         return true;
       }
     }

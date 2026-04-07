@@ -518,6 +518,20 @@ Pendências imediatas ainda abertas:
 - Evoluir invalidação de nível de tela para sub-regiões/componentes nas telas de maior custo de redraw.
 - Definir escopo de limpeza opcional do pipeline legado preservando rollback por feature flag.
 
+### Atualização de implementação — 2026-04-07
+
+Tarefa assumida nesta rodada: **reduzir full redraw desnecessário na `SoundScreen` durante interação (`+/-`, hold-repeat e troca de track)**.
+
+Implementado:
+- `SoundScreen` deixou de forçar `_dirty = true` em interações de toque comuns (`justPressed`/`justReleased` e ticks de hold-repeat).
+- O fluxo de render passou a depender do diff incremental já existente (`snapshot` + estado de hold), alinhando o comportamento com a estratégia já aplicada em `PatternScreen`.
+- Resultado esperado: menor chance de flicker e redraw mais barato durante edição contínua de parâmetros de som.
+
+Pendências imediatas ainda abertas:
+- Validar em hardware real se o ganho de estabilidade visual se confirma sob toque resistivo contínuo.
+- Aplicar o mesmo refinamento de invalidação parcial nas demais telas que ainda possam acionar redraw amplo sob interação intensa.
+- Concluir o polimento visual final (contraste/alinhamento fino restante).
+
 ### Atualização de implementação — 2026-04-06 (MixScreen sub-regiões)
 
 Tarefa assumida nesta rodada: **evoluir invalidação de tela para sub-regiões na `MixScreen`**.
