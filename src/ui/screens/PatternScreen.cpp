@@ -94,17 +94,36 @@ void PatternScreen::layout() {
 
 void PatternScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &snapshot) {
   const bool forceFullRender = _dirty || !_hasLastSnapshot;
-  const bool chipsDirty = forceFullRender || snapshot.activeTrack != _lastSnapshot.activeTrack ||
-                          hasMuteChanges(snapshot, _lastSnapshot);
-  const bool previewDirty = forceFullRender || snapshot.activeTrack != _lastSnapshot.activeTrack ||
-                            snapshot.currentStep != _lastSnapshot.currentStep || hasPatternChanges(snapshot, _lastSnapshot);
-  const bool rowsDirty = forceFullRender || snapshot.activeTrack != _lastSnapshot.activeTrack ||
-                         snapshot.trackSteps[snapshot.activeTrack] != _lastSnapshot.trackSteps[_lastSnapshot.activeTrack] ||
-                         snapshot.trackHits[snapshot.activeTrack] != _lastSnapshot.trackHits[_lastSnapshot.activeTrack] ||
-                         snapshot.trackRotations[snapshot.activeTrack] != _lastSnapshot.trackRotations[_lastSnapshot.activeTrack] ||
-                         snapshot.voiceGain[snapshot.activeTrack] != _lastSnapshot.voiceGain[_lastSnapshot.activeTrack] ||
-                         _holdRow != _lastHoldRow || _holdDirection != _lastHoldDirection;
+  const bool trackChanged = forceFullRender || snapshot.activeTrack != _lastSnapshot.activeTrack;
+
+  const bool chipsDirty = forceFullRender || trackChanged || hasMuteChanges(snapshot, _lastSnapshot);
+  const bool previewDirty =
+      forceFullRender || trackChanged || snapshot.currentStep != _lastSnapshot.currentStep || hasPatternChanges(snapshot, _lastSnapshot);
+  bool rowDirty[4] = {forceFullRender || trackChanged, forceFullRender || trackChanged,
+                      forceFullRender || trackChanged, forceFullRender || trackChanged};
   const bool actionButtonsDirty = forceFullRender;
+
+  for (int i = 0; i < 4; ++i) {
+    if (rowDirty[i]) {
+      continue;
+    }
+
+    bool valueChanged = false;
+    if (i == 0) {
+      valueChanged = snapshot.trackSteps[snapshot.activeTrack] != _lastSnapshot.trackSteps[_lastSnapshot.activeTrack];
+    } else if (i == 1) {
+      valueChanged = snapshot.trackHits[snapshot.activeTrack] != _lastSnapshot.trackHits[_lastSnapshot.activeTrack];
+    } else if (i == 2) {
+      valueChanged = snapshot.trackRotations[snapshot.activeTrack] != _lastSnapshot.trackRotations[_lastSnapshot.activeTrack];
+    } else {
+      valueChanged = snapshot.voiceGain[snapshot.activeTrack] != _lastSnapshot.voiceGain[_lastSnapshot.activeTrack];
+    }
+
+    const bool focusChanged = ((_holdRow == i) != (_lastHoldRow == i));
+    const bool minusChanged = ((_holdRow == i && _holdDirection < 0) != (_lastHoldRow == i && _lastHoldDirection < 0));
+    const bool plusChanged = ((_holdRow == i && _holdDirection > 0) != (_lastHoldRow == i && _lastHoldDirection > 0));
+    rowDirty[i] = valueChanged || focusChanged || minusChanged || plusChanged;
+  }
 
   if (forceFullRender) {
     canvas.fillRect(0,
@@ -132,24 +151,30 @@ void PatternScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &sna
     }
   }
 
-  if (rowsDirty) {
-    canvas.fillRect(12, 128, 296, 70, theme::UiTheme::Colors::Bg);
-    char valueBuffers[4][16];
-    snprintf(valueBuffers[0], sizeof(valueBuffers[0]), "%d", snapshot.trackSteps[snapshot.activeTrack]);
-    snprintf(valueBuffers[1], sizeof(valueBuffers[1]), "%d", snapshot.trackHits[snapshot.activeTrack]);
-    snprintf(valueBuffers[2], sizeof(valueBuffers[2]), "%d", snapshot.trackRotations[snapshot.activeTrack]);
-    formatPercent(valueBuffers[3], sizeof(valueBuffers[3]), static_cast<int>(snapshot.voiceGain[snapshot.activeTrack] * 100.0f));
-
-    const uint8_t gainFill = static_cast<uint8_t>(snapshot.voiceGain[snapshot.activeTrack] * 100.0f);
-
-    for (int i = 0; i < 4; ++i) {
-      _rows[i].focus = (_holdRow == i);
-      _rows[i].minusPressed = (_holdRow == i && _holdDirection < 0);
-      _rows[i].plusPressed = (_holdRow == i && _holdDirection > 0);
-      _rows[i].valueText = valueBuffers[i];
-      _rows[i].barFill = (i == 3) ? gainFill : 0;
-      _rows[i].draw(canvas);
+  for (int i = 0; i < 4; ++i) {
+    if (!rowDirty[i]) {
+      continue;
     }
+
+    canvas.fillRect(_rows[i].rowRect.x, _rows[i].rowRect.y, _rows[i].rowRect.w, _rows[i].rowRect.h, theme::UiTheme::Colors::Bg);
+
+    char valueBuffer[16];
+    if (i == 0) {
+      snprintf(valueBuffer, sizeof(valueBuffer), "%d", snapshot.trackSteps[snapshot.activeTrack]);
+    } else if (i == 1) {
+      snprintf(valueBuffer, sizeof(valueBuffer), "%d", snapshot.trackHits[snapshot.activeTrack]);
+    } else if (i == 2) {
+      snprintf(valueBuffer, sizeof(valueBuffer), "%d", snapshot.trackRotations[snapshot.activeTrack]);
+    } else {
+      formatPercent(valueBuffer, sizeof(valueBuffer), static_cast<int>(snapshot.voiceGain[snapshot.activeTrack] * 100.0f));
+    }
+
+    _rows[i].focus = (_holdRow == i);
+    _rows[i].minusPressed = (_holdRow == i && _holdDirection < 0);
+    _rows[i].plusPressed = (_holdRow == i && _holdDirection > 0);
+    _rows[i].valueText = valueBuffer;
+    _rows[i].barFill = (i == 3) ? static_cast<uint8_t>(snapshot.voiceGain[snapshot.activeTrack] * 100.0f) : 0;
+    _rows[i].draw(canvas);
   }
 
   if (actionButtonsDirty) {
@@ -194,7 +219,8 @@ bool PatternScreen::handleHoldTick(const TouchPoint &tp, const UiStateSnapshot &
   dispatchRowDelta(snapshot, _holdRow, _holdDirection * multiplier);
   _holdTickCount++;
   _holdNextTickMs = now + interval;
-  _dirty = true;
+  // Não forçar _dirty aqui: o render incremental usa diff de snapshot/hold state
+  // e evita forceFullRender (flicker) a cada tick de hold.
   _ringsPreview.invalidateAll();
   return true;
 }
@@ -236,11 +262,13 @@ void PatternScreen::stopHold() {
 
 bool PatternScreen::handleTouch(const TouchPoint &tp, const UiStateSnapshot &snapshot) {
   bool consumed = false;
+  // Importante: não marcar _dirty durante interação normal.
+  // O UiApp já agenda panelDirty quando há toque consumido e o render incremental
+  // decide as sub-regiões por comparação de estado.
 
   if (tp.justReleased) {
     if (_holdRow >= 0) {
       consumed = true;
-      _dirty = true;
     }
     stopHold();
   }
@@ -249,7 +277,6 @@ bool PatternScreen::handleTouch(const TouchPoint &tp, const UiStateSnapshot &sna
     for (int i = 0; i < TRACK_COUNT; ++i) {
       if (_trackChips[i].hitTest(tp.x, tp.y)) {
         dispatchUiAction(UiActionType::SELECT_TRACK, 0, i);
-        _dirty = true;
         _ringsPreview.invalidateAll();
         return true;
       }
@@ -259,7 +286,6 @@ bool PatternScreen::handleTouch(const TouchPoint &tp, const UiStateSnapshot &sna
       if (_rows[i].hitMinus(tp.x, tp.y)) {
         dispatchRowDelta(snapshot, i, -1);
         startHold(i, -1);
-        _dirty = true;
         _ringsPreview.invalidateAll();
         return true;
       }
@@ -267,7 +293,6 @@ bool PatternScreen::handleTouch(const TouchPoint &tp, const UiStateSnapshot &sna
       if (_rows[i].hitPlus(tp.x, tp.y)) {
         dispatchRowDelta(snapshot, i, +1);
         startHold(i, +1);
-        _dirty = true;
         _ringsPreview.invalidateAll();
         return true;
       }
@@ -275,7 +300,6 @@ bool PatternScreen::handleTouch(const TouchPoint &tp, const UiStateSnapshot &sna
 
     if (_randomButton.hitTest(tp.x, tp.y)) {
       dispatchUiAction(UiActionType::RANDOMIZE_TRACK, snapshot.activeTrack, 0);
-      _dirty = true;
       _ringsPreview.invalidateAll();
       return true;
     }
@@ -283,7 +307,6 @@ bool PatternScreen::handleTouch(const TouchPoint &tp, const UiStateSnapshot &sna
     if (_clearButton.hitTest(tp.x, tp.y)) {
       dispatchUiAction(UiActionType::SET_HITS, snapshot.activeTrack, 0);
       dispatchUiAction(UiActionType::SET_ROTATION, snapshot.activeTrack, 0);
-      _dirty = true;
       _ringsPreview.invalidateAll();
       return true;
     }
