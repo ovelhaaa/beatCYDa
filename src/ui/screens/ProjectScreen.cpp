@@ -161,6 +161,14 @@ void ProjectScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &sna
   if (_lastToastVisible != toastVisible || _lastModalVisible != _confirmModal.visible) {
     markOverlayDirty();
   }
+  const bool modalJustClosed = _lastModalVisible && !_confirmModal.visible;
+  if (modalJustClosed) {
+    canvas.fillRect(0, kPanelTopY, theme::UiTheme::Metrics::ScreenW, kPanelH, theme::UiTheme::Colors::Bg);
+    _headerDirty = true;
+    _statusDirty = true;
+    _slotsDirty = true;
+    _actionsDirty = true;
+  }
   const bool baseSectionsDirty = _headerDirty || _statusDirty || _slotsDirty || _actionsDirty;
   if (_confirmModal.visible && baseSectionsDirty) {
     markOverlayDirty();
