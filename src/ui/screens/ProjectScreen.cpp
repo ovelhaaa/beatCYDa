@@ -6,6 +6,21 @@
 
 namespace ui {
 namespace {
+constexpr int kPanelTopY = theme::UiTheme::Metrics::TopBarH;
+constexpr int kPanelH = theme::UiTheme::Metrics::ScreenH - theme::UiTheme::Metrics::TopBarH - theme::UiTheme::Metrics::BottomNavH;
+constexpr int kStatusX = 12;
+constexpr int kStatusY = 98;
+constexpr int kStatusW = 124;
+constexpr int kStatusH = 10;
+constexpr int kSlotsX = 144;
+constexpr int kSlotsY = 48;
+constexpr int kSlotsW = 174;
+constexpr int kSlotsH = 68;
+constexpr int kActionsX = 12;
+constexpr int kActionsY = 110;
+constexpr int kActionsW = 296;
+constexpr int kActionsH = 34;
+
 void setRect(UiRect &rect, int16_t x, int16_t y, int16_t w, int16_t h) {
   rect.x = x;
   rect.y = y;
@@ -81,57 +96,138 @@ void ProjectScreen::showToast(const char *message, UiToastSeverity severity, uin
   _toast.severity = severity;
   _toast.timeoutMs = timeoutMs;
   _toastUntilMs = millis() + timeoutMs;
+  markOverlayDirty();
 }
 
 void ProjectScreen::openConfirm(PendingAction action) {
   _pendingAction = action;
   _confirmModal.visible = true;
   _confirmModal.body = (action == PendingAction::Delete) ? "Delete slot data?" : "Overwrite slot?";
+  markOverlayDirty();
 }
 
 void ProjectScreen::closeConfirm() {
   _pendingAction = PendingAction::None;
   _confirmModal.visible = false;
+  markOverlayDirty();
+}
+
+void ProjectScreen::markSlotsDirty() {
+  _slotsDirty = true;
+  _actionsDirty = true;
+}
+
+void ProjectScreen::markActionsDirty() {
+  _actionsDirty = true;
+}
+
+void ProjectScreen::markOverlayDirty() {
+  _overlayDirty = true;
 }
 
 void ProjectScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &snapshot) {
-  canvas.fillRect(0,
-                  theme::UiTheme::Metrics::TopBarH,
-                  theme::UiTheme::Metrics::ScreenW,
-                  theme::UiTheme::Metrics::ScreenH -
-                      theme::UiTheme::Metrics::TopBarH - theme::UiTheme::Metrics::BottomNavH,
-                  theme::UiTheme::Colors::Bg);
+  const bool forceFullRender = _dirty || !_hasFrame;
 
-  _headerCard.draw(canvas);
-  updateLabels();
+  if (_hasFrame) {
+    if (_lastBpm != snapshot.bpm || _lastActiveTrack != snapshot.activeTrack) {
+      _statusDirty = true;
+    }
 
-  canvas.setTextSize(theme::UiTheme::Typography::CaptionSize);
-  canvas.setTextColor(theme::UiTheme::Colors::TextSecondary, theme::UiTheme::Colors::Bg);
-  canvas.setCursor(12, 98);
-  canvas.printf("BPM %d  TRK %d", snapshot.bpm, snapshot.activeTrack + 1);
+    if (_lastSelectedSlot != _selectedSlot) {
+      markSlotsDirty();
+    }
 
-  for (uint8_t i = 0; i < 8; ++i) {
-    _slotButtons[i].variant = _slotOccupied[i] ? UiButtonVariant::Primary : UiButtonVariant::Secondary;
-    _slotButtons[i].pressed = (i == _selectedSlot);
-    _slotButtons[i].draw(canvas);
+    for (uint8_t i = 0; i < 8; ++i) {
+      if (_lastSlotOccupied[i] != _slotOccupied[i]) {
+        markSlotsDirty();
+        break;
+      }
+    }
+  }
+
+  if (forceFullRender) {
+    canvas.fillRect(0, kPanelTopY, theme::UiTheme::Metrics::ScreenW, kPanelH, theme::UiTheme::Colors::Bg);
+    _headerDirty = true;
+    _statusDirty = true;
+    _slotsDirty = true;
+    _actionsDirty = true;
+    _overlayDirty = true;
   }
 
   _loadButton.disabled = !_slotOccupied[_selectedSlot];
   _deleteButton.disabled = !_slotOccupied[_selectedSlot];
 
-  _loadButton.draw(canvas);
-  _saveButton.draw(canvas);
-  _deleteButton.draw(canvas);
-
   const bool toastVisible = _toastUntilMs > millis();
-  if (toastVisible) {
-    _toast.draw(canvas);
+  if (_lastToastVisible != toastVisible || _lastModalVisible != _confirmModal.visible) {
+    markOverlayDirty();
   }
 
-  if (_confirmModal.visible) {
-    _confirmModal.draw(canvas);
+  if (_headerDirty) {
+    canvas.fillRect(_headerCard.rect.x,
+                    _headerCard.rect.y,
+                    _headerCard.rect.w,
+                    _headerCard.rect.h,
+                    theme::UiTheme::Colors::Bg);
+    _headerCard.draw(canvas);
+    _headerDirty = false;
   }
 
+  if (_statusDirty) {
+    canvas.fillRect(kStatusX, kStatusY, kStatusW, kStatusH, theme::UiTheme::Colors::Bg);
+    canvas.setTextSize(theme::UiTheme::Typography::CaptionSize);
+    canvas.setTextColor(theme::UiTheme::Colors::TextSecondary, theme::UiTheme::Colors::Bg);
+    canvas.setCursor(kStatusX, kStatusY);
+    canvas.printf("BPM %d  TRK %d", snapshot.bpm, snapshot.activeTrack + 1);
+    _statusDirty = false;
+  }
+
+  if (_slotsDirty) {
+    canvas.fillRect(kSlotsX, kSlotsY, kSlotsW, kSlotsH, theme::UiTheme::Colors::Bg);
+    updateLabels();
+    for (uint8_t i = 0; i < 8; ++i) {
+      _slotButtons[i].variant = _slotOccupied[i] ? UiButtonVariant::Primary : UiButtonVariant::Secondary;
+      _slotButtons[i].pressed = (i == _selectedSlot);
+      _slotButtons[i].draw(canvas);
+    }
+    _slotsDirty = false;
+  }
+
+  if (_actionsDirty) {
+    canvas.fillRect(kActionsX, kActionsY, kActionsW, kActionsH, theme::UiTheme::Colors::Bg);
+    _loadButton.draw(canvas);
+    _saveButton.draw(canvas);
+    _deleteButton.draw(canvas);
+    _actionsDirty = false;
+  }
+
+  if (_overlayDirty) {
+    canvas.fillRect(_toast.rect.x, _toast.rect.y, _toast.rect.w, _toast.rect.h, theme::UiTheme::Colors::Bg);
+    canvas.fillRect(_confirmModal.rect.x, _confirmModal.rect.y, _confirmModal.rect.w, _confirmModal.rect.h, theme::UiTheme::Colors::Bg);
+    if (toastVisible) {
+      _toast.draw(canvas);
+    }
+    if (_confirmModal.visible) {
+      _confirmModal.draw(canvas);
+    }
+    _overlayDirty = false;
+  } else {
+    if (toastVisible) {
+      _toast.draw(canvas);
+    }
+    if (_confirmModal.visible) {
+      _confirmModal.draw(canvas);
+    }
+  }
+
+  for (uint8_t i = 0; i < 8; ++i) {
+    _lastSlotOccupied[i] = _slotOccupied[i];
+  }
+  _lastSelectedSlot = _selectedSlot;
+  _lastBpm = snapshot.bpm;
+  _lastActiveTrack = snapshot.activeTrack;
+  _lastToastVisible = toastVisible;
+  _lastModalVisible = _confirmModal.visible;
+  _hasFrame = true;
   _dirty = false;
 }
 
@@ -147,19 +243,19 @@ bool ProjectScreen::handleTouch(const TouchPoint &tp, const UiStateSnapshot &sna
         dispatchSaveSlot(_selectedSlot);
         _slotOccupied[_selectedSlot] = true;
         showToast("Slot saved", UiToastSeverity::Info, CYDConfig::UiToastInfoMs);
+        markSlotsDirty();
       } else if (_pendingAction == PendingAction::Delete) {
         _slotOccupied[_selectedSlot] = false;
         showToast("Slot cleared", UiToastSeverity::Warning, CYDConfig::UiToastWarningMs);
+        markSlotsDirty();
       }
       closeConfirm();
-      _dirty = true;
       return true;
     }
 
     if (_confirmModal.cancel.hitTest(tp.x, tp.y)) {
       closeConfirm();
       showToast("Canceled", UiToastSeverity::Warning, CYDConfig::UiToastWarningMs);
-      _dirty = true;
       return true;
     }
 
@@ -169,7 +265,7 @@ bool ProjectScreen::handleTouch(const TouchPoint &tp, const UiStateSnapshot &sna
   for (uint8_t i = 0; i < 8; ++i) {
     if (_slotButtons[i].hitTest(tp.x, tp.y)) {
       _selectedSlot = i;
-      _dirty = true;
+      markSlotsDirty();
       return true;
     }
   }
@@ -177,7 +273,7 @@ bool ProjectScreen::handleTouch(const TouchPoint &tp, const UiStateSnapshot &sna
   if (_loadButton.hitTest(tp.x, tp.y)) {
     dispatchLoadSlot(_selectedSlot);
     showToast("Slot loaded", UiToastSeverity::Info, CYDConfig::UiToastInfoMs);
-    _dirty = true;
+    markActionsDirty();
     return true;
   }
 
@@ -188,14 +284,13 @@ bool ProjectScreen::handleTouch(const TouchPoint &tp, const UiStateSnapshot &sna
       dispatchSaveSlot(_selectedSlot);
       _slotOccupied[_selectedSlot] = true;
       showToast("Slot saved", UiToastSeverity::Info, CYDConfig::UiToastInfoMs);
+      markSlotsDirty();
     }
-    _dirty = true;
     return true;
   }
 
   if (_slotOccupied[_selectedSlot] && _deleteButton.hitTest(tp.x, tp.y)) {
     openConfirm(PendingAction::Delete);
-    _dirty = true;
     return true;
   }
 
@@ -205,6 +300,11 @@ bool ProjectScreen::handleTouch(const TouchPoint &tp, const UiStateSnapshot &sna
 
 void ProjectScreen::invalidate() {
   _dirty = true;
+  _headerDirty = true;
+  _statusDirty = true;
+  _slotsDirty = true;
+  _actionsDirty = true;
+  _overlayDirty = true;
 }
 
 } // namespace ui

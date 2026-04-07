@@ -520,6 +520,20 @@ Pendências imediatas ainda abertas:
 
 ### Atualização de implementação — 2026-04-07
 
+Tarefa assumida nesta rodada: **evoluir invalidação de nível de tela para sub-regiões no `ProjectScreen`**.
+
+Implementado:
+- `ProjectScreen` deixou de executar repaint global do painel em todo render e passou a usar dirty flags por seção (`header`, `status`, `slots`, `actions`, `overlay`).
+- O render incremental agora detecta mudanças de `selectedSlot`, ocupação de slots, `bpm`/trilha ativa e visibilidade de `toast/modal`.
+- `handleTouch` foi refinado para marcar invalidação local conforme a interação (seleção de slot, save/load/delete, confirmação/cancelamento).
+
+Pendências imediatas ainda abertas:
+- Validar em hardware real a redução de flicker/custo no fluxo de modal/toast do `ProjectScreen`.
+- Avaliar necessidade de granularidade adicional em telas já parciais (`MixScreen`/`PerformScreen`) conforme profiling visual.
+- Definir recorte final da limpeza opcional do pipeline legado mantendo rollback por feature flag.
+
+### Atualização de implementação — 2026-04-07
+
 Tarefa assumida nesta rodada: **reduzir full redraw desnecessário na `SoundScreen` durante interação (`+/-`, hold-repeat e troca de track)**.
 
 Implementado:

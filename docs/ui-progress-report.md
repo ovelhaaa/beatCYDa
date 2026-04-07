@@ -137,3 +137,19 @@ Avançar na pendência de Sprint 7 de **revisão de contraste/estado pressionado
   2. Avaliar granularidade ainda mais fina em cada row (sub-retângulos internos de label/valor/barra/botões), se necessário.
   3. Fechar validação final de contraste/estados pressionados sob iluminação forte.
   4. Definir recorte final da limpeza opcional do pipeline legado mantendo rollback por feature flag.
+
+### Atualização incremental (2026-04-07 — invalidação incremental no ProjectScreen)
+- ✅ **Verificação do estado atual**:
+  - `ProjectScreen` ainda repintava todo o painel em cada frame (`fillRect` global de conteúdo), mesmo com mudanças locais (slot, toast, modal).
+  - Isso mantinha funcionalidade, mas contrariava a pendência de Sprint 7 sobre invalidação mais fina por componente.
+- ✅ **Tarefa pendente assumida**: migrar `ProjectScreen` para redraw incremental por regiões sem quebrar os fluxos de slot/modal/toast.
+- ✅ **Implementado em código**:
+  - Introduzidos dirty flags internos por seção (`header`, `status`, `slots`, `actions`, `overlay`) e tracking do frame anterior.
+  - Render passou a detectar mudanças reais de estado (`selectedSlot`, `slotOccupied`, `bpm`, `activeTrack`, visibilidade de toast/modal).
+  - Repaint local aplicado apenas nas áreas afetadas (grid de slots, linha de status, barra de ações e overlays), preservando redraw completo só no primeiro frame/invalidate global.
+  - `handleTouch` foi ajustado para marcar dirty granular por tipo de interação (seleção de slot, save/load/delete, confirmação/cancelamento).
+- ⏳ **O que resta após esta rodada**:
+  1. Validar em hardware real redução de flicker/custo no `ProjectScreen` durante fluxo de modal/toast.
+  2. Revisar se `MixScreen` também merece granularidade adicional além dos faders/mestre.
+  3. Fechar validação final de contraste/pressed state sob luz ambiente forte.
+  4. Definir escopo final da limpeza opcional do legado mantendo rollback via flag.
