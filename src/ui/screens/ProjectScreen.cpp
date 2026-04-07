@@ -161,6 +161,10 @@ void ProjectScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &sna
   if (_lastToastVisible != toastVisible || _lastModalVisible != _confirmModal.visible) {
     markOverlayDirty();
   }
+  const bool baseSectionsDirty = _headerDirty || _statusDirty || _slotsDirty || _actionsDirty;
+  if (_confirmModal.visible && baseSectionsDirty) {
+    markOverlayDirty();
+  }
 
   if (_headerDirty) {
     canvas.fillRect(_headerCard.rect.x,
@@ -201,8 +205,12 @@ void ProjectScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &sna
   }
 
   if (_overlayDirty) {
-    canvas.fillRect(_toast.rect.x, _toast.rect.y, _toast.rect.w, _toast.rect.h, theme::UiTheme::Colors::Bg);
-    canvas.fillRect(_confirmModal.rect.x, _confirmModal.rect.y, _confirmModal.rect.w, _confirmModal.rect.h, theme::UiTheme::Colors::Bg);
+    if (_lastToastVisible || toastVisible) {
+      canvas.fillRect(_toast.rect.x, _toast.rect.y, _toast.rect.w, _toast.rect.h, theme::UiTheme::Colors::Bg);
+    }
+    if (_lastModalVisible || _confirmModal.visible) {
+      canvas.fillRect(_confirmModal.rect.x, _confirmModal.rect.y, _confirmModal.rect.w, _confirmModal.rect.h, theme::UiTheme::Colors::Bg);
+    }
     if (toastVisible) {
       _toast.draw(canvas);
     }

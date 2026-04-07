@@ -536,6 +536,7 @@ Passo adicional aplicado após revisão:
 - `IScreen` recebeu hook `wantsContinuousRedraw(nowMs)` para suportar overlays/transientes dependentes de tempo.
 - `UiApp` passou a consultar o hook da tela ativa e forçar `panelDirty` quando necessário.
 - `ProjectScreen` passou a usar esse hook para ciclo de vida de `toast/modal`, incluindo frame de limpeza quando o overlay deixa de estar visível.
+- Correção do overlay incremental: modal agora força `overlayDirty` quando seções base são redesenhadas, e `fillRect` de toast/modal ficou condicional à visibilidade anterior/atual para evitar limpeza desnecessária.
 
 ### Atualização de implementação — 2026-04-07
 

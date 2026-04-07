@@ -160,5 +160,6 @@ Avançar na pendência de Sprint 7 de **revisão de contraste/estado pressionado
   - `UiApp` passou a respeitar esse hook e marcar `panelDirty` quando a tela ativa solicitar.
   - `ProjectScreen` implementou `wantsContinuousRedraw` para manter atualização enquanto toast/modal estiver visível e garantir um frame de limpeza quando o overlay expirar/fechar.
   - Render de overlay no `ProjectScreen` passou a desenhar apenas quando `_overlayDirty` (evitando redraw redundante a cada frame).
+  - Ajuste de correção/eficiência: quando o modal está visível e uma seção base é redesenhada (`header/status/slots/actions`), o overlay é invalidado novamente; além disso, limpeza (`fillRect`) de toast/modal só ocorre quando havia/há visibilidade do respectivo elemento.
 - 🎯 **Motivação**:
   - Evitar “toast preso”/overlay não limpo em ciclos sem toque e sem mudança de modelo.
