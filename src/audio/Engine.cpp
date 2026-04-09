@@ -67,6 +67,7 @@ void Engine::init() {
   bgp.minIntervalMs = 150.0f;         // Don't get too crazy fast
   bgp.range = 7;                      // +/- 5th
   bgp.slideProb = 0.2f;               // Occasional slide
+  bgp.phraseVariation = 0.6f;         // Gentle A/B and cadence contrast
 
   bassGroove.updateParams(bgp);
   globalRoot.store(bassMidiToRootClass(bgp.rootNote));

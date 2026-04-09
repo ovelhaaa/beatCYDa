@@ -31,6 +31,7 @@ struct BassGrooveParams {
   // Movement (Walker)
   int range;       // Max interval jump (semitones approx, or scale degrees)
   float slideProb; // 0.0 .. 1.0
+  float phraseVariation; // 0.0 .. 1.0 (A/B phrase contrast + cadential pull)
 };
 
 class BassGroove {
@@ -64,6 +65,8 @@ private:
   int degree;    // 0..SCALE_SIZE-1
   int octave;    // Relative octave
   bool altState; // Alternation state A/B
+  int phraseStep;    // 0..15
+  int phraseVariant; // 0=A, 1=B
 
   // Kick Sync State
   bool kickReceived;

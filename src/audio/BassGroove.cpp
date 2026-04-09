@@ -38,6 +38,7 @@ void BassGroove::init(float sr) {
   params.minIntervalMs = 9.0f;
   params.range = 5;
   params.slideProb = 0.3f; // Slightly increased for Legato feel
+  params.phraseVariation = 0.5f;
 
   // Reset State
   lastNote = 36;
@@ -57,6 +58,8 @@ void BassGroove::init(float sr) {
   degree = 0;
   octave = 0;
   altState = false;
+  phraseStep = 0;
+  phraseVariant = 0;
 }
 
 void BassGroove::updateParams(const BassGrooveParams &newParams) {
@@ -66,6 +69,10 @@ void BassGroove::updateParams(const BassGrooveParams &newParams) {
     params.density = 0.0f;
   if (params.density > 0.8f) // Cap max density to prevent chaos
     params.density = 0.8f;
+  if (params.phraseVariation < 0.0f)
+    params.phraseVariation = 0.0f;
+  if (params.phraseVariation > 1.0f)
+    params.phraseVariation = 1.0f;
 
   // Update cached scale pointer
   switch (params.scaleType) {
@@ -92,17 +99,23 @@ void BassGroove::updateParams(const BassGrooveParams &newParams) {
 void BassGroove::onKick() { kickReceived = true; }
 
 void BassGroove::onTick(int currentStep) {
+  const int wrappedStep = ((currentStep % 64) + 64) % 64;
+  phraseStep = wrappedStep % 16;
+  phraseVariant = (wrappedStep / 16) % 2;
+  altState = (phraseVariant == 1);
+
+  bool hasKick = kickReceived;
+  kickReceived = false;
+
   if (timeSinceLastTriggerMs < params.minIntervalMs) {
-    kickReceived = false;
     return;
   }
 
   // --- 1. RHYTHM LOGIC ---
   float p = params.density;
-  bool isDownBeat = (currentStep % 16 == 0);
-  bool isQuarterStep = (currentStep % 4 == 0);
-  bool isPreferredOffbeat =
-      (currentStep == 2 || currentStep == 6 || currentStep == 10 || currentStep == 14);
+  bool isDownBeat = (phraseStep == 0);
+  bool isQuarterStep = (wrappedStep % 4 == 0);
+  bool isPreferredOffbeat = (wrappedStep % 4 == 2);
 
   // Keep downbeat protection across every mode.
   if (isDownBeat) {
@@ -112,7 +125,7 @@ void BassGroove::onTick(int currentStep) {
   } else {
     switch (params.mode) {
     case GrooveMode::FOLLOW_KICK:
-      if (kickReceived) {
+      if (hasKick) {
         // Boost probability when kick is present.
         p = 0.78f + (params.density * 0.22f);
       } else if (isPreferredOffbeat) {
@@ -156,7 +169,6 @@ void BassGroove::onTick(int currentStep) {
     trigger(isAccent); // Helper overload
   }
 
-  kickReceived = false;
 }
 
 void BassGroove::process(float dt_ms) { timeSinceLastTriggerMs += dt_ms; }
@@ -229,6 +241,11 @@ uint8_t BassGroove::generateNote() {
   int currentAbsDegree = octave * scaleLen + degree;
   int candidateAbsDegree = currentAbsDegree;
 
+  const float varAmt = params.phraseVariation;
+  const bool isPhraseClosure = (phraseStep == 15);
+  const bool preferCadence = isPhraseClosure || (phraseVariant == 1 && phraseStep >= 12);
+  const int stableBias = preferCadence ? static_cast<int>(30.0f * varAmt) : 0;
+
   // Weights (Probabilities out of 100)
   int r = xorShift(rngState) % 100;
 
@@ -236,19 +253,32 @@ uint8_t BassGroove::generateNote() {
   // 60% Chance: Stay/Move to Root or Fifth
   // 40% Chance: Walk +/- 1
 
-  if (r < 50) {
+  if (r < (50 + stableBias)) {
     // STABLE: Pick Root or Fifth
-    if ((xorShift(rngState) & 1) == 0)
+    const int rootChance = 50 + static_cast<int>(35.0f * varAmt);
+    if ((xorShift(rngState) % 100) < rootChance)
       candidateAbsDegree = octave * scaleLen; // Root (Grounding)
     else
       candidateAbsDegree = octave * scaleLen + 4; // Fifth (approx, mapped later)
-  } else if (r < 80) {
+  } else if (r < (80 + static_cast<int>(10.0f * varAmt))) {
     // WALK SMALL
-    int step = (xorShift(rngState) & 1) ? 1 : -1;
+    int step = ((xorShift(rngState) & 1) ? 1 : -1);
+    if (altState && randomUnit() < (0.25f + (0.35f * varAmt))) {
+      step = -step;
+    }
     candidateAbsDegree = currentAbsDegree + step;
   } else {
     // JUMP (Octave or Third)
-    candidateAbsDegree = currentAbsDegree + (xorShift(rngState) % 3) + 2;
+    const int jump = (xorShift(rngState) % 3) + 2;
+    candidateAbsDegree = currentAbsDegree + ((altState && varAmt > 0.2f) ? -jump : jump);
+  }
+
+  // Force cadence tendency at phrase closure.
+  if (isPhraseClosure && randomUnit() < (0.7f + 0.25f * varAmt)) {
+    candidateAbsDegree = octave * scaleLen;
+    if (randomUnit() < (0.45f - 0.25f * varAmt)) {
+      candidateAbsDegree = octave * scaleLen + 4;
+    }
   }
 
   // 1) Limit max displacement in scale degrees per step.
