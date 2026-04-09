@@ -207,8 +207,27 @@ void BassGroove::trigger(bool forceAccent) {
 uint8_t BassGroove::generateNote() {
   // --- 4. HARMONIC LOGIC ---
   // Walker with Gravity towards Root/Fifth
+  int scaleLen = cachedScaleLen;
+  int rangeSemitones = params.range;
+  if (rangeSemitones < 0)
+    rangeSemitones = 0;
 
-  int degreeOut = degree;
+  auto semitonesForDegreeSpan = [&](int spanDegrees) {
+    if (spanDegrees <= 0)
+      return 0;
+    int octs = spanDegrees / scaleLen;
+    int deg = spanDegrees % scaleLen;
+    return (octs * 12) + cachedScale[deg];
+  };
+
+  // Convert "range in semitones (approx)" to reachable scale-degree span.
+  int maxDegreeSpanFromRange = 0;
+  while (semitonesForDegreeSpan(maxDegreeSpanFromRange + 1) <= rangeSemitones) {
+    maxDegreeSpanFromRange++;
+  }
+
+  int currentAbsDegree = octave * scaleLen + degree;
+  int candidateAbsDegree = currentAbsDegree;
 
   // Weights (Probabilities out of 100)
   int r = xorShift(rngState) % 100;
@@ -220,42 +239,44 @@ uint8_t BassGroove::generateNote() {
   if (r < 50) {
     // STABLE: Pick Root or Fifth
     if ((xorShift(rngState) & 1) == 0)
-      degreeOut = 0; // Root (Grounding)
+      candidateAbsDegree = octave * scaleLen; // Root (Grounding)
     else
-      degreeOut = 4; // Fifth (approx, mapped later)
+      candidateAbsDegree = octave * scaleLen + 4; // Fifth (approx, mapped later)
   } else if (r < 80) {
     // WALK SMALL
     int step = (xorShift(rngState) & 1) ? 1 : -1;
-    degreeOut = degree + step;
+    candidateAbsDegree = currentAbsDegree + step;
   } else {
     // JUMP (Octave or Third)
-    degreeOut = degree + (xorShift(rngState) % 3) + 2;
+    candidateAbsDegree = currentAbsDegree + (xorShift(rngState) % 3) + 2;
   }
 
-  // Apply changes to state
-  degree = degreeOut;
+  // 1) Limit max displacement in scale degrees per step.
+  int deltaDegrees = candidateAbsDegree - currentAbsDegree;
+  if (deltaDegrees > maxDegreeSpanFromRange)
+    deltaDegrees = maxDegreeSpanFromRange;
+  if (deltaDegrees < -maxDegreeSpanFromRange)
+    deltaDegrees = -maxDegreeSpanFromRange;
+  candidateAbsDegree = currentAbsDegree + deltaDegrees;
 
-  // Use cached scale (updated in updateParams())
-  int scaleLen = cachedScaleLen;
+  // 2) Limit walker excursion around center (degree=0 / octave=0).
+  if (candidateAbsDegree > maxDegreeSpanFromRange)
+    candidateAbsDegree = maxDegreeSpanFromRange;
+  if (candidateAbsDegree < -maxDegreeSpanFromRange)
+    candidateAbsDegree = -maxDegreeSpanFromRange;
 
-  // Wrap degree to scale
-  // Custom Wrap logic to handle negative walking
-  while (degree < 0) {
-    degree += scaleLen;
-    octave--;
+  // 3) Map absolute degree back to cached scale degree + relative octave.
+  int mappedOctave = candidateAbsDegree / scaleLen;
+  int mappedDegree = candidateAbsDegree % scaleLen;
+  if (mappedDegree < 0) {
+    mappedDegree += scaleLen;
+    mappedOctave--;
   }
-  while (degree >= scaleLen) {
-    degree -= scaleLen;
-    octave++;
-  }
 
-  // Boundary check on Octave
-  if (octave < -1)
-    octave = -1;
-  if (octave > 1)
-    octave = 1;
+  degree = mappedDegree;
+  octave = mappedOctave;
 
-  degreeOut = degree; // Finalize
+  int degreeOut = degree; // Finalize
 
   // Calculate MIDI Note using cached scale
   int note = params.rootNote + cachedScale[degreeOut] +
