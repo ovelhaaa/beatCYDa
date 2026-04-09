@@ -69,6 +69,9 @@ void Engine::init() {
   bgp.slideProb = 0.2f;               // Occasional slide
   bgp.phraseVariation = 0.6f;         // Gentle A/B and cadence contrast
   bgp.motifIndex = 0;
+  bgp.swing = 0.25f;
+  bgp.accentProb = 0.32f;
+  bgp.ghostProb = 0.18f;
 
   bassGroove.updateParams(bgp);
   globalRoot.store(bassMidiToRootClass(bgp.rootNote));
@@ -118,6 +121,10 @@ void Engine::setFactoryPreset(int slotId) {
   slots[slotId].bassRange = 7;
   slots[slotId].bassMode = static_cast<int>(GrooveMode::FOLLOW_KICK);
   slots[slotId].bassMotifIndex = 0;
+  slots[slotId].bassSwing = 0.25f;
+  slots[slotId].bassAccentProb = 0.32f;
+  slots[slotId].bassGhostProb = 0.18f;
+  slots[slotId].bassPhraseVariation = 0.6f;
   slots[slotId].bpm = 120;
   slots[slotId].snareMode = 0;
 
@@ -452,6 +459,10 @@ void Engine::captureActiveToSlot(int slotId) {
   slots[slotId].bassRange = bg.range;
   slots[slotId].bassMode = static_cast<int>(bg.mode);
   slots[slotId].bassMotifIndex = bg.motifIndex;
+  slots[slotId].bassSwing = bg.swing;
+  slots[slotId].bassAccentProb = bg.accentProb;
+  slots[slotId].bassGhostProb = bg.ghostProb;
+  slots[slotId].bassPhraseVariation = bg.phraseVariation;
   slots[slotId].snareMode = voiceManager.getParams(VOICE_SNARE).mode;
   slots[slotId].bpm = bpm.load(); // Capture BPM
 }
@@ -486,6 +497,10 @@ void Engine::saveSlot(int slotId, bool capture) {
   preferences.putInt("bassRange", slots[slotId].bassRange);
   preferences.putInt("bassMode", slots[slotId].bassMode);
   preferences.putInt("bassMotif", slots[slotId].bassMotifIndex);
+  preferences.putFloat("bassSwing", slots[slotId].bassSwing);
+  preferences.putFloat("bassAccent", slots[slotId].bassAccentProb);
+  preferences.putFloat("bassGhost", slots[slotId].bassGhostProb);
+  preferences.putFloat("bassPhraseVar", slots[slotId].bassPhraseVariation);
   preferences.putInt("snareMode", slots[slotId].snareMode);
   preferences.putInt("bpm", slots[slotId].bpm);
   preferences.putBool("is_saved", true); // Mark as saved
@@ -531,6 +546,10 @@ void Engine::loadSlot(int slotId) {
     slots[slotId].bassMode = preferences.getInt("bassMode",
                                                static_cast<int>(GrooveMode::FOLLOW_KICK));
     slots[slotId].bassMotifIndex = preferences.getInt("bassMotif", 0);
+    slots[slotId].bassSwing = preferences.getFloat("bassSwing", 0.25f);
+    slots[slotId].bassAccentProb = preferences.getFloat("bassAccent", 0.32f);
+    slots[slotId].bassGhostProb = preferences.getFloat("bassGhost", 0.18f);
+    slots[slotId].bassPhraseVariation = preferences.getFloat("bassPhraseVar", 0.6f);
     slots[slotId].snareMode = preferences.getInt("snareMode", 0);
     slots[slotId].bpm = preferences.getInt("bpm", 120);
   }
@@ -586,6 +605,10 @@ void Engine::applySlotToActive(int slotId) {
     bg.range = slots[slotId].bassRange;
     bg.mode = static_cast<GrooveMode>(slots[slotId].bassMode);
     bg.motifIndex = (uint8_t)(slots[slotId].bassMotifIndex & 0x03);
+    bg.swing = slots[slotId].bassSwing;
+    bg.accentProb = slots[slotId].bassAccentProb;
+    bg.ghostProb = slots[slotId].bassGhostProb;
+    bg.phraseVariation = slots[slotId].bassPhraseVariation;
     bassGroove.updateParams(bg);
     syncGlobalsFromBassGroove();
 
@@ -710,6 +733,25 @@ void setBassControlAbsolute(int paramIdx, int value) {
     params.rootNote = static_cast<uint8_t>(constrain(24 + (value * 24 / 100),
                                                      (int)BASS_ROOT_NOTE_MIN,
                                                      (int)BASS_ROOT_NOTE_MAX));
+    break;
+  case 4:
+    params.mode =
+        static_cast<GrooveMode>(constrain(value * 4 / 100, 0, 3));
+    break;
+  case 5:
+    params.motifIndex = (uint8_t)constrain(value * 4 / 100, 0, 3);
+    break;
+  case 6:
+    params.swing = constrain(value / 100.0f, 0.0f, 1.0f);
+    break;
+  case 7:
+    params.accentProb = constrain(value / 100.0f, 0.0f, 1.0f);
+    break;
+  case 8:
+    params.ghostProb = constrain(value / 100.0f, 0.0f, 1.0f);
+    break;
+  case 9:
+    params.phraseVariation = constrain(value / 100.0f, 0.0f, 1.0f);
     break;
   default:
     return;

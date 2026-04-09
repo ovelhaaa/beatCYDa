@@ -107,11 +107,25 @@ int getParamDisplayValue(const UiRuntime &ui, int paramIndex) {
     case 0:
       return static_cast<int>(ui.snapshot.bassParams.density * 100.0f);
     case 1:
-      return ui.snapshot.bassParams.range;
+      return static_cast<int>(((ui.snapshot.bassParams.range - 1) / 11.0f) * 100.0f);
     case 2:
-      return static_cast<int>(ui.snapshot.bassParams.scaleType);
+      return static_cast<int>(static_cast<uint8_t>(ui.snapshot.bassParams.scaleType) *
+                              (100.0f / 3.0f));
+    case 3:
+      return static_cast<int>(((ui.snapshot.bassParams.rootNote - 24) / 24.0f) * 100.0f);
+    case 4:
+      return static_cast<int>(static_cast<uint8_t>(ui.snapshot.bassParams.mode) *
+                              (100.0f / 3.0f));
+    case 5:
+      return static_cast<int>((ui.snapshot.bassParams.motifIndex & 0x03) * (100.0f / 3.0f));
+    case 6:
+      return static_cast<int>(ui.snapshot.bassParams.swing * 100.0f);
+    case 7:
+      return static_cast<int>(ui.snapshot.bassParams.accentProb * 100.0f);
+    case 8:
+      return static_cast<int>(ui.snapshot.bassParams.ghostProb * 100.0f);
     default:
-      return ui.snapshot.bassParams.rootNote;
+      return static_cast<int>(ui.snapshot.bassParams.phraseVariation * 100.0f);
     }
   }
 

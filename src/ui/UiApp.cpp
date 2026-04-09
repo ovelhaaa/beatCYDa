@@ -69,6 +69,9 @@ bool hasPatternPanelChanges(const UiStateSnapshot &lhs, const UiStateSnapshot &r
   }
 
   const uint8_t activeTrack = lhs.activeTrack;
+  if (activeTrack == VOICE_BASS) {
+    return lhs.bassParams.mode != rhs.bassParams.mode || lhs.bassParams.motifIndex != rhs.bassParams.motifIndex;
+  }
   return lhs.trackSteps[activeTrack] != rhs.trackSteps[activeTrack] ||
          lhs.trackHits[activeTrack] != rhs.trackHits[activeTrack] ||
          lhs.trackRotations[activeTrack] != rhs.trackRotations[activeTrack] ||
@@ -81,6 +84,16 @@ bool hasSoundPanelChanges(const UiStateSnapshot &lhs, const UiStateSnapshot &rhs
   }
 
   const uint8_t activeTrack = lhs.activeTrack;
+  if (activeTrack == VOICE_BASS) {
+    return lhs.voiceParams[activeTrack].pitch != rhs.voiceParams[activeTrack].pitch ||
+           lhs.voiceParams[activeTrack].decay != rhs.voiceParams[activeTrack].decay ||
+           lhs.voiceParams[activeTrack].timbre != rhs.voiceParams[activeTrack].timbre ||
+           lhs.voiceParams[activeTrack].drive != rhs.voiceParams[activeTrack].drive ||
+           lhs.bassParams.mode != rhs.bassParams.mode || lhs.bassParams.motifIndex != rhs.bassParams.motifIndex ||
+           lhs.bassParams.swing != rhs.bassParams.swing || lhs.bassParams.accentProb != rhs.bassParams.accentProb ||
+           lhs.bassParams.ghostProb != rhs.bassParams.ghostProb ||
+           lhs.bassParams.phraseVariation != rhs.bassParams.phraseVariation;
+  }
   return lhs.voiceParams[activeTrack].pitch != rhs.voiceParams[activeTrack].pitch ||
          lhs.voiceParams[activeTrack].decay != rhs.voiceParams[activeTrack].decay ||
          lhs.voiceParams[activeTrack].timbre != rhs.voiceParams[activeTrack].timbre ||
@@ -228,6 +241,9 @@ void UiApp::renderTopBarTransport() {
 }
 
 void UiApp::renderTopBarMetrics() {
+  static const char *NOTE_NAMES[12] = {"C",  "C#", "D",  "D#", "E", "F",
+                                       "F#", "G",  "G#", "A",  "A#", "B"};
+  static const char *MODE_NAMES[4] = {"FK", "OFF", "RND", "MTF"};
   auto &canvas = _display.canvas();
   canvas.fillRect(theme::UiTheme::Metrics::TopBarMetricsX,
                   theme::UiTheme::Metrics::TopBarMetricsY,
@@ -236,7 +252,17 @@ void UiApp::renderTopBarMetrics() {
                   theme::UiTheme::Colors::Surface);
   canvas.setTextColor(theme::UiTheme::Colors::TextSecondary, theme::UiTheme::Colors::Surface);
   canvas.setCursor(theme::UiTheme::Metrics::TopBarMetricsX + 2, theme::UiTheme::Metrics::TopBarTextBaselineY);
-  canvas.printf("BPM %d  %uFPS %luKB", _snapshot.bpm, _uiFps, static_cast<unsigned long>(_freeHeap / 1024UL));
+  const uint8_t root = _snapshot.bassParams.rootNote;
+  const int noteClass = root % 12;
+  const int octave = (root / 12) - 1;
+  const uint8_t modeIndex = static_cast<uint8_t>(_snapshot.bassParams.mode) & 0x03;
+  canvas.printf("BPM %d %s%d %s %uFPS %luKB",
+                _snapshot.bpm,
+                NOTE_NAMES[noteClass],
+                octave,
+                MODE_NAMES[modeIndex],
+                _uiFps,
+                static_cast<unsigned long>(_freeHeap / 1024UL));
 }
 
 void UiApp::updateUiStats(uint32_t nowMs) {

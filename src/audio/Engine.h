@@ -47,6 +47,10 @@ struct PresetData {
   int bassRange;
   int bassMode;
   int bassMotifIndex;
+  float bassSwing;
+  float bassAccentProb;
+  float bassGhostProb;
+  float bassPhraseVariation;
   int snareMode;
   int bpm; // Added BPM
 };
