@@ -41,16 +41,18 @@ MixScreen::MixScreen() {
 }
 
 void MixScreen::layout() {
-  setRect(_headerCard.rect, 12, 46, 120, 48);
-
-  constexpr int faderY = 102;
-  constexpr int faderW = 40;
-  constexpr int faderH = 90;
-  constexpr int gap = 20;
-  constexpr int startX = 20;
+  setRect(_headerCard.rect,
+          theme::UiTheme::Metrics::MixHeaderX,
+          theme::UiTheme::Metrics::MixHeaderY,
+          theme::UiTheme::Metrics::MixHeaderW,
+          theme::UiTheme::Metrics::MixHeaderH);
 
   for (int i = 0; i < TRACK_COUNT; ++i) {
-    setRect(_faders[i].visualRect, startX + i * (faderW + gap), faderY, faderW, faderH);
+    setRect(_faders[i].visualRect,
+            theme::UiTheme::Metrics::MixFaderStartX + i * (theme::UiTheme::Metrics::MixFaderW + theme::UiTheme::Metrics::MixFaderGap),
+            theme::UiTheme::Metrics::MixFaderY,
+            theme::UiTheme::Metrics::MixFaderW,
+            theme::UiTheme::Metrics::MixFaderH);
   }
 }
 
@@ -72,10 +74,14 @@ void MixScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &snapsho
   }
 
   if (_masterDirty) {
-    canvas.fillRect(140, 52, 132, 16, theme::UiTheme::Colors::Bg);
+    canvas.fillRect(theme::UiTheme::Metrics::MixMasterTextX,
+                    theme::UiTheme::Metrics::MixMasterTextY,
+                    theme::UiTheme::Metrics::MixMasterTextW,
+                    theme::UiTheme::Metrics::MixMasterTextH,
+                    theme::UiTheme::Colors::Bg);
     canvas.setTextSize(theme::UiTheme::Typography::CaptionSize);
     canvas.setTextColor(theme::UiTheme::Colors::TextSecondary, theme::UiTheme::Colors::Bg);
-    canvas.setCursor(144, 56);
+    canvas.setCursor(theme::UiTheme::Metrics::MixMasterTextCursorX, theme::UiTheme::Metrics::MixMasterTextCursorY);
     canvas.printf("MASTER %u%%", static_cast<unsigned>(masterPercent));
     _lastRenderedMaster = masterPercent;
     _masterDirty = false;
@@ -103,10 +109,10 @@ void MixScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &snapsho
 
     _faders[i].captured = (_activeFader == i);
     if (_faderDirty[i]) {
-      canvas.fillRect(_faders[i].visualRect.x - 2,
-                      _faders[i].visualRect.y - 2,
-                      _faders[i].visualRect.w + 4,
-                      _faders[i].visualRect.h + 16,
+      canvas.fillRect(_faders[i].visualRect.x - theme::UiTheme::Metrics::MixFaderDirtyPadding,
+                      _faders[i].visualRect.y - theme::UiTheme::Metrics::MixFaderDirtyPadding,
+                      _faders[i].visualRect.w + theme::UiTheme::Metrics::MixFaderDirtyPadding * 2,
+                      _faders[i].visualRect.h + theme::UiTheme::Metrics::MixFaderDirtyLabelExtraH,
                       theme::UiTheme::Colors::Bg);
       _faders[i].draw(canvas);
       _lastRenderedFaderValues[i] = _faders[i].value;
