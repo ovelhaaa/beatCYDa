@@ -1,6 +1,7 @@
 #include "PatternScreen.h"
 
 #include "../core/UiActions.h"
+#include "../core/BassUiFormat.h"
 #include "../theme/UiTheme.h"
 #include "../../CYD_Config.h"
 
@@ -38,6 +39,10 @@ bool hasPatternChanges(const UiStateSnapshot &lhs, const UiStateSnapshot &rhs) {
     }
   }
   return false;
+}
+
+bool isBassTrack(const UiStateSnapshot &snapshot) {
+  return snapshot.activeTrack == VOICE_BASS;
 }
 
 bool bassParamChanged(const UiStateSnapshot &lhs, const UiStateSnapshot &rhs, int rowIndex) {
@@ -121,12 +126,19 @@ void PatternScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &sna
   const bool isBassTrack = snapshot.activeTrack == VOICE_BASS;
   const bool forceFullRender = _dirty || !_hasLastSnapshot;
   const bool trackChanged = forceFullRender || snapshot.activeTrack != _lastSnapshot.activeTrack;
+  const bool bassContext = isBassTrack(snapshot);
+  const bool bassContextChanged = forceFullRender || (isBassTrack(snapshot) != isBassTrack(_lastSnapshot));
+
+  _rows[2].label = bassContext ? "MODE" : "ROTATE";
+  _rows[3].label = bassContext ? "MOTIF" : "GAIN";
 
   const bool chipsDirty = forceFullRender || trackChanged || hasMuteChanges(snapshot, _lastSnapshot);
   const bool previewDirty =
       forceFullRender || trackChanged || snapshot.currentStep != _lastSnapshot.currentStep || hasPatternChanges(snapshot, _lastSnapshot);
-  bool rowDirty[4] = {forceFullRender || trackChanged, forceFullRender || trackChanged,
-                      forceFullRender || trackChanged, forceFullRender || trackChanged};
+  bool rowDirty[4] = {forceFullRender || trackChanged || bassContextChanged,
+                      forceFullRender || trackChanged || bassContextChanged,
+                      forceFullRender || trackChanged || bassContextChanged,
+                      forceFullRender || trackChanged || bassContextChanged};
   const bool actionButtonsDirty = forceFullRender || _pasteButton.disabled != !_clipboard.hasData;
 
   for (int i = 0; i < 4; ++i) {
@@ -142,9 +154,13 @@ void PatternScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &sna
     } else if (i == 1) {
       valueChanged = snapshot.trackHits[snapshot.activeTrack] != _lastSnapshot.trackHits[_lastSnapshot.activeTrack];
     } else if (i == 2) {
-      valueChanged = snapshot.trackRotations[snapshot.activeTrack] != _lastSnapshot.trackRotations[_lastSnapshot.activeTrack];
+      valueChanged = bassContext ? (snapshot.bassParams.mode != _lastSnapshot.bassParams.mode)
+                                 : (snapshot.trackRotations[snapshot.activeTrack] !=
+                                    _lastSnapshot.trackRotations[_lastSnapshot.activeTrack]);
     } else {
-      valueChanged = snapshot.voiceGain[snapshot.activeTrack] != _lastSnapshot.voiceGain[_lastSnapshot.activeTrack];
+      valueChanged = bassContext ? (snapshot.bassParams.motifIndex != _lastSnapshot.bassParams.motifIndex)
+                                 : (snapshot.voiceGain[snapshot.activeTrack] !=
+                                    _lastSnapshot.voiceGain[_lastSnapshot.activeTrack]);
     }
 
     const bool focusChanged = ((_holdRow == i) != (_lastHoldRow == i));
@@ -320,7 +336,7 @@ void PatternScreen::dispatchRowDelta(const UiStateSnapshot &snapshot, int rowInd
     return;
   }
 
-  dispatchUiAction(UiActionType::SET_SOUND_PARAM, 3,
+  dispatchUiAction(UiActionType::SET_VOICE_GAIN, snapshot.activeTrack,
                    static_cast<int>(snapshot.voiceGain[snapshot.activeTrack] * 100.0f) + amount);
 }
 
