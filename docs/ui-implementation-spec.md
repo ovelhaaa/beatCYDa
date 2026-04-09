@@ -518,6 +518,21 @@ Pendências imediatas ainda abertas:
 - Evoluir invalidação de nível de tela para sub-regiões/componentes nas telas de maior custo de redraw.
 - Definir escopo de limpeza opcional do pipeline legado preservando rollback por feature flag.
 
+### Atualização de implementação — 2026-04-09 (Pattern copy/paste)
+
+Tarefa assumida nesta rodada: **cobrir pendência funcional de `copy/paste` na PatternScreen**.
+
+Implementado:
+- A barra de ações da `PatternScreen` foi expandida para 4 botões (`RANDOM`, `CLEAR`, `COPY`, `PASTE`).
+- Foi adicionado clipboard local para parâmetros da trilha (`steps`, `hits`, `rotation`, `gainPercent`).
+- `COPY` captura parâmetros da trilha ativa.
+- `PASTE` reaplica no track ativo via dispatcher (`SET_STEPS`, `SET_HITS`, `SET_ROTATION`, `SET_SOUND_PARAM`).
+- Estado do botão `PASTE` agora reflete disponibilidade do clipboard (desabilitado até haver cópia).
+
+Pendências imediatas ainda abertas:
+- Validar ergonomia no hardware real com 4 botões de ação na faixa inferior da Pattern.
+- Avaliar evolução futura para copy/paste de sequência completa (bitmap de 64 steps), além dos parâmetros macro.
+
 ### Atualização de implementação — 2026-04-07
 
 Tarefa assumida nesta rodada: **evoluir invalidação de nível de tela para sub-regiões no `ProjectScreen`**.

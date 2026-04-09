@@ -163,3 +163,18 @@ Avançar na pendência de Sprint 7 de **revisão de contraste/estado pressionado
   - Ajuste de correção/eficiência: quando o modal está visível e uma seção base é redesenhada (`header/status/slots/actions`), o overlay é invalidado novamente; além disso, limpeza (`fillRect`) de toast/modal só ocorre quando havia/há visibilidade do respectivo elemento.
 - 🎯 **Motivação**:
   - Evitar “toast preso”/overlay não limpo em ciclos sem toque e sem mudança de modelo.
+
+### Atualização incremental (2026-04-09 — Pattern: COPY/PASTE de parâmetros)
+- ✅ **Verificação do estado atual**:
+  - `PatternScreen` já possuía `RANDOM` e `CLEAR`, mas ainda não cobria o item de spec que menciona fluxo `copy/paste`.
+- ✅ **Tarefa pendente assumida**: adicionar ação local de **copiar/colar parâmetros de pattern** entre trilhas mantendo o dispatcher existente.
+- ✅ **Implementado em código**:
+  - Barra de ações da tela `Pattern` evoluiu para quatro botões: `RANDOM`, `CLEAR`, `COPY` e `PASTE`.
+  - Introduzido clipboard local na `PatternScreen` (`steps`, `hits`, `rotation`, `gainPercent`) com flag de validade.
+  - `COPY` captura os parâmetros da trilha ativa; `PASTE` despacha `SET_STEPS`, `SET_HITS`, `SET_ROTATION` e `SET_SOUND_PARAM` para a trilha ativa.
+  - `PASTE` permanece desabilitado enquanto o clipboard estiver vazio, com redraw incremental apenas quando o estado do botão muda.
+- ⏳ **O que resta após esta rodada**:
+  1. Validar ergonomia no hardware resistivo (largura dos 4 botões de ação no rodapé da `PatternScreen`).
+  2. Definir se o clipboard deve incluir cópia estrutural de sequência completa (bitmap de steps) em rodada futura.
+  3. Fechar validação final de contraste/pressed state em ambiente real.
+  4. Delimitar a limpeza opcional de legado mantendo rollback por feature flag.
