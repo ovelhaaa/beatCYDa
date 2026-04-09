@@ -239,7 +239,7 @@ uint8_t BassGroove::generateNote() {
   // Weights (Probabilities out of 100)
   int r = xorShift(rngState) % 100;
   const bool isPhraseClosing = (phraseStep == 15);
-  const float variation = constrain(params.density, 0.0f, 1.0f);
+const float variation = params.density;
 
   // Decision Tree
   // 60% Chance: Stay/Move to Root or Fifth
