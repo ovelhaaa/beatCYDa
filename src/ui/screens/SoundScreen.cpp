@@ -1,5 +1,6 @@
 #include "SoundScreen.h"
 
+#include "../core/BassUiFormat.h"
 #include "../core/UiActions.h"
 #include "../theme/UiTheme.h"
 #include "../../CYD_Config.h"
@@ -41,40 +42,8 @@ const char *trackName(int track) {
   }
 }
 
-const char *scaleShortName(BassScale scale) {
-  switch (scale) {
-  case BassScale::MAJOR:
-    return "MAJ";
-  case BassScale::DORIAN:
-    return "DOR";
-  case BassScale::PHRYGIAN:
-    return "PHR";
-  case BassScale::MINOR:
-  default:
-    return "MIN";
-  }
-}
-
-const char *modeShortName(GrooveMode mode) {
-  switch (mode) {
-  case GrooveMode::OFFBEAT:
-    return "OFF";
-  case GrooveMode::RANDOM:
-    return "RND";
-  case GrooveMode::MOTIF:
-    return "MTF";
-  case GrooveMode::FOLLOW_KICK:
-  default:
-    return "FK";
-  }
-}
-
 void formatRootNote(char *buffer, size_t size, uint8_t note) {
-  static const char *kNames[12] = {"C",  "C#", "D",  "D#", "E", "F",
-                                   "F#", "G",  "G#", "A",  "A#", "B"};
-  const int noteClass = note % 12;
-  const int octave = (note / 12) - 1;
-  snprintf(buffer, size, "%s%d", kNames[noteClass], octave);
+  snprintf(buffer, size, "%s%d", bassfmt::noteName(note), bassfmt::noteOctave(note));
 }
 
 float regularSoundRowValue(const UiStateSnapshot &snapshot, int rowIndex) {
@@ -105,16 +74,28 @@ float bassPageRowValue(const UiStateSnapshot &snapshot, int page, int rowIndex) 
       return bp.density;
     }
   }
+  if (page == 1) {
+    switch (rowIndex) {
+    case 0:
+      return (bp.range - 1.0f) / 11.0f;
+    case 1:
+      return static_cast<float>(bp.motifIndex & 0x03) / 3.0f;
+    case 2:
+      return bp.swing;
+    default:
+      return bp.accentProb;
+    }
+  }
 
   switch (rowIndex) {
   case 0:
-    return (bp.range - 1.0f) / 11.0f;
+    return bp.ghostProb;
   case 1:
-    return static_cast<float>(bp.motifIndex & 0x03) / 3.0f;
+    return bp.phraseVariation;
   case 2:
-    return bp.swing;
+    return bp.slideProb;
   default:
-    return bp.accentProb;
+    return bp.density;
   }
 }
 
@@ -127,10 +108,10 @@ void bassRowValueText(char *buffer, size_t size, const UiStateSnapshot &snapshot
       formatRootNote(buffer, size, bp.rootNote);
       return;
     case 1:
-      snprintf(buffer, size, "%s", scaleShortName(bp.scaleType));
+      snprintf(buffer, size, "%s", bassfmt::scaleShortName(bp.scaleType));
       return;
     case 2:
-      snprintf(buffer, size, "%s", modeShortName(bp.mode));
+      snprintf(buffer, size, "%s", bassfmt::modeShortName(bp.mode));
       return;
     default:
       formatPercent(buffer, size, bp.density);
@@ -138,18 +119,35 @@ void bassRowValueText(char *buffer, size_t size, const UiStateSnapshot &snapshot
     }
   }
 
+  if (page == 1) {
+    switch (rowIndex) {
+    case 0:
+      snprintf(buffer, size, "%d", bp.range);
+      return;
+    case 1:
+      snprintf(buffer, size, "M%u", static_cast<unsigned>(bp.motifIndex & 0x03));
+      return;
+    case 2:
+      formatPercent(buffer, size, bp.swing);
+      return;
+    default:
+      formatPercent(buffer, size, bp.accentProb);
+      return;
+    }
+  }
+
   switch (rowIndex) {
   case 0:
-    snprintf(buffer, size, "%d", bp.range);
+    formatPercent(buffer, size, bp.ghostProb);
     return;
   case 1:
-    snprintf(buffer, size, "M%u", static_cast<unsigned>(bp.motifIndex & 0x03));
+    formatPercent(buffer, size, bp.phraseVariation);
     return;
   case 2:
-    formatPercent(buffer, size, bp.swing);
+    formatPercent(buffer, size, bp.slideProb);
     return;
   default:
-    formatPercent(buffer, size, bp.accentProb);
+    formatPercent(buffer, size, bp.density);
     return;
   }
 }
@@ -195,11 +193,16 @@ void SoundScreen::applyRowLabels(const UiStateSnapshot &snapshot) {
     _rows[1].label = "SCALE";
     _rows[2].label = "MODE";
     _rows[3].label = "DENSITY";
-  } else {
+  } else if (_bassPage == 1) {
     _rows[0].label = "RANGE";
     _rows[1].label = "MOTIF";
     _rows[2].label = "SWING";
     _rows[3].label = "ACCENT";
+  } else {
+    _rows[0].label = "GHOST";
+    _rows[1].label = "PHRASE";
+    _rows[2].label = "SLIDE";
+    _rows[3].label = "DENSITY";
   }
 }
 
@@ -269,7 +272,7 @@ void SoundScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &snaps
                     theme::UiTheme::Colors::Bg);
 
     if (isBassTrack(snapshot)) {
-      _identityCard.value = (_bassPage == 0) ? "BASS A" : "BASS B";
+      _identityCard.value = (_bassPage == 0) ? "BASS A" : (_bassPage == 1) ? "BASS B" : "BASS C";
     } else {
       _identityCard.value = trackName(snapshot.activeTrack);
     }
@@ -359,7 +362,7 @@ void SoundScreen::dispatchRowDelta(const UiStateSnapshot &snapshot, int rowIndex
         currentValue = static_cast<int>(bp.density * 100.0f);
         break;
       }
-    } else {
+    } else if (_bassPage == 1) {
       switch (rowIndex) {
       case 0:
         paramIdx = 1;
@@ -377,6 +380,26 @@ void SoundScreen::dispatchRowDelta(const UiStateSnapshot &snapshot, int rowIndex
       default:
         paramIdx = 7;
         currentValue = static_cast<int>(bp.accentProb * 100.0f);
+        break;
+      }
+    } else {
+      switch (rowIndex) {
+      case 0:
+        paramIdx = 8;
+        currentValue = static_cast<int>(bp.ghostProb * 100.0f);
+        break;
+      case 1:
+        paramIdx = 9;
+        currentValue = static_cast<int>(bp.phraseVariation * 100.0f);
+        break;
+      case 2:
+        paramIdx = 10;
+        currentValue = static_cast<int>(bp.slideProb * 100.0f);
+        break;
+      case 3:
+      default:
+        paramIdx = 0;
+        currentValue = static_cast<int>(bp.density * 100.0f);
         break;
       }
     }
@@ -450,7 +473,7 @@ bool SoundScreen::handleTouch(const TouchPoint &tp, const UiStateSnapshot &snaps
 
   if (tp.justPressed) {
     if (isBassTrack(snapshot) && _identityCard.rect.contains(tp.x, tp.y)) {
-      _bassPage ^= 0x01;
+      _bassPage = static_cast<uint8_t>((_bassPage + 1) % 3);
       _dirty = true;
       return true;
     }

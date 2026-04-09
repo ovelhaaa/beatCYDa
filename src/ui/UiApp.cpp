@@ -2,6 +2,7 @@
 
 #include "../CYD_Config.h"
 #include "core/UiActions.h"
+#include "core/BassUiFormat.h"
 #include "theme/UiTheme.h"
 #include <Arduino.h>
 
@@ -70,11 +71,13 @@ bool hasPatternPanelChanges(const UiStateSnapshot &lhs, const UiStateSnapshot &r
 
   const uint8_t activeTrack = lhs.activeTrack;
   if (activeTrack == VOICE_BASS) {
-    return lhs.bassParams.motifIndex != rhs.bassParams.motifIndex ||
+    return lhs.bassParams.mode != rhs.bassParams.mode ||
+           lhs.bassParams.motifIndex != rhs.bassParams.motifIndex ||
            lhs.bassParams.swing != rhs.bassParams.swing ||
            lhs.bassParams.ghostProb != rhs.bassParams.ghostProb ||
            lhs.bassParams.accentProb != rhs.bassParams.accentProb;
   }
+
 
   return lhs.trackSteps[activeTrack] != rhs.trackSteps[activeTrack] ||
          lhs.trackHits[activeTrack] != rhs.trackHits[activeTrack] ||
@@ -245,9 +248,6 @@ void UiApp::renderTopBarTransport() {
 }
 
 void UiApp::renderTopBarMetrics() {
-  static const char *NOTE_NAMES[12] = {"C",  "C#", "D",  "D#", "E", "F",
-                                       "F#", "G",  "G#", "A",  "A#", "B"};
-  static const char *MODE_NAMES[4] = {"FK", "OFF", "RND", "MTF"};
   auto &canvas = _display.canvas();
   canvas.fillRect(theme::UiTheme::Metrics::TopBarMetricsX,
                   theme::UiTheme::Metrics::TopBarMetricsY,
@@ -257,14 +257,11 @@ void UiApp::renderTopBarMetrics() {
   canvas.setTextColor(theme::UiTheme::Colors::TextSecondary, theme::UiTheme::Colors::Surface);
   canvas.setCursor(theme::UiTheme::Metrics::TopBarMetricsX + 2, theme::UiTheme::Metrics::TopBarTextBaselineY);
   const uint8_t root = _snapshot.bassParams.rootNote;
-  const int noteClass = root % 12;
-  const int octave = (root / 12) - 1;
-  const uint8_t modeIndex = static_cast<uint8_t>(_snapshot.bassParams.mode) & 0x03;
   canvas.printf("BPM %d %s%d %s %uFPS %luKB",
                 _snapshot.bpm,
-                NOTE_NAMES[noteClass],
-                octave,
-                MODE_NAMES[modeIndex],
+                bassfmt::noteName(root),
+                bassfmt::noteOctave(root),
+                bassfmt::modeShortName(_snapshot.bassParams.mode),
                 _uiFps,
                 static_cast<unsigned long>(_freeHeap / 1024UL));
 }

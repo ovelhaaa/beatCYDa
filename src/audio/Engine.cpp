@@ -754,6 +754,13 @@ void setBassControlAbsolute(int paramIdx, int value) {
   case 9:
     params.phraseVariation = constrain(value / 100.0f, 0.0f, 1.0f);
     break;
+  case 10:
+    params.slideProb = constrain(value / 100.0f, 0.0f, 1.0f);
+    break;
+  case static_cast<int>(BassParamId::MOTIF_INDEX):
+    params.motifIndex = static_cast<uint8_t>(constrain(clamped * 4 / 100, 0, 3));
+    params.mode = GrooveMode::MOTIF;
+    break;
   default:
     return;
   }

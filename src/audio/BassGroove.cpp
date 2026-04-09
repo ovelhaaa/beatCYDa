@@ -246,10 +246,10 @@ void BassGroove::onTick(int currentStep) {
     return;
   }
 
-  if (((float)xorShift(rngState) / 4294967295.0f) < p) {
+  if (randomUnit() < p) {
     // Pass context to trigger
     bool isAccent = isDownBeat || isQuarterStep ||
-                    (((float)xorShift(rngState) / 4294967295.0f) < params.accentProb);
+                    (randomUnit() < params.accentProb);
     if (isEvenStep && params.swing > 0.01f) {
       hasPendingTrigger = true;
       pendingAccent = isAccent;
@@ -300,12 +300,8 @@ void BassGroove::trigger(bool forceAccent) {
   } else if (forceAccent) {
     velocity = 0.9f + randomUnit() * 0.1f; // 0.9..1.0 (Long)
   } else {
-    const bool isGhost = randomUnit() < params.ghostProb;
-    if (isGhost) {
-      velocity = 0.32f + randomUnit() * 0.18f; // 0.32..0.50
-    } else {
-      velocity = 0.62f + randomUnit() * 0.26f; // 0.62..0.88
-    }
+    // Normal notes: keep a medium-long range for consistent body.
+    velocity = 0.6f + randomUnit() * 0.3f; // 0.6..0.9
   }
 
   if (slide && voiceManager.isVoiceActive(VoiceID::VOICE_BASS)) {
