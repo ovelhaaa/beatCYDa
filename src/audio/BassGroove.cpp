@@ -113,7 +113,7 @@ void BassGroove::onTick(int currentStep) {
 
   // "Variação" reaproveita density (0..1): baixa density = mais repetitivo,
   // alta density = mais contraste entre as variantes A/B.
-  const float variation = constrain(params.density, 0.0f, 1.0f);
+const float variation = params.density;
 
   // Keep downbeat protection across every mode.
   if (isDownBeat) {
