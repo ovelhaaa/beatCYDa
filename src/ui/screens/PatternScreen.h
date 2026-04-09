@@ -27,6 +27,16 @@ private:
   void stopHold();
   bool handleHoldTick(const TouchPoint &tp, const UiStateSnapshot &snapshot);
   void dispatchRowDelta(const UiStateSnapshot &snapshot, int rowIndex, int amount);
+  void copyActiveTrack(const UiStateSnapshot &snapshot);
+  void pasteToActiveTrack(const UiStateSnapshot &snapshot);
+
+  struct PatternClipboard {
+    uint8_t steps{16};
+    uint8_t hits{4};
+    int8_t rotation{0};
+    uint8_t gainPercent{100};
+    bool hasData{false};
+  };
 
   bool _dirty{true};
   bool _hasLastSnapshot{false};
@@ -36,7 +46,10 @@ private:
   UiMacroRow _rows[4]{};
   UiButton _randomButton{};
   UiButton _clearButton{};
+  UiButton _copyButton{};
+  UiButton _pasteButton{};
   UiEuclideanRings _ringsPreview{};
+  PatternClipboard _clipboard{};
 
   int _holdRow{-1};
   int _holdDirection{0};

@@ -58,6 +58,10 @@ PatternScreen::PatternScreen() {
   _randomButton.disabled = false;
   _clearButton.label = "CLEAR";
   _clearButton.variant = UiButtonVariant::Danger;
+  _copyButton.label = "COPY";
+  _copyButton.variant = UiButtonVariant::Secondary;
+  _pasteButton.label = "PASTE";
+  _pasteButton.variant = UiButtonVariant::Primary;
 
   _ringsPreview.setCompact(true);
   _ringsPreview.setInteractive(false);
@@ -88,8 +92,16 @@ void PatternScreen::layout() {
     setRect(_rows[i].plusRect, 244, y, 20, 16);
   }
 
-  setRect(_randomButton.rect, 12, 200, 140, 28);
-  setRect(_clearButton.rect, 168, 200, 140, 28);
+  constexpr int actionY = 200;
+  constexpr int actionW = 66;
+  constexpr int actionH = 28;
+  constexpr int actionGap = 12;
+  constexpr int actionX0 = 12;
+
+  setRect(_randomButton.rect, actionX0, actionY, actionW, actionH);
+  setRect(_clearButton.rect, actionX0 + (actionW + actionGap), actionY, actionW, actionH);
+  setRect(_copyButton.rect, actionX0 + ((actionW + actionGap) * 2), actionY, actionW, actionH);
+  setRect(_pasteButton.rect, actionX0 + ((actionW + actionGap) * 3), actionY, actionW, actionH);
 }
 
 void PatternScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &snapshot) {
@@ -101,7 +113,7 @@ void PatternScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &sna
       forceFullRender || trackChanged || snapshot.currentStep != _lastSnapshot.currentStep || hasPatternChanges(snapshot, _lastSnapshot);
   bool rowDirty[4] = {forceFullRender || trackChanged, forceFullRender || trackChanged,
                       forceFullRender || trackChanged, forceFullRender || trackChanged};
-  const bool actionButtonsDirty = forceFullRender;
+  const bool actionButtonsDirty = forceFullRender || _pasteButton.disabled != !_clipboard.hasData;
 
   for (int i = 0; i < 4; ++i) {
     if (rowDirty[i]) {
@@ -178,8 +190,11 @@ void PatternScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &sna
   }
 
   if (actionButtonsDirty) {
+    _pasteButton.disabled = !_clipboard.hasData;
     _randomButton.draw(canvas);
     _clearButton.draw(canvas);
+    _copyButton.draw(canvas);
+    _pasteButton.draw(canvas);
   }
 
   _lastSnapshot = snapshot;
@@ -310,6 +325,18 @@ bool PatternScreen::handleTouch(const TouchPoint &tp, const UiStateSnapshot &sna
       _ringsPreview.invalidateAll();
       return true;
     }
+
+    if (_copyButton.hitTest(tp.x, tp.y)) {
+      copyActiveTrack(snapshot);
+      _dirty = true;
+      return true;
+    }
+
+    if (_pasteButton.hitTest(tp.x, tp.y) && _clipboard.hasData) {
+      pasteToActiveTrack(snapshot);
+      _ringsPreview.invalidateAll();
+      return true;
+    }
   }
 
   consumed = handleHoldTick(tp, snapshot) || consumed;
@@ -320,6 +347,27 @@ void PatternScreen::invalidate() {
   _dirty = true;
   _hasLastSnapshot = false;
   _ringsPreview.invalidateAll();
+}
+
+void PatternScreen::copyActiveTrack(const UiStateSnapshot &snapshot) {
+  const uint8_t track = snapshot.activeTrack;
+  _clipboard.steps = snapshot.trackSteps[track];
+  _clipboard.hits = snapshot.trackHits[track];
+  _clipboard.rotation = snapshot.trackRotations[track];
+  _clipboard.gainPercent = static_cast<uint8_t>(snapshot.voiceGain[track] * 100.0f);
+  _clipboard.hasData = true;
+}
+
+void PatternScreen::pasteToActiveTrack(const UiStateSnapshot &snapshot) {
+  if (!_clipboard.hasData) {
+    return;
+  }
+
+  const uint8_t track = snapshot.activeTrack;
+  dispatchUiAction(UiActionType::SET_STEPS, track, _clipboard.steps);
+  dispatchUiAction(UiActionType::SET_HITS, track, _clipboard.hits);
+  dispatchUiAction(UiActionType::SET_ROTATION, track, _clipboard.rotation);
+  dispatchUiAction(UiActionType::SET_SOUND_PARAM, 3, _clipboard.gainPercent);
 }
 
 } // namespace ui
