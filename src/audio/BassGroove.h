@@ -38,6 +38,11 @@ struct BassGrooveParams {
 
   // Motif
   uint8_t motifIndex; // Fixed motif index per scale/mode
+
+  // Feel / dynamics
+  float swing;      // 0.0 .. 1.0 (delay applied to even steps)
+  float ghostProb;  // 0.0 .. 1.0
+  float accentProb; // 0.0 .. 1.0
 };
 
 class BassGroove {
@@ -77,6 +82,9 @@ private:
   // Motif state
   bool hasPendingMotifDegree;
   int pendingMotifDegree;
+  bool hasPendingTrigger;
+  bool pendingAccent;
+  float pendingTriggerDelayMs;
 
   // Kick Sync State
   bool kickReceived;

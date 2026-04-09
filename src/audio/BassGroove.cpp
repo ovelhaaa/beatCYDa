@@ -93,6 +93,9 @@ void BassGroove::init(float sr) {
   phraseVariant = 0;
   hasPendingMotifDegree = false;
   pendingMotifDegree = 0;
+  hasPendingTrigger = false;
+  pendingAccent = false;
+  pendingTriggerDelayMs = 0.0f;
 }
 
 void BassGroove::updateParams(const BassGrooveParams &newParams) {
@@ -169,6 +172,7 @@ void BassGroove::onTick(int currentStep) {
   bool isPreferredOffbeat = (wrappedStep % 4 == 2);
   const float swingBoost = 1.0f + (params.swing * 0.8f);
   const float swingBeatReduce = 1.0f - (params.swing * 0.45f);
+  bool isEvenStep = ((wrappedStep & 1) == 0);
 
   // Keep downbeat protection across every mode.
   if (isDownBeat) {
@@ -231,7 +235,13 @@ void BassGroove::onTick(int currentStep) {
       pendingMotifDegree = motifDegree;
       const float accent = motifAccents[stepIdx];
       const bool motifAccent = (accent >= 0.85f) || isDownBeat;
-      trigger(motifAccent);
+      if (isEvenStep && params.swing > 0.01f) {
+        hasPendingTrigger = true;
+        pendingAccent = motifAccent;
+        pendingTriggerDelayMs = params.swing * 80.0f;
+      } else {
+        trigger(motifAccent);
+      }
     }
     return;
   }
@@ -240,12 +250,33 @@ void BassGroove::onTick(int currentStep) {
     // Pass context to trigger
     bool isAccent = isDownBeat || isQuarterStep ||
                     (((float)xorShift(rngState) / 4294967295.0f) < params.accentProb);
-    trigger(isAccent); // Helper overload
+    if (isEvenStep && params.swing > 0.01f) {
+      hasPendingTrigger = true;
+      pendingAccent = isAccent;
+      pendingTriggerDelayMs = params.swing * 80.0f;
+    } else {
+      trigger(isAccent); // Helper overload
+    }
   }
-
 }
 
-void BassGroove::process(float dt_ms) { timeSinceLastTriggerMs += dt_ms; }
+void BassGroove::process(float dt_ms) {
+  timeSinceLastTriggerMs += dt_ms;
+
+  if (!hasPendingTrigger) {
+    return;
+  }
+
+  pendingTriggerDelayMs -= dt_ms;
+  if (pendingTriggerDelayMs > 0.0f) {
+    return;
+  }
+
+  trigger(pendingAccent);
+  hasPendingTrigger = false;
+  pendingAccent = false;
+  pendingTriggerDelayMs = 0.0f;
+}
 
 void BassGroove::trigger() { trigger(false); }
 
@@ -269,8 +300,12 @@ void BassGroove::trigger(bool forceAccent) {
   } else if (forceAccent) {
     velocity = 0.9f + randomUnit() * 0.1f; // 0.9..1.0 (Long)
   } else {
-    // Ghost notes: Make them slightly longer than before (0.4 was too short?)
-    velocity = 0.6f + randomUnit() * 0.3f; // 0.6..0.9
+    const bool isGhost = randomUnit() < params.ghostProb;
+    if (isGhost) {
+      velocity = 0.32f + randomUnit() * 0.18f; // 0.32..0.50
+    } else {
+      velocity = 0.62f + randomUnit() * 0.26f; // 0.62..0.88
+    }
   }
 
   if (slide && voiceManager.isVoiceActive(VoiceID::VOICE_BASS)) {

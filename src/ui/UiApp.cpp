@@ -70,8 +70,12 @@ bool hasPatternPanelChanges(const UiStateSnapshot &lhs, const UiStateSnapshot &r
 
   const uint8_t activeTrack = lhs.activeTrack;
   if (activeTrack == VOICE_BASS) {
-    return lhs.bassParams.mode != rhs.bassParams.mode || lhs.bassParams.motifIndex != rhs.bassParams.motifIndex;
+    return lhs.bassParams.motifIndex != rhs.bassParams.motifIndex ||
+           lhs.bassParams.swing != rhs.bassParams.swing ||
+           lhs.bassParams.ghostProb != rhs.bassParams.ghostProb ||
+           lhs.bassParams.accentProb != rhs.bassParams.accentProb;
   }
+
   return lhs.trackSteps[activeTrack] != rhs.trackSteps[activeTrack] ||
          lhs.trackHits[activeTrack] != rhs.trackHits[activeTrack] ||
          lhs.trackRotations[activeTrack] != rhs.trackRotations[activeTrack] ||
