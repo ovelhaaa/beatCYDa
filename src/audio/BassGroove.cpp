@@ -57,6 +57,8 @@ void BassGroove::init(float sr) {
   degree = 0;
   octave = 0;
   altState = false;
+  phraseStep = 0;
+  phraseVariantB = false;
 }
 
 void BassGroove::updateParams(const BassGrooveParams &newParams) {
@@ -92,6 +94,11 @@ void BassGroove::updateParams(const BassGrooveParams &newParams) {
 void BassGroove::onKick() { kickReceived = true; }
 
 void BassGroove::onTick(int currentStep) {
+  // Compatível com Engine::currentStep em ciclo 0..63.
+  const int normalizedStep = currentStep & 63;
+  phraseStep = normalizedStep & 15;          // 0..15
+  phraseVariantB = ((normalizedStep / 16) & 1) != 0; // A/B por bloco de 16
+
   if (timeSinceLastTriggerMs < params.minIntervalMs) {
     kickReceived = false;
     return;
@@ -99,10 +106,14 @@ void BassGroove::onTick(int currentStep) {
 
   // --- 1. RHYTHM LOGIC ---
   float p = params.density;
-  bool isDownBeat = (currentStep % 16 == 0);
-  bool isQuarterStep = (currentStep % 4 == 0);
+  bool isDownBeat = (phraseStep == 0);
+  bool isQuarterStep = ((normalizedStep % 4) == 0);
   bool isPreferredOffbeat =
-      (currentStep == 2 || currentStep == 6 || currentStep == 10 || currentStep == 14);
+      (phraseStep == 2 || phraseStep == 6 || phraseStep == 10 || phraseStep == 14);
+
+  // "Variação" reaproveita density (0..1): baixa density = mais repetitivo,
+  // alta density = mais contraste entre as variantes A/B.
+  const float variation = constrain(params.density, 0.0f, 1.0f);
 
   // Keep downbeat protection across every mode.
   if (isDownBeat) {
@@ -140,6 +151,21 @@ void BassGroove::onTick(int currentStep) {
       // Mostly linear density mapping with no kick dependency.
       p = params.density;
       break;
+    }
+
+    // Variação fraseada A/B em blocos de 16 passos.
+    // A: mais "chão"; B: mais ativo/sincopado.
+    if (phraseVariantB) {
+      const bool isSyncSlot = (phraseStep == 3 || phraseStep == 7 || phraseStep == 11);
+      if (isSyncSlot) {
+        p += 0.20f * variation;
+      } else if (isQuarterStep) {
+        p += 0.08f * variation;
+      }
+    } else {
+      if (isQuarterStep) {
+        p += 0.12f * (1.0f - variation);
+      }
     }
   }
 
@@ -212,24 +238,46 @@ uint8_t BassGroove::generateNote() {
 
   // Weights (Probabilities out of 100)
   int r = xorShift(rngState) % 100;
+  const bool isPhraseClosing = (phraseStep == 15);
+  const float variation = constrain(params.density, 0.0f, 1.0f);
 
   // Decision Tree
   // 60% Chance: Stay/Move to Root or Fifth
   // 40% Chance: Walk +/- 1
-
-  if (r < 50) {
-    // STABLE: Pick Root or Fifth
-    if ((xorShift(rngState) & 1) == 0)
-      degreeOut = 0; // Root (Grounding)
-    else
-      degreeOut = 4; // Fifth (approx, mapped later)
-  } else if (r < 80) {
-    // WALK SMALL
-    int step = (xorShift(rngState) & 1) ? 1 : -1;
-    degreeOut = degree + step;
+  if (isPhraseClosing) {
+    // Fechamento de frase: força resolução (root/quinta).
+    if (r < 88) {
+      const int rootBias = 65 + static_cast<int>((1.0f - variation) * 20.0f);
+      degreeOut = ((xorShift(rngState) % 100) < rootBias) ? 0 : 4;
+    } else {
+      int step = (xorShift(rngState) & 1) ? 1 : -1;
+      degreeOut = degree + step;
+    }
+  } else if (!phraseVariantB) {
+    // Variante A: mais estável/repetível.
+    if (r < 58) {
+      degreeOut = ((xorShift(rngState) & 1) == 0) ? 0 : 4;
+    } else if (r < 88) {
+      int step = (xorShift(rngState) & 1) ? 1 : -1;
+      degreeOut = degree + step;
+    } else {
+      degreeOut = degree + ((xorShift(rngState) % 3) + 1);
+    }
   } else {
-    // JUMP (Octave or Third)
-    degreeOut = degree + (xorShift(rngState) % 3) + 2;
+    // Variante B: mais movimento para reduzir looping mecânico.
+    if (r < 42) {
+      degreeOut = ((xorShift(rngState) & 1) == 0) ? 0 : 4;
+    } else if (r < 80) {
+      int step = (xorShift(rngState) & 1) ? 1 : -1;
+      degreeOut = degree + step;
+    } else {
+      int jump = ((xorShift(rngState) % 4) + 2);
+      if (xorShift(rngState) & 1) {
+        degreeOut = degree + jump;
+      } else {
+        degreeOut = degree - jump;
+      }
+    }
   }
 
   // Apply changes to state

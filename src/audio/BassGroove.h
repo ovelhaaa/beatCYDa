@@ -64,6 +64,8 @@ private:
   int degree;    // 0..SCALE_SIZE-1
   int octave;    // Relative octave
   bool altState; // Alternation state A/B
+  int phraseStep;      // 0..15 dentro do bloco de frase
+  bool phraseVariantB; // Alterna A/B a cada 16 passos
 
   // Kick Sync State
   bool kickReceived;
