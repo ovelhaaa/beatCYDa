@@ -44,4 +44,3 @@ inline int noteOctave(uint8_t midiNote) { return (midiNote / 12) - 1; }
 
 } // namespace bassfmt
 } // namespace ui
-

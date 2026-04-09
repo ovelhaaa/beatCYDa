@@ -93,6 +93,9 @@ void BassGroove::init(float sr) {
   phraseVariant = 0;
   hasPendingMotifDegree = false;
   pendingMotifDegree = 0;
+  hasPendingTrigger = false;
+  pendingAccent = false;
+  pendingTriggerDelayMs = 0.0f;
 }
 
 void BassGroove::updateParams(const BassGrooveParams &newParams) {
@@ -169,6 +172,7 @@ void BassGroove::onTick(int currentStep) {
   bool isPreferredOffbeat = (wrappedStep % 4 == 2);
   const float swingBoost = 1.0f + (params.swing * 0.8f);
   const float swingBeatReduce = 1.0f - (params.swing * 0.45f);
+  bool isEvenStep = ((wrappedStep & 1) == 0);
 
   // Keep downbeat protection across every mode.
   if (isDownBeat) {
@@ -231,7 +235,13 @@ void BassGroove::onTick(int currentStep) {
       pendingMotifDegree = motifDegree;
       const float accent = motifAccents[stepIdx];
       const bool motifAccent = (accent >= 0.85f) || isDownBeat;
-      trigger(motifAccent);
+      if (isEvenStep && params.swing > 0.01f) {
+        hasPendingTrigger = true;
+        pendingAccent = motifAccent;
+        pendingTriggerDelayMs = params.swing * 80.0f;
+      } else {
+        trigger(motifAccent);
+      }
     }
     return;
   }
@@ -240,12 +250,33 @@ void BassGroove::onTick(int currentStep) {
     // Pass context to trigger
     bool isAccent = isDownBeat || isQuarterStep ||
                     (randomUnit() < params.accentProb);
-    trigger(isAccent); // Helper overload
+    if (isEvenStep && params.swing > 0.01f) {
+      hasPendingTrigger = true;
+      pendingAccent = isAccent;
+      pendingTriggerDelayMs = params.swing * 80.0f;
+    } else {
+      trigger(isAccent); // Helper overload
+    }
   }
-
 }
 
-void BassGroove::process(float dt_ms) { timeSinceLastTriggerMs += dt_ms; }
+void BassGroove::process(float dt_ms) {
+  timeSinceLastTriggerMs += dt_ms;
+
+  if (!hasPendingTrigger) {
+    return;
+  }
+
+  pendingTriggerDelayMs -= dt_ms;
+  if (pendingTriggerDelayMs > 0.0f) {
+    return;
+  }
+
+  trigger(pendingAccent);
+  hasPendingTrigger = false;
+  pendingAccent = false;
+  pendingTriggerDelayMs = 0.0f;
+}
 
 void BassGroove::trigger() { trigger(false); }
 

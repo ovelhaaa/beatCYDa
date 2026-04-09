@@ -718,19 +718,20 @@ void setVoiceParamNormalized(int track, int paramIdx, float normalized) {
 
 void setBassControlAbsolute(int paramIdx, int value) {
   BassGrooveParams params = engine.bassGroove.getParams();
+  const int clamped = constrain(value, 0, 100);
 
   switch (paramIdx) {
   case 0:
-    params.density = constrain(value / 100.0f, 0.0f, 1.0f);
+    params.density = constrain(clamped / 100.0f, 0.0f, 1.0f);
     break;
   case 1:
-    params.range = constrain(1 + (value * 11 / 100), 1, 12);
+    params.range = constrain(1 + (clamped * 11 / 100), 1, 12);
     break;
   case 2:
-    params.scaleType = static_cast<BassScale>(constrain(value * 4 / 100, 0, 3));
+    params.scaleType = static_cast<BassScale>(constrain(clamped * 4 / 100, 0, 3));
     break;
   case 3:
-    params.rootNote = static_cast<uint8_t>(constrain(24 + (value * 24 / 100),
+    params.rootNote = static_cast<uint8_t>(constrain(24 + (clamped * 24 / 100),
                                                      (int)BASS_ROOT_NOTE_MIN,
                                                      (int)BASS_ROOT_NOTE_MAX));
     break;
@@ -755,6 +756,19 @@ void setBassControlAbsolute(int paramIdx, int value) {
     break;
   case 10:
     params.slideProb = constrain(value / 100.0f, 0.0f, 1.0f);
+    break;
+  case static_cast<int>(BassParamId::MOTIF_INDEX):
+    params.motifIndex = static_cast<uint8_t>(constrain(clamped * 4 / 100, 0, 3));
+    params.mode = GrooveMode::MOTIF;
+    break;
+  case static_cast<int>(BassParamId::SWING):
+    params.swing = clamped / 100.0f;
+    break;
+  case static_cast<int>(BassParamId::GHOST_PROB):
+    params.ghostProb = clamped / 100.0f;
+    break;
+  case static_cast<int>(BassParamId::ACCENT_PROB):
+    params.accentProb = clamped / 100.0f;
     break;
   default:
     return;

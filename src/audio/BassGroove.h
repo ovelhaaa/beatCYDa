@@ -77,6 +77,9 @@ private:
   // Motif state
   bool hasPendingMotifDegree;
   int pendingMotifDegree;
+  bool hasPendingTrigger;
+  bool pendingAccent;
+  float pendingTriggerDelayMs;
 
   // Kick Sync State
   bool kickReceived;
