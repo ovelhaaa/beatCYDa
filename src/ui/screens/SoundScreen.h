@@ -25,6 +25,8 @@ private:
   void stopHold();
   bool handleHoldTick(const TouchPoint &tp, const UiStateSnapshot &snapshot);
   void dispatchRowDelta(const UiStateSnapshot &snapshot, int rowIndex, int amount);
+  void applyRowLabels(const UiStateSnapshot &snapshot);
+  bool isBassTrack(const UiStateSnapshot &snapshot) const;
 
   bool _dirty{true};
   bool _hasLastSnapshot{false};
@@ -39,6 +41,8 @@ private:
   int _lastHoldDirection{0};
   uint32_t _holdNextTickMs{0};
   uint8_t _holdTickCount{0};
+  uint8_t _bassPage{0};
+  uint8_t _lastBassPage{0};
 };
 
 } // namespace ui

@@ -67,6 +67,9 @@ void BassGroove::init(float sr) {
   params.slideProb = 0.3f; // Slightly increased for Legato feel
   params.phraseVariation = 0.5f;
   params.motifIndex = 0;
+  params.swing = 0.0f;
+  params.accentProb = 0.3f;
+  params.ghostProb = 0.2f;
 
   // Reset State
   lastNote = 36;
@@ -103,6 +106,18 @@ void BassGroove::updateParams(const BassGrooveParams &newParams) {
     params.phraseVariation = 0.0f;
   if (params.phraseVariation > 1.0f)
     params.phraseVariation = 1.0f;
+  if (params.swing < 0.0f)
+    params.swing = 0.0f;
+  if (params.swing > 1.0f)
+    params.swing = 1.0f;
+  if (params.accentProb < 0.0f)
+    params.accentProb = 0.0f;
+  if (params.accentProb > 1.0f)
+    params.accentProb = 1.0f;
+  if (params.ghostProb < 0.0f)
+    params.ghostProb = 0.0f;
+  if (params.ghostProb > 1.0f)
+    params.ghostProb = 1.0f;
 
   if (params.motifIndex >= 4)
     params.motifIndex = 0;
@@ -152,6 +167,8 @@ void BassGroove::onTick(int currentStep) {
   bool isDownBeat = (phraseStep == 0);
   bool isQuarterStep = (wrappedStep % 4 == 0);
   bool isPreferredOffbeat = (wrappedStep % 4 == 2);
+  const float swingBoost = 1.0f + (params.swing * 0.8f);
+  const float swingBeatReduce = 1.0f - (params.swing * 0.45f);
 
   // Keep downbeat protection across every mode.
   if (isDownBeat) {
@@ -166,7 +183,7 @@ void BassGroove::onTick(int currentStep) {
         p = 0.78f + (params.density * 0.22f);
       } else if (isPreferredOffbeat) {
         // Moderate fallback on offbeat syncopation.
-        p = params.density * 0.55f;
+        p = params.density * 0.55f * swingBoost;
       } else {
         p = params.density * 0.28f;
       }
@@ -175,10 +192,10 @@ void BassGroove::onTick(int currentStep) {
     case GrooveMode::OFFBEAT:
       if (isQuarterStep) {
         // Avoid strong beat positions.
-        p = params.density * 0.2f;
+        p = params.density * 0.2f * swingBeatReduce;
       } else if (isPreferredOffbeat) {
         // Prefer classic offbeat placements.
-        p = params.density * 1.25f;
+        p = params.density * 1.25f * swingBoost;
       } else {
         p = params.density * 0.7f;
       }
@@ -188,6 +205,11 @@ void BassGroove::onTick(int currentStep) {
     default:
       // Mostly linear density mapping with no kick dependency.
       p = params.density;
+      if (isPreferredOffbeat) {
+        p *= swingBoost;
+      } else if (isQuarterStep) {
+        p *= swingBeatReduce;
+      }
       break;
     }
   }
@@ -217,7 +239,7 @@ void BassGroove::onTick(int currentStep) {
   if (((float)xorShift(rngState) / 4294967295.0f) < p) {
     // Pass context to trigger
     bool isAccent = isDownBeat || isQuarterStep ||
-                    (((float)xorShift(rngState) / 4294967295.0f) < 0.3f);
+                    (((float)xorShift(rngState) / 4294967295.0f) < params.accentProb);
     trigger(isAccent); // Helper overload
   }
 
@@ -240,9 +262,11 @@ void BassGroove::trigger(bool forceAccent) {
   // --- 3. VELOCITY / LENGTH LOGIC ---
   // User wants "Less Farty" -> longer notes.
   // We use Velocity to control Release in BassVoice. Higher Vel = Longer.
+  const bool ghost = (!forceAccent) && (randomUnit() < params.ghostProb);
   float velocity = 0.5f;
-
-  if (forceAccent) {
+  if (ghost) {
+    velocity = 0.35f + randomUnit() * 0.2f; // 0.35..0.55
+  } else if (forceAccent) {
     velocity = 0.9f + randomUnit() * 0.1f; // 0.9..1.0 (Long)
   } else {
     // Ghost notes: Make them slightly longer than before (0.4 was too short?)
