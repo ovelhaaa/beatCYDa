@@ -99,22 +99,48 @@ void BassGroove::onTick(int currentStep) {
 
   // --- 1. RHYTHM LOGIC ---
   float p = params.density;
-
-  // Measure Anchoring: First step of 4-bar phrase (0, 16, 32, 48)
-  // We only know local step (0..15). Let's assume bar start is step 0.
   bool isDownBeat = (currentStep % 16 == 0);
-  bool isKickStep = (currentStep % 4 == 0); // 4/4 Kicks usually
+  bool isQuarterStep = (currentStep % 4 == 0);
+  bool isPreferredOffbeat =
+      (currentStep == 2 || currentStep == 6 || currentStep == 10 || currentStep == 14);
 
-  // Force Start of Bar?
+  // Keep downbeat protection across every mode.
   if (isDownBeat) {
-    p = 0.95f;  // Almost guaranteed trigger on step 1
-    degree = 0; // Reset to Root for grounding
+    p = 0.95f;
+    degree = 0;
     octave = 0;
-  } else if (kickReceived) {
-    p = 0.8f + (params.density * 0.2f); // Lock to Kick
   } else {
-    // Reduce density for off-beats to reduce "busyness"
-    p *= 0.3f;
+    switch (params.mode) {
+    case GrooveMode::FOLLOW_KICK:
+      if (kickReceived) {
+        // Boost probability when kick is present.
+        p = 0.78f + (params.density * 0.22f);
+      } else if (isPreferredOffbeat) {
+        // Moderate fallback on offbeat syncopation.
+        p = params.density * 0.55f;
+      } else {
+        p = params.density * 0.28f;
+      }
+      break;
+
+    case GrooveMode::OFFBEAT:
+      if (isQuarterStep) {
+        // Avoid strong beat positions.
+        p = params.density * 0.2f;
+      } else if (isPreferredOffbeat) {
+        // Prefer classic offbeat placements.
+        p = params.density * 1.25f;
+      } else {
+        p = params.density * 0.7f;
+      }
+      break;
+
+    case GrooveMode::RANDOM:
+    default:
+      // Mostly linear density mapping with no kick dependency.
+      p = params.density;
+      break;
+    }
   }
 
   // Clamp
@@ -125,7 +151,7 @@ void BassGroove::onTick(int currentStep) {
 
   if (((float)xorShift(rngState) / 4294967295.0f) < p) {
     // Pass context to trigger
-    bool isAccent = isDownBeat || isKickStep ||
+    bool isAccent = isDownBeat || isQuarterStep ||
                     (((float)xorShift(rngState) / 4294967295.0f) < 0.3f);
     trigger(isAccent); // Helper overload
   }
