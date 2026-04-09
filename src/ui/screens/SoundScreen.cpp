@@ -337,23 +337,23 @@ void SoundScreen::stopHold() {
 }
 
 void SoundScreen::dispatchRowDelta(const UiStateSnapshot &snapshot, int rowIndex, int amount) {
-    if (isBassTrack(snapshot)) {
-      BassGrooveParams bp = snapshot.bassParams;
-      int paramIdx = 0;
-      int currentValue = 0;
+  if (isBassTrack(snapshot)) {
+    BassGrooveParams bp = snapshot.bassParams;
+    int paramIdx = 0;
+    int currentValue = 0;
 
-      if (_bassPage == 0) {
+    if (_bassPage == 0) {
       switch (rowIndex) {
       case 0:
         paramIdx = 3;
         currentValue = static_cast<int>(((bp.rootNote - 24.0f) / 24.0f) * 100.0f);
         break;
-        case 1:
-          paramIdx = 2;
-          currentValue = static_cast<int>(static_cast<uint8_t>(bp.scaleType) * (100.0f / 3.0f));
-          break;
-        case 2:
-          paramIdx = 4;
+      case 1:
+        paramIdx = 2;
+        currentValue = static_cast<int>(static_cast<uint8_t>(bp.scaleType) * (100.0f / 3.0f));
+        break;
+      case 2:
+        paramIdx = 4;
         currentValue = static_cast<int>(static_cast<uint8_t>(bp.mode) * (100.0f / 3.0f));
         break;
       case 3:
@@ -362,10 +362,10 @@ void SoundScreen::dispatchRowDelta(const UiStateSnapshot &snapshot, int rowIndex
         currentValue = static_cast<int>(bp.density * 100.0f);
         break;
       }
-      } else if (_bassPage == 1) {
-        switch (rowIndex) {
-        case 0:
-          paramIdx = 1;
+    } else if (_bassPage == 1) {
+      switch (rowIndex) {
+      case 0:
+        paramIdx = 1;
         currentValue = static_cast<int>(((bp.range - 1.0f) / 11.0f) * 100.0f);
         break;
       case 1:
@@ -376,33 +376,33 @@ void SoundScreen::dispatchRowDelta(const UiStateSnapshot &snapshot, int rowIndex
         paramIdx = 6;
         currentValue = static_cast<int>(bp.swing * 100.0f);
         break;
-        case 3:
-        default:
-          paramIdx = 7;
-          currentValue = static_cast<int>(bp.accentProb * 100.0f);
-          break;
-        }
-      } else {
-        switch (rowIndex) {
-        case 0:
-          paramIdx = 8;
-          currentValue = static_cast<int>(bp.ghostProb * 100.0f);
-          break;
-        case 1:
-          paramIdx = 9;
-          currentValue = static_cast<int>(bp.phraseVariation * 100.0f);
-          break;
-        case 2:
-          paramIdx = 10;
-          currentValue = static_cast<int>(bp.slideProb * 100.0f);
-          break;
-        case 3:
-        default:
-          paramIdx = 0;
-          currentValue = static_cast<int>(bp.density * 100.0f);
-          break;
-        }
+      case 3:
+      default:
+        paramIdx = 7;
+        currentValue = static_cast<int>(bp.accentProb * 100.0f);
+        break;
       }
+    } else {
+      switch (rowIndex) {
+      case 0:
+        paramIdx = 8;
+        currentValue = static_cast<int>(bp.ghostProb * 100.0f);
+        break;
+      case 1:
+        paramIdx = 9;
+        currentValue = static_cast<int>(bp.phraseVariation * 100.0f);
+        break;
+      case 2:
+        paramIdx = 10;
+        currentValue = static_cast<int>(bp.slideProb * 100.0f);
+        break;
+      case 3:
+      default:
+        paramIdx = 0;
+        currentValue = static_cast<int>(bp.density * 100.0f);
+        break;
+      }
+    }
 
     dispatchUiAction(UiActionType::SET_BASS_PARAM, paramIdx, currentValue + amount);
     return;

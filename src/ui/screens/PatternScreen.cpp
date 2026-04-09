@@ -222,27 +222,33 @@ void PatternScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &sna
       _rows[i].label = "HITS";
       snprintf(valueBuffer, sizeof(valueBuffer), "%d", snapshot.trackHits[snapshot.activeTrack]);
     } else if (i == 2) {
-      _rows[i].label = "ROTATE";
-      snprintf(valueBuffer, sizeof(valueBuffer), "%d", snapshot.trackRotations[snapshot.activeTrack]);
+      if (bassContext) {
+        snprintf(valueBuffer, sizeof(valueBuffer), "%s", bassfmt::modeShortName(snapshot.bassParams.mode));
+      } else {
+        snprintf(valueBuffer, sizeof(valueBuffer), "%d", snapshot.trackRotations[snapshot.activeTrack]);
+      }
     } else {
-      _rows[i].label = "GAIN";
-      formatPercent(valueBuffer, sizeof(valueBuffer), static_cast<int>(snapshot.voiceGain[snapshot.activeTrack] * 100.0f));
+      if (bassContext) {
+        snprintf(valueBuffer, sizeof(valueBuffer), "M%u", static_cast<unsigned>(snapshot.bassParams.motifIndex & 0x03));
+      } else {
+        formatPercent(valueBuffer, sizeof(valueBuffer), static_cast<int>(snapshot.voiceGain[snapshot.activeTrack] * 100.0f));
+      }
     }
 
     _rows[i].focus = (_holdRow == i);
     _rows[i].minusPressed = (_holdRow == i && _holdDirection < 0);
     _rows[i].plusPressed = (_holdRow == i && _holdDirection > 0);
     _rows[i].valueText = valueBuffer;
-    _rows[i].showBar = (isBassTrack && i > 0) || (!isBassTrack && i == 3);
-    _rows[i].barFill = 0;
-    if (isBassTrack && i == 1) {
-      _rows[i].barFill = static_cast<uint8_t>(snapshot.bassParams.swing * 100.0f);
-    } else if (isBassTrack && i == 2) {
-      _rows[i].barFill = static_cast<uint8_t>(snapshot.bassParams.ghostProb * 100.0f);
-    } else if (isBassTrack && i == 3) {
-      _rows[i].barFill = static_cast<uint8_t>(snapshot.bassParams.accentProb * 100.0f);
-    } else if (!isBassTrack && i == 3) {
+    if (i == 2 && bassContext) {
+      _rows[i].barFill =
+          static_cast<uint8_t>((static_cast<uint8_t>(snapshot.bassParams.mode) / 3.0f) * 100.0f);
+    } else if (i == 3 && bassContext) {
+      _rows[i].barFill =
+          static_cast<uint8_t>(((snapshot.bassParams.motifIndex & 0x03) / 3.0f) * 100.0f);
+    } else if (i == 3) {
       _rows[i].barFill = static_cast<uint8_t>(snapshot.voiceGain[snapshot.activeTrack] * 100.0f);
+    } else {
+      _rows[i].barFill = 0;
     }
     _rows[i].draw(canvas);
   }
@@ -331,13 +337,26 @@ void PatternScreen::dispatchRowDelta(const UiStateSnapshot &snapshot, int rowInd
   }
 
   if (rowIndex == 2) {
-    dispatchUiAction(UiActionType::SET_ROTATION, snapshot.activeTrack,
-                     snapshot.trackRotations[snapshot.activeTrack] + amount);
+    if (isBassTrack(snapshot)) {
+      const int modeValue =
+          static_cast<int>((static_cast<uint8_t>(snapshot.bassParams.mode) * (100.0f / 3.0f))) +
+          amount;
+      dispatchUiAction(UiActionType::SET_BASS_PARAM, 4, modeValue);
+    } else {
+      dispatchUiAction(UiActionType::SET_ROTATION, snapshot.activeTrack,
+                       snapshot.trackRotations[snapshot.activeTrack] + amount);
+    }
     return;
   }
 
-  dispatchUiAction(UiActionType::SET_VOICE_GAIN, snapshot.activeTrack,
-                   static_cast<int>(snapshot.voiceGain[snapshot.activeTrack] * 100.0f) + amount);
+  if (isBassTrack(snapshot)) {
+    const int motifValue =
+        static_cast<int>(((snapshot.bassParams.motifIndex & 0x03) * (100.0f / 3.0f))) + amount;
+    dispatchUiAction(UiActionType::SET_BASS_PARAM, 5, motifValue);
+  } else {
+    dispatchUiAction(UiActionType::SET_VOICE_GAIN, snapshot.activeTrack,
+                     static_cast<int>(snapshot.voiceGain[snapshot.activeTrack] * 100.0f) + amount);
+  }
 }
 
 void PatternScreen::startHold(int rowIndex, int direction) {

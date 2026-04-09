@@ -761,15 +761,6 @@ void setBassControlAbsolute(int paramIdx, int value) {
     params.motifIndex = static_cast<uint8_t>(constrain(clamped * 4 / 100, 0, 3));
     params.mode = GrooveMode::MOTIF;
     break;
-  case static_cast<int>(BassParamId::SWING):
-    params.swing = clamped / 100.0f;
-    break;
-  case static_cast<int>(BassParamId::GHOST_PROB):
-    params.ghostProb = clamped / 100.0f;
-    break;
-  case static_cast<int>(BassParamId::ACCENT_PROB):
-    params.accentProb = clamped / 100.0f;
-    break;
   default:
     return;
   }
