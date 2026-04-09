@@ -178,3 +178,17 @@ Avançar na pendência de Sprint 7 de **revisão de contraste/estado pressionado
   2. Definir se o clipboard deve incluir cópia estrutural de sequência completa (bitmap de steps) em rodada futura.
   3. Fechar validação final de contraste/pressed state em ambiente real.
   4. Delimitar a limpeza opcional de legado mantendo rollback por feature flag.
+
+### Atualização incremental (2026-04-09 — verificação + redução de hardcodes na MixScreen)
+- ✅ **Verificação do estado atual**:
+  - A implementação atual continua alinhada ao spec: 5 telas ativas em `UiApp`, invalidação incremental já presente em `Pattern`, `Sound`, `Mix` e `Project`.
+  - A principal pendência técnica de baixo risco ainda executável nesta rodada era reduzir hardcodes de layout remanescentes em tela já migrada para redraw parcial.
+- ✅ **Tarefa pendente assumida**: consolidar coordenadas/tamanhos hardcoded da `MixScreen` em tokens semânticos de tema.
+- ✅ **Implementado em código**:
+  - `UiMetrics` recebeu tokens dedicados da `MixScreen` (card de cabeçalho, texto de master, geometria dos faders e área de dirty redraw).
+  - `MixScreen` passou a consumir esses tokens no `layout()` e nos blocos de repaint incremental (`master` e faders), removendo literais visuais espalhados.
+  - O comportamento funcional foi preservado (captura/drag contínuo e redraw parcial por fader), com manutenção mais previsível para ajustes futuros.
+- ⏳ **O que resta até agora**:
+  1. Validar em hardware real contraste/legibilidade final dos estados pressionados e capturados sob luz ambiente forte.
+  2. Revisar `PerformScreen` para identificar se ainda há sub-regiões com repaint mais amplo que o necessário em interações intensas.
+  3. Definir escopo final da limpeza opcional do pipeline legado (`LegacyRender`) mantendo rollback por feature flag em 1 commit.
