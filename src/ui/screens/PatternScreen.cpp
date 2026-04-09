@@ -1,6 +1,7 @@
 #include "PatternScreen.h"
 
 #include "../core/UiActions.h"
+#include "../core/BassUiFormat.h"
 #include "../theme/UiTheme.h"
 #include "../../CYD_Config.h"
 
@@ -42,20 +43,6 @@ bool hasPatternChanges(const UiStateSnapshot &lhs, const UiStateSnapshot &rhs) {
 
 bool isBassTrack(const UiStateSnapshot &snapshot) {
   return snapshot.activeTrack == VOICE_BASS;
-}
-
-const char *modeShortName(GrooveMode mode) {
-  switch (mode) {
-  case GrooveMode::OFFBEAT:
-    return "OFF";
-  case GrooveMode::RANDOM:
-    return "RND";
-  case GrooveMode::MOTIF:
-    return "MTF";
-  case GrooveMode::FOLLOW_KICK:
-  default:
-    return "FK";
-  }
 }
 } // namespace
 
@@ -206,7 +193,8 @@ void PatternScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &sna
       snprintf(valueBuffer, sizeof(valueBuffer), "%d", snapshot.trackHits[snapshot.activeTrack]);
     } else if (i == 2) {
       if (bassContext) {
-        snprintf(valueBuffer, sizeof(valueBuffer), "%s", modeShortName(snapshot.bassParams.mode));
+        snprintf(valueBuffer, sizeof(valueBuffer), "%s",
+                 bassfmt::modeShortName(snapshot.bassParams.mode));
       } else {
         snprintf(valueBuffer, sizeof(valueBuffer), "%d", snapshot.trackRotations[snapshot.activeTrack]);
       }
@@ -312,8 +300,8 @@ void PatternScreen::dispatchRowDelta(const UiStateSnapshot &snapshot, int rowInd
   }
 
   if (isBassTrack(snapshot)) {
-    const int motifValue =
-        static_cast<int>(((snapshot.bassParams.motifIndex & 0x03) * (100.0f / 3.0f))) + amount;
+    const int nextMotif = constrain(static_cast<int>(snapshot.bassParams.motifIndex & 0x03) + amount, 0, 3);
+    const int motifValue = static_cast<int>(nextMotif * (100.0f / 3.0f));
     dispatchUiAction(UiActionType::SET_BASS_PARAM, 5, motifValue);
   } else {
     dispatchUiAction(UiActionType::SET_SOUND_PARAM, 3,

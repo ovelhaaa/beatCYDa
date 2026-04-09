@@ -236,10 +236,10 @@ void BassGroove::onTick(int currentStep) {
     return;
   }
 
-  if (((float)xorShift(rngState) / 4294967295.0f) < p) {
+  if (randomUnit() < p) {
     // Pass context to trigger
     bool isAccent = isDownBeat || isQuarterStep ||
-                    (((float)xorShift(rngState) / 4294967295.0f) < params.accentProb);
+                    (randomUnit() < params.accentProb);
     trigger(isAccent); // Helper overload
   }
 
@@ -269,7 +269,7 @@ void BassGroove::trigger(bool forceAccent) {
   } else if (forceAccent) {
     velocity = 0.9f + randomUnit() * 0.1f; // 0.9..1.0 (Long)
   } else {
-    // Ghost notes: Make them slightly longer than before (0.4 was too short?)
+    // Normal notes: keep a medium-long range for consistent body.
     velocity = 0.6f + randomUnit() * 0.3f; // 0.6..0.9
   }
 

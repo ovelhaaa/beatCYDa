@@ -124,8 +124,12 @@ int getParamDisplayValue(const UiRuntime &ui, int paramIndex) {
       return static_cast<int>(ui.snapshot.bassParams.accentProb * 100.0f);
     case 8:
       return static_cast<int>(ui.snapshot.bassParams.ghostProb * 100.0f);
-    default:
+    case 9:
       return static_cast<int>(ui.snapshot.bassParams.phraseVariation * 100.0f);
+    case 10:
+      return static_cast<int>(ui.snapshot.bassParams.slideProb * 100.0f);
+    default:
+      return static_cast<int>(ui.snapshot.bassParams.density * 100.0f);
     }
   }
 

@@ -753,6 +753,9 @@ void setBassControlAbsolute(int paramIdx, int value) {
   case 9:
     params.phraseVariation = constrain(value / 100.0f, 0.0f, 1.0f);
     break;
+  case 10:
+    params.slideProb = constrain(value / 100.0f, 0.0f, 1.0f);
+    break;
   default:
     return;
   }
