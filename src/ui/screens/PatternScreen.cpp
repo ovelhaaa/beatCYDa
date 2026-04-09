@@ -1,6 +1,7 @@
 #include "PatternScreen.h"
 
 #include "../core/UiActions.h"
+#include "../core/BassUiFormat.h"
 #include "../theme/UiTheme.h"
 #include "../../CYD_Config.h"
 
@@ -38,6 +39,23 @@ bool hasPatternChanges(const UiStateSnapshot &lhs, const UiStateSnapshot &rhs) {
     }
   }
   return false;
+}
+
+bool isBassTrack(const UiStateSnapshot &snapshot) {
+  return snapshot.activeTrack == VOICE_BASS;
+}
+
+bool bassParamChanged(const UiStateSnapshot &lhs, const UiStateSnapshot &rhs, int rowIndex) {
+  if (rowIndex == 0) {
+    return lhs.bassParams.motifIndex != rhs.bassParams.motifIndex;
+  }
+  if (rowIndex == 1) {
+    return lhs.bassParams.swing != rhs.bassParams.swing;
+  }
+  if (rowIndex == 2) {
+    return lhs.bassParams.ghostProb != rhs.bassParams.ghostProb;
+  }
+  return lhs.bassParams.accentProb != rhs.bassParams.accentProb;
 }
 } // namespace
 
@@ -105,14 +123,22 @@ void PatternScreen::layout() {
 }
 
 void PatternScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &snapshot) {
+  const bool isBassTrack = snapshot.activeTrack == VOICE_BASS;
   const bool forceFullRender = _dirty || !_hasLastSnapshot;
   const bool trackChanged = forceFullRender || snapshot.activeTrack != _lastSnapshot.activeTrack;
+  const bool bassContext = isBassTrack(snapshot);
+  const bool bassContextChanged = forceFullRender || (isBassTrack(snapshot) != isBassTrack(_lastSnapshot));
+
+  _rows[2].label = bassContext ? "MODE" : "ROTATE";
+  _rows[3].label = bassContext ? "MOTIF" : "GAIN";
 
   const bool chipsDirty = forceFullRender || trackChanged || hasMuteChanges(snapshot, _lastSnapshot);
   const bool previewDirty =
       forceFullRender || trackChanged || snapshot.currentStep != _lastSnapshot.currentStep || hasPatternChanges(snapshot, _lastSnapshot);
-  bool rowDirty[4] = {forceFullRender || trackChanged, forceFullRender || trackChanged,
-                      forceFullRender || trackChanged, forceFullRender || trackChanged};
+  bool rowDirty[4] = {forceFullRender || trackChanged || bassContextChanged,
+                      forceFullRender || trackChanged || bassContextChanged,
+                      forceFullRender || trackChanged || bassContextChanged,
+                      forceFullRender || trackChanged || bassContextChanged};
   const bool actionButtonsDirty = forceFullRender || _pasteButton.disabled != !_clipboard.hasData;
 
   for (int i = 0; i < 4; ++i) {
@@ -121,14 +147,20 @@ void PatternScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &sna
     }
 
     bool valueChanged = false;
-    if (i == 0) {
+    if (isBassTrack) {
+      valueChanged = bassParamChanged(snapshot, _lastSnapshot, i);
+    } else if (i == 0) {
       valueChanged = snapshot.trackSteps[snapshot.activeTrack] != _lastSnapshot.trackSteps[_lastSnapshot.activeTrack];
     } else if (i == 1) {
       valueChanged = snapshot.trackHits[snapshot.activeTrack] != _lastSnapshot.trackHits[_lastSnapshot.activeTrack];
     } else if (i == 2) {
-      valueChanged = snapshot.trackRotations[snapshot.activeTrack] != _lastSnapshot.trackRotations[_lastSnapshot.activeTrack];
+      valueChanged = bassContext ? (snapshot.bassParams.mode != _lastSnapshot.bassParams.mode)
+                                 : (snapshot.trackRotations[snapshot.activeTrack] !=
+                                    _lastSnapshot.trackRotations[_lastSnapshot.activeTrack]);
     } else {
-      valueChanged = snapshot.voiceGain[snapshot.activeTrack] != _lastSnapshot.voiceGain[_lastSnapshot.activeTrack];
+      valueChanged = bassContext ? (snapshot.bassParams.motifIndex != _lastSnapshot.bassParams.motifIndex)
+                                 : (snapshot.voiceGain[snapshot.activeTrack] !=
+                                    _lastSnapshot.voiceGain[_lastSnapshot.activeTrack]);
     }
 
     const bool focusChanged = ((_holdRow == i) != (_lastHoldRow == i));
@@ -171,13 +203,29 @@ void PatternScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &sna
     canvas.fillRect(_rows[i].rowRect.x, _rows[i].rowRect.y, _rows[i].rowRect.w, _rows[i].rowRect.h, theme::UiTheme::Colors::Bg);
 
     char valueBuffer[16];
-    if (i == 0) {
+    if (isBassTrack && i == 0) {
+      _rows[i].label = "MOTIF";
+      snprintf(valueBuffer, sizeof(valueBuffer), "%u", snapshot.bassParams.motifIndex);
+    } else if (isBassTrack && i == 1) {
+      _rows[i].label = "SWING";
+      formatPercent(valueBuffer, sizeof(valueBuffer), static_cast<int>(snapshot.bassParams.swing * 100.0f));
+    } else if (isBassTrack && i == 2) {
+      _rows[i].label = "GHOST";
+      formatPercent(valueBuffer, sizeof(valueBuffer), static_cast<int>(snapshot.bassParams.ghostProb * 100.0f));
+    } else if (isBassTrack) {
+      _rows[i].label = "ACCENT";
+      formatPercent(valueBuffer, sizeof(valueBuffer), static_cast<int>(snapshot.bassParams.accentProb * 100.0f));
+    } else if (i == 0) {
+      _rows[i].label = "STEPS";
       snprintf(valueBuffer, sizeof(valueBuffer), "%d", snapshot.trackSteps[snapshot.activeTrack]);
     } else if (i == 1) {
+      _rows[i].label = "HITS";
       snprintf(valueBuffer, sizeof(valueBuffer), "%d", snapshot.trackHits[snapshot.activeTrack]);
     } else if (i == 2) {
+      _rows[i].label = "ROTATE";
       snprintf(valueBuffer, sizeof(valueBuffer), "%d", snapshot.trackRotations[snapshot.activeTrack]);
     } else {
+      _rows[i].label = "GAIN";
       formatPercent(valueBuffer, sizeof(valueBuffer), static_cast<int>(snapshot.voiceGain[snapshot.activeTrack] * 100.0f));
     }
 
@@ -185,7 +233,17 @@ void PatternScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &sna
     _rows[i].minusPressed = (_holdRow == i && _holdDirection < 0);
     _rows[i].plusPressed = (_holdRow == i && _holdDirection > 0);
     _rows[i].valueText = valueBuffer;
-    _rows[i].barFill = (i == 3) ? static_cast<uint8_t>(snapshot.voiceGain[snapshot.activeTrack] * 100.0f) : 0;
+    _rows[i].showBar = (isBassTrack && i > 0) || (!isBassTrack && i == 3);
+    _rows[i].barFill = 0;
+    if (isBassTrack && i == 1) {
+      _rows[i].barFill = static_cast<uint8_t>(snapshot.bassParams.swing * 100.0f);
+    } else if (isBassTrack && i == 2) {
+      _rows[i].barFill = static_cast<uint8_t>(snapshot.bassParams.ghostProb * 100.0f);
+    } else if (isBassTrack && i == 3) {
+      _rows[i].barFill = static_cast<uint8_t>(snapshot.bassParams.accentProb * 100.0f);
+    } else if (!isBassTrack && i == 3) {
+      _rows[i].barFill = static_cast<uint8_t>(snapshot.voiceGain[snapshot.activeTrack] * 100.0f);
+    }
     _rows[i].draw(canvas);
   }
 
@@ -241,6 +299,27 @@ bool PatternScreen::handleHoldTick(const TouchPoint &tp, const UiStateSnapshot &
 }
 
 void PatternScreen::dispatchRowDelta(const UiStateSnapshot &snapshot, int rowIndex, int amount) {
+  if (snapshot.activeTrack == VOICE_BASS) {
+    if (rowIndex == 0) {
+      dispatchUiAction(UiActionType::SET_BASS_PARAM, static_cast<int>(BassParamId::MOTIF_INDEX),
+                       static_cast<int>(snapshot.bassParams.motifIndex) * 25 + amount);
+      return;
+    }
+    if (rowIndex == 1) {
+      dispatchUiAction(UiActionType::SET_BASS_PARAM, static_cast<int>(BassParamId::SWING),
+                       static_cast<int>(snapshot.bassParams.swing * 100.0f) + amount);
+      return;
+    }
+    if (rowIndex == 2) {
+      dispatchUiAction(UiActionType::SET_BASS_PARAM, static_cast<int>(BassParamId::GHOST_PROB),
+                       static_cast<int>(snapshot.bassParams.ghostProb * 100.0f) + amount);
+      return;
+    }
+    dispatchUiAction(UiActionType::SET_BASS_PARAM, static_cast<int>(BassParamId::ACCENT_PROB),
+                     static_cast<int>(snapshot.bassParams.accentProb * 100.0f) + amount);
+    return;
+  }
+
   if (rowIndex == 0) {
     dispatchUiAction(UiActionType::SET_STEPS, snapshot.activeTrack, snapshot.trackSteps[snapshot.activeTrack] + amount);
     return;
@@ -257,7 +336,7 @@ void PatternScreen::dispatchRowDelta(const UiStateSnapshot &snapshot, int rowInd
     return;
   }
 
-  dispatchUiAction(UiActionType::SET_SOUND_PARAM, 3,
+  dispatchUiAction(UiActionType::SET_VOICE_GAIN, snapshot.activeTrack,
                    static_cast<int>(snapshot.voiceGain[snapshot.activeTrack] * 100.0f) + amount);
 }
 

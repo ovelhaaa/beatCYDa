@@ -2,6 +2,7 @@
 
 #include "../CYD_Config.h"
 #include "core/UiActions.h"
+#include "core/BassUiFormat.h"
 #include "theme/UiTheme.h"
 #include <Arduino.h>
 
@@ -69,6 +70,15 @@ bool hasPatternPanelChanges(const UiStateSnapshot &lhs, const UiStateSnapshot &r
   }
 
   const uint8_t activeTrack = lhs.activeTrack;
+  if (activeTrack == VOICE_BASS) {
+    return lhs.bassParams.mode != rhs.bassParams.mode ||
+           lhs.bassParams.motifIndex != rhs.bassParams.motifIndex ||
+           lhs.bassParams.swing != rhs.bassParams.swing ||
+           lhs.bassParams.ghostProb != rhs.bassParams.ghostProb ||
+           lhs.bassParams.accentProb != rhs.bassParams.accentProb;
+  }
+
+
   return lhs.trackSteps[activeTrack] != rhs.trackSteps[activeTrack] ||
          lhs.trackHits[activeTrack] != rhs.trackHits[activeTrack] ||
          lhs.trackRotations[activeTrack] != rhs.trackRotations[activeTrack] ||
@@ -81,6 +91,16 @@ bool hasSoundPanelChanges(const UiStateSnapshot &lhs, const UiStateSnapshot &rhs
   }
 
   const uint8_t activeTrack = lhs.activeTrack;
+  if (activeTrack == VOICE_BASS) {
+    return lhs.voiceParams[activeTrack].pitch != rhs.voiceParams[activeTrack].pitch ||
+           lhs.voiceParams[activeTrack].decay != rhs.voiceParams[activeTrack].decay ||
+           lhs.voiceParams[activeTrack].timbre != rhs.voiceParams[activeTrack].timbre ||
+           lhs.voiceParams[activeTrack].drive != rhs.voiceParams[activeTrack].drive ||
+           lhs.bassParams.mode != rhs.bassParams.mode || lhs.bassParams.motifIndex != rhs.bassParams.motifIndex ||
+           lhs.bassParams.swing != rhs.bassParams.swing || lhs.bassParams.accentProb != rhs.bassParams.accentProb ||
+           lhs.bassParams.ghostProb != rhs.bassParams.ghostProb ||
+           lhs.bassParams.phraseVariation != rhs.bassParams.phraseVariation;
+  }
   return lhs.voiceParams[activeTrack].pitch != rhs.voiceParams[activeTrack].pitch ||
          lhs.voiceParams[activeTrack].decay != rhs.voiceParams[activeTrack].decay ||
          lhs.voiceParams[activeTrack].timbre != rhs.voiceParams[activeTrack].timbre ||
@@ -236,7 +256,14 @@ void UiApp::renderTopBarMetrics() {
                   theme::UiTheme::Colors::Surface);
   canvas.setTextColor(theme::UiTheme::Colors::TextSecondary, theme::UiTheme::Colors::Surface);
   canvas.setCursor(theme::UiTheme::Metrics::TopBarMetricsX + 2, theme::UiTheme::Metrics::TopBarTextBaselineY);
-  canvas.printf("BPM %d  %uFPS %luKB", _snapshot.bpm, _uiFps, static_cast<unsigned long>(_freeHeap / 1024UL));
+  const uint8_t root = _snapshot.bassParams.rootNote;
+  canvas.printf("BPM %d %s%d %s %uFPS %luKB",
+                _snapshot.bpm,
+                bassfmt::noteName(root),
+                bassfmt::noteOctave(root),
+                bassfmt::modeShortName(_snapshot.bassParams.mode),
+                _uiFps,
+                static_cast<unsigned long>(_freeHeap / 1024UL));
 }
 
 void UiApp::updateUiStats(uint32_t nowMs) {
