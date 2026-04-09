@@ -49,6 +49,17 @@ enum class UiActionType {
   RANDOMIZE_TRACK // index = track, value ignored
 };
 
+enum class BassParamId : uint8_t {
+  DENSITY = 0, // Legacy
+  RANGE = 1,   // Legacy
+  SCALE = 2,   // Legacy
+  ROOT = 3,    // Legacy
+  MOTIF_INDEX = 4,
+  SWING = 5,
+  GHOST_PROB = 6,
+  ACCENT_PROB = 7
+};
+
 struct UiAction {
   UiActionType type;
   int index; // Track index, Param ID, etc.
