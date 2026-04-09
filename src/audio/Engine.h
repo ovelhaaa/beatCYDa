@@ -45,6 +45,8 @@ struct PresetData {
   int scale;
   float bassDensity;
   int bassRange;
+  int bassMode;
+  int bassMotifIndex;
   int snareMode;
   int bpm; // Added BPM
 };

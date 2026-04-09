@@ -15,7 +15,7 @@
 
 enum class BassScale : uint8_t { MINOR = 0, MAJOR, DORIAN, PHRYGIAN };
 
-enum class GrooveMode : uint8_t { FOLLOW_KICK = 0, OFFBEAT, RANDOM };
+enum class GrooveMode : uint8_t { FOLLOW_KICK = 0, OFFBEAT, RANDOM, MOTIF };
 
 struct BassGrooveParams {
   // Harmony
@@ -32,6 +32,9 @@ struct BassGrooveParams {
   int range;       // Max interval jump (semitones approx, or scale degrees)
   float slideProb; // 0.0 .. 1.0
   float phraseVariation; // 0.0 .. 1.0 (A/B phrase contrast + cadential pull)
+
+  // Motif
+  uint8_t motifIndex; // Fixed motif index per scale/mode
 };
 
 class BassGroove {
@@ -67,6 +70,10 @@ private:
   bool altState; // Alternation state A/B
   int phraseStep;    // 0..15
   int phraseVariant; // 0=A, 1=B
+
+  // Motif state
+  bool hasPendingMotifDegree;
+  int pendingMotifDegree;
 
   // Kick Sync State
   bool kickReceived;
