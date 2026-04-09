@@ -67,6 +67,11 @@ void Engine::init() {
   bgp.minIntervalMs = 150.0f;         // Don't get too crazy fast
   bgp.range = 7;                      // +/- 5th
   bgp.slideProb = 0.2f;               // Occasional slide
+  bgp.phraseVariation = 0.6f;         // Gentle A/B and cadence contrast
+  bgp.motifIndex = 0;
+  bgp.swing = 0.25f;
+  bgp.accentProb = 0.32f;
+  bgp.ghostProb = 0.18f;
 
   bassGroove.updateParams(bgp);
   globalRoot.store(bassMidiToRootClass(bgp.rootNote));
@@ -114,6 +119,12 @@ void Engine::setFactoryPreset(int slotId) {
   slots[slotId].scale = 0;
   slots[slotId].bassDensity = 0.6f;
   slots[slotId].bassRange = 7;
+  slots[slotId].bassMode = static_cast<int>(GrooveMode::FOLLOW_KICK);
+  slots[slotId].bassMotifIndex = 0;
+  slots[slotId].bassSwing = 0.25f;
+  slots[slotId].bassAccentProb = 0.32f;
+  slots[slotId].bassGhostProb = 0.18f;
+  slots[slotId].bassPhraseVariation = 0.6f;
   slots[slotId].bpm = 120;
   slots[slotId].snareMode = 0;
 
@@ -446,6 +457,12 @@ void Engine::captureActiveToSlot(int slotId) {
   BassGrooveParams bg = bassGroove.getParams();
   slots[slotId].bassDensity = bg.density;
   slots[slotId].bassRange = bg.range;
+  slots[slotId].bassMode = static_cast<int>(bg.mode);
+  slots[slotId].bassMotifIndex = bg.motifIndex;
+  slots[slotId].bassSwing = bg.swing;
+  slots[slotId].bassAccentProb = bg.accentProb;
+  slots[slotId].bassGhostProb = bg.ghostProb;
+  slots[slotId].bassPhraseVariation = bg.phraseVariation;
   slots[slotId].snareMode = voiceManager.getParams(VOICE_SNARE).mode;
   slots[slotId].bpm = bpm.load(); // Capture BPM
 }
@@ -478,6 +495,12 @@ void Engine::saveSlot(int slotId, bool capture) {
   preferences.putInt("scale", slots[slotId].scale);
   preferences.putFloat("bassDensity", slots[slotId].bassDensity);
   preferences.putInt("bassRange", slots[slotId].bassRange);
+  preferences.putInt("bassMode", slots[slotId].bassMode);
+  preferences.putInt("bassMotif", slots[slotId].bassMotifIndex);
+  preferences.putFloat("bassSwing", slots[slotId].bassSwing);
+  preferences.putFloat("bassAccent", slots[slotId].bassAccentProb);
+  preferences.putFloat("bassGhost", slots[slotId].bassGhostProb);
+  preferences.putFloat("bassPhraseVar", slots[slotId].bassPhraseVariation);
   preferences.putInt("snareMode", slots[slotId].snareMode);
   preferences.putInt("bpm", slots[slotId].bpm);
   preferences.putBool("is_saved", true); // Mark as saved
@@ -520,6 +543,13 @@ void Engine::loadSlot(int slotId) {
     slots[slotId].scale = preferences.getInt("scale", 0);
     slots[slotId].bassDensity = preferences.getFloat("bassDensity", 0.6f);
     slots[slotId].bassRange = preferences.getInt("bassRange", 7);
+    slots[slotId].bassMode = preferences.getInt("bassMode",
+                                               static_cast<int>(GrooveMode::FOLLOW_KICK));
+    slots[slotId].bassMotifIndex = preferences.getInt("bassMotif", 0);
+    slots[slotId].bassSwing = preferences.getFloat("bassSwing", 0.25f);
+    slots[slotId].bassAccentProb = preferences.getFloat("bassAccent", 0.32f);
+    slots[slotId].bassGhostProb = preferences.getFloat("bassGhost", 0.18f);
+    slots[slotId].bassPhraseVariation = preferences.getFloat("bassPhraseVar", 0.6f);
     slots[slotId].snareMode = preferences.getInt("snareMode", 0);
     slots[slotId].bpm = preferences.getInt("bpm", 120);
   }
@@ -573,6 +603,12 @@ void Engine::applySlotToActive(int slotId) {
     bg.scaleType = bassScaleFromGlobal(slots[slotId].scale);
     bg.density = slots[slotId].bassDensity;
     bg.range = slots[slotId].bassRange;
+    bg.mode = static_cast<GrooveMode>(slots[slotId].bassMode);
+    bg.motifIndex = (uint8_t)(slots[slotId].bassMotifIndex & 0x03);
+    bg.swing = slots[slotId].bassSwing;
+    bg.accentProb = slots[slotId].bassAccentProb;
+    bg.ghostProb = slots[slotId].bassGhostProb;
+    bg.phraseVariation = slots[slotId].bassPhraseVariation;
     bassGroove.updateParams(bg);
     syncGlobalsFromBassGroove();
 
@@ -682,21 +718,57 @@ void setVoiceParamNormalized(int track, int paramIdx, float normalized) {
 
 void setBassControlAbsolute(int paramIdx, int value) {
   BassGrooveParams params = engine.bassGroove.getParams();
+  const int clamped = constrain(value, 0, 100);
 
   switch (paramIdx) {
   case 0:
-    params.density = constrain(value / 100.0f, 0.0f, 1.0f);
+    params.density = constrain(clamped / 100.0f, 0.0f, 1.0f);
     break;
   case 1:
-    params.range = constrain(1 + (value * 11 / 100), 1, 12);
+    params.range = constrain(1 + (clamped * 11 / 100), 1, 12);
     break;
   case 2:
-    params.scaleType = static_cast<BassScale>(constrain(value * 4 / 100, 0, 3));
+    params.scaleType = static_cast<BassScale>(constrain(clamped * 4 / 100, 0, 3));
     break;
   case 3:
-    params.rootNote = static_cast<uint8_t>(constrain(24 + (value * 24 / 100),
+    params.rootNote = static_cast<uint8_t>(constrain(24 + (clamped * 24 / 100),
                                                      (int)BASS_ROOT_NOTE_MIN,
                                                      (int)BASS_ROOT_NOTE_MAX));
+    break;
+  case 4:
+    params.mode =
+        static_cast<GrooveMode>(constrain(value * 4 / 100, 0, 3));
+    break;
+  case 5:
+    params.motifIndex = (uint8_t)constrain(value * 4 / 100, 0, 3);
+    break;
+  case 6:
+    params.swing = constrain(value / 100.0f, 0.0f, 1.0f);
+    break;
+  case 7:
+    params.accentProb = constrain(value / 100.0f, 0.0f, 1.0f);
+    break;
+  case 8:
+    params.ghostProb = constrain(value / 100.0f, 0.0f, 1.0f);
+    break;
+  case 9:
+    params.phraseVariation = constrain(value / 100.0f, 0.0f, 1.0f);
+    break;
+  case 10:
+    params.slideProb = constrain(value / 100.0f, 0.0f, 1.0f);
+    break;
+  case static_cast<int>(BassParamId::MOTIF_INDEX):
+    params.motifIndex = static_cast<uint8_t>(constrain(clamped * 4 / 100, 0, 3));
+    params.mode = GrooveMode::MOTIF;
+    break;
+  case static_cast<int>(BassParamId::SWING):
+    params.swing = clamped / 100.0f;
+    break;
+  case static_cast<int>(BassParamId::GHOST_PROB):
+    params.ghostProb = clamped / 100.0f;
+    break;
+  case static_cast<int>(BassParamId::ACCENT_PROB):
+    params.accentProb = clamped / 100.0f;
     break;
   default:
     return;

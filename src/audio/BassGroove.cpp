@@ -18,6 +18,33 @@ static const int scaleMajor[] = {0, 2, 4, 5, 7, 9, 11};
 static const int scaleDorian[] = {0, 2, 3, 5, 7, 9, 10};   // R 2 b3 4 5 6 b7
 static const int scalePhrygian[] = {0, 1, 3, 5, 7, 8, 10}; // R b2 b3 4 5 b6 b7
 
+// Motifs (degrees in current scale, -1 = silence)
+static const int8_t motifDegrees[4][4][16] = {
+    // Minor
+    {{0, -1, 2, -1, 4, -1, 2, -1, 0, -1, 3, -1, 4, -1, 2, -1},
+     {0, -1, 0, 2, -1, 3, -1, 2, 4, -1, 3, -1, 2, -1, 0, -1},
+     {0, 2, -1, 3, -1, 4, -1, 3, 2, -1, 0, -1, 2, -1, 4, -1},
+     {0, -1, 4, -1, 3, -1, 2, -1, 0, -1, 2, -1, 3, -1, 4, -1}},
+    // Major
+    {{0, -1, 2, -1, 4, -1, 5, -1, 4, -1, 2, -1, 0, -1, 2, -1},
+     {0, -1, 0, 2, -1, 4, -1, 5, 4, -1, 2, -1, 1, -1, 0, -1},
+     {0, 2, -1, 4, -1, 5, -1, 4, 2, -1, 0, -1, 1, -1, 2, -1},
+     {0, -1, 5, -1, 4, -1, 2, -1, 0, -1, 1, -1, 2, -1, 4, -1}},
+    // Dorian
+    {{0, -1, 2, -1, 3, -1, 5, -1, 4, -1, 2, -1, 0, -1, 3, -1},
+     {0, -1, 0, 2, -1, 3, -1, 5, 3, -1, 2, -1, 1, -1, 0, -1},
+     {0, 2, -1, 3, -1, 5, -1, 4, 2, -1, 0, -1, 1, -1, 3, -1},
+     {0, -1, 4, -1, 3, -1, 2, -1, 0, -1, 1, -1, 3, -1, 5, -1}},
+    // Phrygian
+    {{0, -1, 1, -1, 3, -1, 4, -1, 3, -1, 1, -1, 0, -1, 1, -1},
+     {0, -1, 0, 1, -1, 3, -1, 4, 3, -1, 1, -1, 0, -1, 1, -1},
+     {0, 1, -1, 3, -1, 4, -1, 3, 1, -1, 0, -1, 1, -1, 3, -1},
+     {0, -1, 4, -1, 3, -1, 1, -1, 0, -1, 1, -1, 3, -1, 4, -1}}};
+
+static const float motifAccents[16] = {1.0f, 0.0f, 0.72f, 0.0f, 0.95f, 0.0f,
+                                       0.68f, 0.0f, 0.88f, 0.0f, 0.74f, 0.0f,
+                                       0.92f, 0.0f, 0.80f, 0.0f};
+
 // XorShift helper - inline for speed
 static inline uint32_t xorShift(uint32_t &state) {
   state ^= (state << 13);
@@ -38,6 +65,11 @@ void BassGroove::init(float sr) {
   params.minIntervalMs = 9.0f;
   params.range = 5;
   params.slideProb = 0.3f; // Slightly increased for Legato feel
+  params.phraseVariation = 0.5f;
+  params.motifIndex = 0;
+  params.swing = 0.0f;
+  params.accentProb = 0.3f;
+  params.ghostProb = 0.2f;
 
   // Reset State
   lastNote = 36;
@@ -58,7 +90,12 @@ void BassGroove::init(float sr) {
   octave = 0;
   altState = false;
   phraseStep = 0;
-  phraseVariantB = false;
+  phraseVariant = 0;
+  hasPendingMotifDegree = false;
+  pendingMotifDegree = 0;
+  hasPendingTrigger = false;
+  pendingAccent = false;
+  pendingTriggerDelayMs = 0.0f;
 }
 
 void BassGroove::updateParams(const BassGrooveParams &newParams) {
@@ -68,6 +105,28 @@ void BassGroove::updateParams(const BassGrooveParams &newParams) {
     params.density = 0.0f;
   if (params.density > 1.0f)
     params.density = 1.0f;
+  if (params.phraseVariation < 0.0f)
+    params.phraseVariation = 0.0f;
+  if (params.phraseVariation > 1.0f)
+    params.phraseVariation = 1.0f;
+  if (params.swing < 0.0f)
+    params.swing = 0.0f;
+  if (params.swing > 1.0f)
+    params.swing = 1.0f;
+  if (params.accentProb < 0.0f)
+    params.accentProb = 0.0f;
+  if (params.accentProb > 1.0f)
+    params.accentProb = 1.0f;
+  if (params.ghostProb < 0.0f)
+    params.ghostProb = 0.0f;
+  if (params.ghostProb > 1.0f)
+    params.ghostProb = 1.0f;
+
+  if (params.motifIndex >= 4)
+    params.motifIndex = 0;
+
+  if (static_cast<uint8_t>(params.mode) > static_cast<uint8_t>(GrooveMode::MOTIF))
+    params.mode = GrooveMode::FOLLOW_KICK;
 
   // Update cached scale pointer
   switch (params.scaleType) {
@@ -94,11 +153,12 @@ void BassGroove::updateParams(const BassGrooveParams &newParams) {
 void BassGroove::onKick() { kickReceived = true; }
 
 void BassGroove::onTick(int currentStep) {
-  // Compatível com Engine::currentStep em ciclo 0..63.
-  const int normalizedStep = ((currentStep % 64) + 64) % 64;
-  phraseStep = normalizedStep % 16; // 0..15
-  phraseVariantB = ((normalizedStep / 16) & 1) != 0; // A/B por bloco de 16
-  const bool hasKick = kickReceived;
+  const int wrappedStep = ((currentStep % 64) + 64) % 64;
+  phraseStep = wrappedStep % 16;
+  phraseVariant = (wrappedStep / 16) % 2;
+  altState = (phraseVariant == 1);
+
+  bool hasKick = kickReceived;
   kickReceived = false;
 
   if (timeSinceLastTriggerMs < params.minIntervalMs) {
@@ -108,13 +168,11 @@ void BassGroove::onTick(int currentStep) {
   // --- 1. RHYTHM LOGIC ---
   float p = params.density;
   bool isDownBeat = (phraseStep == 0);
-  bool isQuarterStep = ((normalizedStep % 4) == 0);
-  bool isPreferredOffbeat =
-      (phraseStep == 2 || phraseStep == 6 || phraseStep == 10 || phraseStep == 14);
-
-  // "Variação" reaproveita density (0..1): baixa density = mais repetitivo,
-  // alta density = mais contraste entre as variantes A/B.
-  const float variation = constrain(params.density, 0.0f, 1.0f);
+  bool isQuarterStep = (wrappedStep % 4 == 0);
+  bool isPreferredOffbeat = (wrappedStep % 4 == 2);
+  const float swingBoost = 1.0f + (params.swing * 0.8f);
+  const float swingBeatReduce = 1.0f - (params.swing * 0.45f);
+  bool isEvenStep = ((wrappedStep & 1) == 0);
 
   // Keep downbeat protection across every mode.
   if (isDownBeat) {
@@ -129,7 +187,7 @@ void BassGroove::onTick(int currentStep) {
         p = 0.78f + (params.density * 0.22f);
       } else if (isPreferredOffbeat) {
         // Moderate fallback on offbeat syncopation.
-        p = params.density * 0.55f;
+        p = params.density * 0.55f * swingBoost;
       } else {
         p = params.density * 0.28f;
       }
@@ -138,10 +196,10 @@ void BassGroove::onTick(int currentStep) {
     case GrooveMode::OFFBEAT:
       if (isQuarterStep) {
         // Avoid strong beat positions.
-        p = params.density * 0.2f;
+        p = params.density * 0.2f * swingBeatReduce;
       } else if (isPreferredOffbeat) {
         // Prefer classic offbeat placements.
-        p = params.density * 1.25f;
+        p = params.density * 1.25f * swingBoost;
       } else {
         p = params.density * 0.7f;
       }
@@ -151,23 +209,14 @@ void BassGroove::onTick(int currentStep) {
     default:
       // Mostly linear density mapping with no kick dependency.
       p = params.density;
+      if (isPreferredOffbeat) {
+        p *= swingBoost;
+      } else if (isQuarterStep) {
+        p *= swingBeatReduce;
+      }
       break;
     }
 
-    // Variação fraseada A/B em blocos de 16 passos.
-    // A: mais "chão"; B: mais ativo/sincopado.
-    if (phraseVariantB) {
-      const bool isSyncSlot = (phraseStep == 3 || phraseStep == 7 || phraseStep == 11);
-      if (isSyncSlot) {
-        p += 0.20f * variation;
-      } else if (isQuarterStep) {
-        p += 0.08f * variation;
-      }
-    } else {
-      if (isQuarterStep) {
-        p += 0.12f * (1.0f - variation);
-      }
-    }
   }
 
   // Clamp
@@ -176,14 +225,59 @@ void BassGroove::onTick(int currentStep) {
   if (p < 0.0f)
     p = 0.0f;
 
+  if (params.mode == GrooveMode::MOTIF) {
+    const uint8_t scaleIdx = static_cast<uint8_t>(params.scaleType);
+    const uint8_t motifIdx = params.motifIndex & 0x03;
+    const int stepIdx = phraseStep & 0x0F;
+    const int motifDegree = motifDegrees[scaleIdx][motifIdx][stepIdx];
+
+    if (motifDegree >= 0) {
+      hasPendingMotifDegree = true;
+      pendingMotifDegree = motifDegree;
+      const float accent = motifAccents[stepIdx];
+      const bool motifAccent = (accent >= 0.85f) || isDownBeat;
+      if (isEvenStep && params.swing > 0.01f) {
+        hasPendingTrigger = true;
+        pendingAccent = motifAccent;
+        pendingTriggerDelayMs = params.swing * 80.0f;
+      } else {
+        trigger(motifAccent);
+      }
+    }
+    return;
+  }
+
   if (randomUnit() < p) {
     // Pass context to trigger
-    bool isAccent = isDownBeat || isQuarterStep || (randomUnit() < 0.3f);
-    trigger(isAccent); // Helper overload
+    bool isAccent = isDownBeat || isQuarterStep ||
+                    (randomUnit() < params.accentProb);
+    if (isEvenStep && params.swing > 0.01f) {
+      hasPendingTrigger = true;
+      pendingAccent = isAccent;
+      pendingTriggerDelayMs = params.swing * 80.0f;
+    } else {
+      trigger(isAccent); // Helper overload
+    }
   }
 }
 
-void BassGroove::process(float dt_ms) { timeSinceLastTriggerMs += dt_ms; }
+void BassGroove::process(float dt_ms) {
+  timeSinceLastTriggerMs += dt_ms;
+
+  if (!hasPendingTrigger) {
+    return;
+  }
+
+  pendingTriggerDelayMs -= dt_ms;
+  if (pendingTriggerDelayMs > 0.0f) {
+    return;
+  }
+
+  trigger(pendingAccent);
+  hasPendingTrigger = false;
+  pendingAccent = false;
+  pendingTriggerDelayMs = 0.0f;
+}
 
 void BassGroove::trigger() { trigger(false); }
 
@@ -200,12 +294,14 @@ void BassGroove::trigger(bool forceAccent) {
   // --- 3. VELOCITY / LENGTH LOGIC ---
   // User wants "Less Farty" -> longer notes.
   // We use Velocity to control Release in BassVoice. Higher Vel = Longer.
+  const bool ghost = (!forceAccent) && (randomUnit() < params.ghostProb);
   float velocity = 0.5f;
-
-  if (forceAccent) {
+  if (ghost) {
+    velocity = 0.35f + randomUnit() * 0.2f; // 0.35..0.55
+  } else if (forceAccent) {
     velocity = 0.9f + randomUnit() * 0.1f; // 0.9..1.0 (Long)
   } else {
-    // Ghost notes: Make them slightly longer than before (0.4 was too short?)
+    // Normal notes: keep a medium-long range for consistent body.
     velocity = 0.6f + randomUnit() * 0.3f; // 0.6..0.9
   }
 
@@ -229,79 +325,111 @@ void BassGroove::trigger(bool forceAccent) {
 }
 
 uint8_t BassGroove::generateNote() {
+  int scaleLen = cachedScaleLen;
+
+  if (hasPendingMotifDegree) {
+    hasPendingMotifDegree = false;
+    int degreeOut = pendingMotifDegree % scaleLen;
+    if (degreeOut < 0)
+      degreeOut += scaleLen;
+
+    degree = degreeOut;
+    octave = 0;
+
+    int note = params.rootNote + cachedScale[degreeOut] + params.octaveOffset * 12;
+    note = constrain(note, 0, 127);
+    return (uint8_t)note;
+  }
+
   // --- 4. HARMONIC LOGIC ---
   // Walker with Gravity towards Root/Fifth
+  int rangeSemitones = params.range;
+  if (rangeSemitones < 0)
+    rangeSemitones = 0;
 
-  int degreeOut = degree;
+  auto semitonesForDegreeSpan = [&](int spanDegrees) {
+    if (spanDegrees <= 0)
+      return 0;
+    int octs = spanDegrees / scaleLen;
+    int deg = spanDegrees % scaleLen;
+    return (octs * 12) + cachedScale[deg];
+  };
+
+  // Convert "range in semitones (approx)" to reachable scale-degree span.
+  int maxDegreeSpanFromRange = 0;
+  while (semitonesForDegreeSpan(maxDegreeSpanFromRange + 1) <= rangeSemitones) {
+    maxDegreeSpanFromRange++;
+  }
+
+  int currentAbsDegree = octave * scaleLen + degree;
+  int candidateAbsDegree = currentAbsDegree;
+
+  const float varAmt = params.phraseVariation;
+  const bool isPhraseClosure = (phraseStep == 15);
+  const bool preferCadence = isPhraseClosure || (phraseVariant == 1 && phraseStep >= 12);
+  const int stableBias = preferCadence ? static_cast<int>(30.0f * varAmt) : 0;
 
   // Weights (Probabilities out of 100)
   int r = xorShift(rngState) % 100;
-  const bool isPhraseClosing = (phraseStep == 15);
-  const float variation = constrain(params.density, 0.0f, 1.0f);
 
   // Decision Tree
   // 60% Chance: Stay/Move to Root or Fifth
   // 40% Chance: Walk +/- 1
-  if (isPhraseClosing) {
-    // Fechamento de frase: força resolução (root/quinta).
-    if (r < 88) {
-      const int rootBias = 65 + static_cast<int>((1.0f - variation) * 20.0f);
-      degreeOut = ((xorShift(rngState) % 100) < rootBias) ? 0 : 4;
-    } else {
-      int step = (xorShift(rngState) & 1) ? 1 : -1;
-      degreeOut = degree + step;
+
+  if (r < (50 + stableBias)) {
+    // STABLE: Pick Root or Fifth
+    const int rootChance = 50 + static_cast<int>(35.0f * varAmt);
+    if ((xorShift(rngState) % 100) < rootChance)
+      candidateAbsDegree = octave * scaleLen; // Root (Grounding)
+    else
+      candidateAbsDegree = octave * scaleLen + 4; // Fifth (approx, mapped later)
+  } else if (r < (80 + static_cast<int>(10.0f * varAmt))) {
+    // WALK SMALL
+    int step = ((xorShift(rngState) & 1) ? 1 : -1);
+    if (altState && randomUnit() < (0.25f + (0.35f * varAmt))) {
+      step = -step;
     }
-  } else if (!phraseVariantB) {
-    // Variante A: mais estável/repetível.
-    if (r < 58) {
-      degreeOut = ((xorShift(rngState) & 1) == 0) ? 0 : 4;
-    } else if (r < 88) {
-      int step = (xorShift(rngState) & 1) ? 1 : -1;
-      degreeOut = degree + step;
-    } else {
-      degreeOut = degree + ((xorShift(rngState) % 3) + 1);
-    }
+    candidateAbsDegree = currentAbsDegree + step;
   } else {
-    // Variante B: mais movimento para reduzir looping mecânico.
-    if (r < 42) {
-      degreeOut = ((xorShift(rngState) & 1) == 0) ? 0 : 4;
-    } else if (r < 80) {
-      int step = (xorShift(rngState) & 1) ? 1 : -1;
-      degreeOut = degree + step;
-    } else {
-      int jump = ((xorShift(rngState) % 4) + 2);
-      if (xorShift(rngState) & 1) {
-        degreeOut = degree + jump;
-      } else {
-        degreeOut = degree - jump;
-      }
+    // JUMP (Octave or Third)
+    const int jump = (xorShift(rngState) % 3) + 2;
+    candidateAbsDegree = currentAbsDegree + ((altState && varAmt > 0.2f) ? -jump : jump);
+  }
+
+  // Force cadence tendency at phrase closure.
+  if (isPhraseClosure && randomUnit() < (0.7f + 0.25f * varAmt)) {
+    candidateAbsDegree = octave * scaleLen;
+    if (randomUnit() < (0.45f - 0.25f * varAmt)) {
+      candidateAbsDegree = octave * scaleLen + 4;
     }
   }
 
-  // Apply changes to state
-  degree = degreeOut;
+  // 1) Limit max displacement in scale degrees per step.
+  int deltaDegrees = candidateAbsDegree - currentAbsDegree;
+  if (deltaDegrees > maxDegreeSpanFromRange)
+    deltaDegrees = maxDegreeSpanFromRange;
+  if (deltaDegrees < -maxDegreeSpanFromRange)
+    deltaDegrees = -maxDegreeSpanFromRange;
+  candidateAbsDegree = currentAbsDegree + deltaDegrees;
 
-  // Use cached scale (updated in updateParams())
-  int scaleLen = cachedScaleLen;
+  // 2) Limit walker excursion around center (degree=0 / octave=0).
+  if (candidateAbsDegree > maxDegreeSpanFromRange)
+    candidateAbsDegree = maxDegreeSpanFromRange;
+  if (candidateAbsDegree < -maxDegreeSpanFromRange)
+    candidateAbsDegree = -maxDegreeSpanFromRange;
 
-  // Wrap degree to scale
-  // Custom Wrap logic to handle negative walking
-  while (degree < 0) {
-    degree += scaleLen;
-    octave--;
+  // 3) Map absolute degree back to cached scale degree + relative octave.
+  int mappedOctave = candidateAbsDegree / scaleLen;
+  int mappedDegree = candidateAbsDegree % scaleLen;
+  if (mappedDegree < 0) {
+    mappedDegree += scaleLen;
+    mappedOctave--;
   }
-  while (degree >= scaleLen) {
-    degree -= scaleLen;
-    octave++;
-  }
 
-  // Boundary check on Octave
-  if (octave < -1)
-    octave = -1;
-  if (octave > 1)
-    octave = 1;
+  degree = mappedDegree;
+  octave = mappedOctave;
 
-  degreeOut = degree; // Finalize
+  int degreeOut = degree; // Finalize
 
   // Calculate MIDI Note using cached scale
   int note = params.rootNote + cachedScale[degreeOut] +
