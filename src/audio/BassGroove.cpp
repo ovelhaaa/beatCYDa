@@ -95,12 +95,13 @@ void BassGroove::onKick() { kickReceived = true; }
 
 void BassGroove::onTick(int currentStep) {
   // Compatível com Engine::currentStep em ciclo 0..63.
-  const int normalizedStep = currentStep & 63;
-  phraseStep = normalizedStep & 15;          // 0..15
+  const int normalizedStep = ((currentStep % 64) + 64) % 64;
+  phraseStep = normalizedStep % 16; // 0..15
   phraseVariantB = ((normalizedStep / 16) & 1) != 0; // A/B por bloco de 16
+  const bool hasKick = kickReceived;
+  kickReceived = false;
 
   if (timeSinceLastTriggerMs < params.minIntervalMs) {
-    kickReceived = false;
     return;
   }
 
@@ -123,7 +124,7 @@ void BassGroove::onTick(int currentStep) {
   } else {
     switch (params.mode) {
     case GrooveMode::FOLLOW_KICK:
-      if (kickReceived) {
+      if (hasKick) {
         // Boost probability when kick is present.
         p = 0.78f + (params.density * 0.22f);
       } else if (isPreferredOffbeat) {
@@ -175,14 +176,11 @@ void BassGroove::onTick(int currentStep) {
   if (p < 0.0f)
     p = 0.0f;
 
-  if (((float)xorShift(rngState) / 4294967295.0f) < p) {
+  if (randomUnit() < p) {
     // Pass context to trigger
-    bool isAccent = isDownBeat || isQuarterStep ||
-                    (((float)xorShift(rngState) / 4294967295.0f) < 0.3f);
+    bool isAccent = isDownBeat || isQuarterStep || (randomUnit() < 0.3f);
     trigger(isAccent); // Helper overload
   }
-
-  kickReceived = false;
 }
 
 void BassGroove::process(float dt_ms) { timeSinceLastTriggerMs += dt_ms; }
