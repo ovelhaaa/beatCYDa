@@ -449,7 +449,7 @@ bool SoundScreen::handleTouch(const TouchPoint &tp, const UiStateSnapshot &snaps
   }
 
   if (tp.justPressed) {
-    if (isBassTrack(snapshot) && _identityCard.hitTest(tp.x, tp.y)) {
+    if (isBassTrack(snapshot) && _identityCard.rect.contains(tp.x, tp.y)) {
       _bassPage ^= 0x01;
       _dirty = true;
       return true;
