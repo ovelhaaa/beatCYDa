@@ -18,6 +18,33 @@ static const int scaleMajor[] = {0, 2, 4, 5, 7, 9, 11};
 static const int scaleDorian[] = {0, 2, 3, 5, 7, 9, 10};   // R 2 b3 4 5 6 b7
 static const int scalePhrygian[] = {0, 1, 3, 5, 7, 8, 10}; // R b2 b3 4 5 b6 b7
 
+// Motifs (degrees in current scale, -1 = silence)
+static const int8_t motifDegrees[4][4][16] = {
+    // Minor
+    {{0, -1, 2, -1, 4, -1, 2, -1, 0, -1, 3, -1, 4, -1, 2, -1},
+     {0, -1, 0, 2, -1, 3, -1, 2, 4, -1, 3, -1, 2, -1, 0, -1},
+     {0, 2, -1, 3, -1, 4, -1, 3, 2, -1, 0, -1, 2, -1, 4, -1},
+     {0, -1, 4, -1, 3, -1, 2, -1, 0, -1, 2, -1, 3, -1, 4, -1}},
+    // Major
+    {{0, -1, 2, -1, 4, -1, 5, -1, 4, -1, 2, -1, 0, -1, 2, -1},
+     {0, -1, 0, 2, -1, 4, -1, 5, 4, -1, 2, -1, 1, -1, 0, -1},
+     {0, 2, -1, 4, -1, 5, -1, 4, 2, -1, 0, -1, 1, -1, 2, -1},
+     {0, -1, 5, -1, 4, -1, 2, -1, 0, -1, 1, -1, 2, -1, 4, -1}},
+    // Dorian
+    {{0, -1, 2, -1, 3, -1, 5, -1, 4, -1, 2, -1, 0, -1, 3, -1},
+     {0, -1, 0, 2, -1, 3, -1, 5, 3, -1, 2, -1, 1, -1, 0, -1},
+     {0, 2, -1, 3, -1, 5, -1, 4, 2, -1, 0, -1, 1, -1, 3, -1},
+     {0, -1, 4, -1, 3, -1, 2, -1, 0, -1, 1, -1, 3, -1, 5, -1}},
+    // Phrygian
+    {{0, -1, 1, -1, 3, -1, 4, -1, 3, -1, 1, -1, 0, -1, 1, -1},
+     {0, -1, 0, 1, -1, 3, -1, 4, 3, -1, 1, -1, 0, -1, 1, -1},
+     {0, 1, -1, 3, -1, 4, -1, 3, 1, -1, 0, -1, 1, -1, 3, -1},
+     {0, -1, 4, -1, 3, -1, 1, -1, 0, -1, 1, -1, 3, -1, 4, -1}}};
+
+static const float motifAccents[16] = {1.0f, 0.0f, 0.72f, 0.0f, 0.95f, 0.0f,
+                                       0.68f, 0.0f, 0.88f, 0.0f, 0.74f, 0.0f,
+                                       0.92f, 0.0f, 0.80f, 0.0f};
+
 // XorShift helper - inline for speed
 static inline uint32_t xorShift(uint32_t &state) {
   state ^= (state << 13);
@@ -39,6 +66,7 @@ void BassGroove::init(float sr) {
   params.range = 5;
   params.slideProb = 0.3f; // Slightly increased for Legato feel
   params.phraseVariation = 0.5f;
+  params.motifIndex = 0;
 
   // Reset State
   lastNote = 36;
@@ -60,6 +88,8 @@ void BassGroove::init(float sr) {
   altState = false;
   phraseStep = 0;
   phraseVariant = 0;
+  hasPendingMotifDegree = false;
+  pendingMotifDegree = 0;
 }
 
 void BassGroove::updateParams(const BassGrooveParams &newParams) {
@@ -73,6 +103,12 @@ void BassGroove::updateParams(const BassGrooveParams &newParams) {
     params.phraseVariation = 0.0f;
   if (params.phraseVariation > 1.0f)
     params.phraseVariation = 1.0f;
+
+  if (params.motifIndex >= 4)
+    params.motifIndex = 0;
+
+  if (static_cast<uint8_t>(params.mode) > static_cast<uint8_t>(GrooveMode::MOTIF))
+    params.mode = GrooveMode::FOLLOW_KICK;
 
   // Update cached scale pointer
   switch (params.scaleType) {
@@ -162,6 +198,22 @@ void BassGroove::onTick(int currentStep) {
   if (p < 0.0f)
     p = 0.0f;
 
+  if (params.mode == GrooveMode::MOTIF) {
+    const uint8_t scaleIdx = static_cast<uint8_t>(params.scaleType);
+    const uint8_t motifIdx = params.motifIndex & 0x03;
+    const int stepIdx = phraseStep & 0x0F;
+    const int motifDegree = motifDegrees[scaleIdx][motifIdx][stepIdx];
+
+    if (motifDegree >= 0) {
+      hasPendingMotifDegree = true;
+      pendingMotifDegree = motifDegree;
+      const float accent = motifAccents[stepIdx];
+      const bool motifAccent = (accent >= 0.85f) || isDownBeat;
+      trigger(motifAccent);
+    }
+    return;
+  }
+
   if (((float)xorShift(rngState) / 4294967295.0f) < p) {
     // Pass context to trigger
     bool isAccent = isDownBeat || isQuarterStep ||
@@ -217,9 +269,24 @@ void BassGroove::trigger(bool forceAccent) {
 }
 
 uint8_t BassGroove::generateNote() {
+  int scaleLen = cachedScaleLen;
+
+  if (hasPendingMotifDegree) {
+    hasPendingMotifDegree = false;
+    int degreeOut = pendingMotifDegree % scaleLen;
+    if (degreeOut < 0)
+      degreeOut += scaleLen;
+
+    degree = degreeOut;
+    octave = 0;
+
+    int note = params.rootNote + cachedScale[degreeOut] + params.octaveOffset * 12;
+    note = constrain(note, 0, 127);
+    return (uint8_t)note;
+  }
+
   // --- 4. HARMONIC LOGIC ---
   // Walker with Gravity towards Root/Fifth
-  int scaleLen = cachedScaleLen;
   int rangeSemitones = params.range;
   if (rangeSemitones < 0)
     rangeSemitones = 0;

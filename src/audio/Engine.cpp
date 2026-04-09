@@ -68,6 +68,7 @@ void Engine::init() {
   bgp.range = 7;                      // +/- 5th
   bgp.slideProb = 0.2f;               // Occasional slide
   bgp.phraseVariation = 0.6f;         // Gentle A/B and cadence contrast
+  bgp.motifIndex = 0;
 
   bassGroove.updateParams(bgp);
   globalRoot.store(bassMidiToRootClass(bgp.rootNote));
@@ -115,6 +116,8 @@ void Engine::setFactoryPreset(int slotId) {
   slots[slotId].scale = 0;
   slots[slotId].bassDensity = 0.6f;
   slots[slotId].bassRange = 7;
+  slots[slotId].bassMode = static_cast<int>(GrooveMode::FOLLOW_KICK);
+  slots[slotId].bassMotifIndex = 0;
   slots[slotId].bpm = 120;
   slots[slotId].snareMode = 0;
 
@@ -447,6 +450,8 @@ void Engine::captureActiveToSlot(int slotId) {
   BassGrooveParams bg = bassGroove.getParams();
   slots[slotId].bassDensity = bg.density;
   slots[slotId].bassRange = bg.range;
+  slots[slotId].bassMode = static_cast<int>(bg.mode);
+  slots[slotId].bassMotifIndex = bg.motifIndex;
   slots[slotId].snareMode = voiceManager.getParams(VOICE_SNARE).mode;
   slots[slotId].bpm = bpm.load(); // Capture BPM
 }
@@ -479,6 +484,8 @@ void Engine::saveSlot(int slotId, bool capture) {
   preferences.putInt("scale", slots[slotId].scale);
   preferences.putFloat("bassDensity", slots[slotId].bassDensity);
   preferences.putInt("bassRange", slots[slotId].bassRange);
+  preferences.putInt("bassMode", slots[slotId].bassMode);
+  preferences.putInt("bassMotif", slots[slotId].bassMotifIndex);
   preferences.putInt("snareMode", slots[slotId].snareMode);
   preferences.putInt("bpm", slots[slotId].bpm);
   preferences.putBool("is_saved", true); // Mark as saved
@@ -521,6 +528,9 @@ void Engine::loadSlot(int slotId) {
     slots[slotId].scale = preferences.getInt("scale", 0);
     slots[slotId].bassDensity = preferences.getFloat("bassDensity", 0.6f);
     slots[slotId].bassRange = preferences.getInt("bassRange", 7);
+    slots[slotId].bassMode = preferences.getInt("bassMode",
+                                               static_cast<int>(GrooveMode::FOLLOW_KICK));
+    slots[slotId].bassMotifIndex = preferences.getInt("bassMotif", 0);
     slots[slotId].snareMode = preferences.getInt("snareMode", 0);
     slots[slotId].bpm = preferences.getInt("bpm", 120);
   }
@@ -574,6 +584,8 @@ void Engine::applySlotToActive(int slotId) {
     bg.scaleType = bassScaleFromGlobal(slots[slotId].scale);
     bg.density = slots[slotId].bassDensity;
     bg.range = slots[slotId].bassRange;
+    bg.mode = static_cast<GrooveMode>(slots[slotId].bassMode);
+    bg.motifIndex = (uint8_t)(slots[slotId].bassMotifIndex & 0x03);
     bassGroove.updateParams(bg);
     syncGlobalsFromBassGroove();
 
