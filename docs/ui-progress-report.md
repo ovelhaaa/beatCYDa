@@ -190,5 +190,21 @@ Avançar na pendência de Sprint 7 de **revisão de contraste/estado pressionado
   - O comportamento funcional foi preservado (captura/drag contínuo e redraw parcial por fader), com manutenção mais previsível para ajustes futuros.
 - ⏳ **O que resta até agora**:
   1. Validar em hardware real contraste/legibilidade final dos estados pressionados e capturados sob luz ambiente forte.
-  2. Revisar `PerformScreen` para identificar se ainda há sub-regiões com repaint mais amplo que o necessário em interações intensas.
-  3. Definir escopo final da limpeza opcional do pipeline legado (`LegacyRender`) mantendo rollback por feature flag em 1 commit.
+ 2. Revisar `PerformScreen` para identificar se ainda há sub-regiões com repaint mais amplo que o necessário em interações intensas.
+ 3. Definir escopo final da limpeza opcional do pipeline legado (`LegacyRender`) mantendo rollback por feature flag em 1 commit.
+
+### Atualização incremental (2026-04-10 — Perform: invalidação incremental da faixa de tracks + tokens de layout)
+- ✅ **Verificação do estado atual**:
+  - `PerformScreen` já tinha redraw parcial por blocos (`rings`, `controls`, `trackStrip`, `bpm`), mas a faixa de tracks ainda limpava/redesenhava a região inteira quando apenas 1 ou 2 chips mudavam.
+  - Também havia hardcodes de coordenadas/tamanhos no layout principal da tela.
+- ✅ **Tarefa pendente assumida**: reduzir repaint amplo na `PerformScreen` e consolidar layout em tokens semânticos.
+- ✅ **Implementado em código**:
+  - `UiMetrics` recebeu tokens dedicados da `PerformScreen` (rings, controles, chips e área de BPM), removendo literais visuais da tela.
+  - `PerformScreen::layout()` passou a consumir os novos tokens para posicionamento de todos os blocos principais.
+  - A faixa de tracks evoluiu para invalidação por chip: ao trocar trilha ativa ou mute, apenas os chips afetados são limpos/redesenhados.
+  - Redraw completo da faixa continua disponível em `invalidate()`/primeiro frame, preservando segurança do pipeline.
+- ⏳ **O que resta após esta rodada**:
+  1. Validar em hardware real a redução de flicker/custo da `PerformScreen` em trocas rápidas de trilha e mute.
+  2. Revisar granularidade de invalidação dentro do bloco de controles (separar `play/mute/card` apenas se profiling indicar ganho real).
+  3. Fechar validação visual final de contraste/pressed state em iluminação forte.
+  4. Definir recorte final da limpeza opcional do legado mantendo rollback por feature flag.
