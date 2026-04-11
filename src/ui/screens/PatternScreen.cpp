@@ -123,7 +123,7 @@ void PatternScreen::layout() {
 }
 
 void PatternScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &snapshot) {
-  const bool isBassTrack = snapshot.activeTrack == VOICE_BASS;
+  const bool isBassTrackActive = snapshot.activeTrack == VOICE_BASS;
   const bool forceFullRender = _dirty || !_hasLastSnapshot;
   const bool trackChanged = forceFullRender || snapshot.activeTrack != _lastSnapshot.activeTrack;
   const bool bassContext = isBassTrack(snapshot);
@@ -147,7 +147,7 @@ void PatternScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &sna
     }
 
     bool valueChanged = false;
-    if (isBassTrack) {
+    if (isBassTrackActive) {
       valueChanged = bassParamChanged(snapshot, _lastSnapshot, i);
     } else if (i == 0) {
       valueChanged = snapshot.trackSteps[snapshot.activeTrack] != _lastSnapshot.trackSteps[_lastSnapshot.activeTrack];
@@ -203,16 +203,16 @@ void PatternScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &sna
     canvas.fillRect(_rows[i].rowRect.x, _rows[i].rowRect.y, _rows[i].rowRect.w, _rows[i].rowRect.h, theme::UiTheme::Colors::Bg);
 
     char valueBuffer[16];
-    if (isBassTrack && i == 0) {
+    if (isBassTrackActive && i == 0) {
       _rows[i].label = "MOTIF";
       snprintf(valueBuffer, sizeof(valueBuffer), "%u", snapshot.bassParams.motifIndex);
-    } else if (isBassTrack && i == 1) {
+    } else if (isBassTrackActive && i == 1) {
       _rows[i].label = "SWING";
       formatPercent(valueBuffer, sizeof(valueBuffer), static_cast<int>(snapshot.bassParams.swing * 100.0f));
-    } else if (isBassTrack && i == 2) {
+    } else if (isBassTrackActive && i == 2) {
       _rows[i].label = "GHOST";
       formatPercent(valueBuffer, sizeof(valueBuffer), static_cast<int>(snapshot.bassParams.ghostProb * 100.0f));
-    } else if (isBassTrack) {
+    } else if (isBassTrackActive) {
       _rows[i].label = "ACCENT";
       formatPercent(valueBuffer, sizeof(valueBuffer), static_cast<int>(snapshot.bassParams.accentProb * 100.0f));
     } else if (i == 0) {
@@ -233,15 +233,15 @@ void PatternScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &sna
     _rows[i].minusPressed = (_holdRow == i && _holdDirection < 0);
     _rows[i].plusPressed = (_holdRow == i && _holdDirection > 0);
     _rows[i].valueText = valueBuffer;
-    _rows[i].showBar = (isBassTrack && i > 0) || (!isBassTrack && i == 3);
+    _rows[i].showBar = (isBassTrackActive && i > 0) || (!isBassTrackActive && i == 3);
     _rows[i].barFill = 0;
-    if (isBassTrack && i == 1) {
+    if (isBassTrackActive && i == 1) {
       _rows[i].barFill = static_cast<uint8_t>(snapshot.bassParams.swing * 100.0f);
-    } else if (isBassTrack && i == 2) {
+    } else if (isBassTrackActive && i == 2) {
       _rows[i].barFill = static_cast<uint8_t>(snapshot.bassParams.ghostProb * 100.0f);
-    } else if (isBassTrack && i == 3) {
+    } else if (isBassTrackActive && i == 3) {
       _rows[i].barFill = static_cast<uint8_t>(snapshot.bassParams.accentProb * 100.0f);
-    } else if (!isBassTrack && i == 3) {
+    } else if (!isBassTrackActive && i == 3) {
       _rows[i].barFill = static_cast<uint8_t>(snapshot.voiceGain[snapshot.activeTrack] * 100.0f);
     }
     _rows[i].draw(canvas);

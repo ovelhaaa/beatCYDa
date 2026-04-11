@@ -54,10 +54,12 @@ enum class BassParamId : uint8_t {
   RANGE = 1,   // Legacy
   SCALE = 2,   // Legacy
   ROOT = 3,    // Legacy
-  MOTIF_INDEX = 4,
-  SWING = 5,
-  GHOST_PROB = 6,
-  ACCENT_PROB = 7
+  // IDs dedicados para fluxo de edição moderno (PatternScreen), sem colidir
+  // com os índices legados usados em páginas antigas do SoundScreen.
+  MOTIF_INDEX = 11,
+  SWING = 12,
+  GHOST_PROB = 13,
+  ACCENT_PROB = 14
 };
 
 struct UiAction {
