@@ -32,7 +32,7 @@ private:
   uint16_t _lastBpm{0};
   uint8_t _lastActiveTrack{0};
   bool _lastTrackMutes[TRACK_COUNT]{};
-  bool _trackChipDirty[TRACK_COUNT]{true, true, true, true, true};
+  bool _trackChipDirty[TRACK_COUNT]{};
   UiButton _playButton{};
   UiButton _muteButton{};
   UiCard _statusCard{};

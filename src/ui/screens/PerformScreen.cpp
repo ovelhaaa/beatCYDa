@@ -27,6 +27,16 @@ const char *trackLabel(int track) {
     return "BASS";
   }
 }
+
+uint8_t clampTrackIndex(int track) {
+  if (track < 0) {
+    return 0;
+  }
+  if (track >= TRACK_COUNT) {
+    return static_cast<uint8_t>(TRACK_COUNT - 1);
+  }
+  return static_cast<uint8_t>(track);
+}
 } // namespace
 
 PerformScreen::PerformScreen() {
@@ -90,6 +100,8 @@ void PerformScreen::layout() {
 
 void PerformScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &snapshot) {
   const bool repaintAll = _fullDirty || !_hasFrame;
+  const uint8_t safeActiveTrack = clampTrackIndex(snapshot.activeTrack);
+  const uint8_t safeLastActiveTrack = clampTrackIndex(_lastActiveTrack);
 
   if (repaintAll) {
     canvas.fillRect(0,
@@ -112,16 +124,16 @@ void PerformScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &sna
     if (_lastBpm != snapshot.bpm) {
       _bpmDirty = true;
     }
-    if (_lastActiveTrack != snapshot.activeTrack) {
+    if (safeLastActiveTrack != safeActiveTrack) {
       _ringsDirty = true;
       _controlsDirty = true;
-      _trackChipDirty[_lastActiveTrack] = true;
-      _trackChipDirty[snapshot.activeTrack] = true;
+      _trackChipDirty[safeLastActiveTrack] = true;
+      _trackChipDirty[safeActiveTrack] = true;
     }
     for (int i = 0; i < TRACK_COUNT; ++i) {
       if (_lastTrackMutes[i] != snapshot.trackMutes[i]) {
         _ringsDirty = true;
-        if (i == snapshot.activeTrack || i == _lastActiveTrack) {
+        if (i == safeActiveTrack || i == safeLastActiveTrack) {
           _controlsDirty = true;
         }
         _trackChipDirty[i] = true;
@@ -136,9 +148,9 @@ void PerformScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &sna
                     _statusCard.rect.y + _statusCard.rect.h - _playButton.rect.y,
                     theme::UiTheme::Colors::Bg);
     _playButton.label = snapshot.isPlaying ? "STOP" : "PLAY";
-    _muteButton.label = snapshot.trackMutes[snapshot.activeTrack] ? "UNMUTE" : "MUTE";
-    _muteButton.variant = snapshot.trackMutes[snapshot.activeTrack] ? UiButtonVariant::Danger : UiButtonVariant::Secondary;
-    _statusCard.value = trackLabel(snapshot.activeTrack);
+    _muteButton.label = snapshot.trackMutes[safeActiveTrack] ? "UNMUTE" : "MUTE";
+    _muteButton.variant = snapshot.trackMutes[safeActiveTrack] ? UiButtonVariant::Danger : UiButtonVariant::Secondary;
+    _statusCard.value = trackLabel(safeActiveTrack);
 
     _playButton.draw(canvas);
     _muteButton.draw(canvas);
@@ -176,8 +188,8 @@ void PerformScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &sna
                     theme::UiTheme::Metrics::PerformTrackChipH + 4,
                     theme::UiTheme::Colors::Bg);
     for (int i = 0; i < TRACK_COUNT; ++i) {
-      _trackChips[i].active = (i == snapshot.activeTrack);
-      _trackChips[i].selected = (i == snapshot.activeTrack);
+      _trackChips[i].active = (i == safeActiveTrack);
+      _trackChips[i].selected = (i == safeActiveTrack);
       _trackChips[i].muted = snapshot.trackMutes[i];
       _trackChips[i].draw(canvas);
       _trackChipDirty[i] = false;
@@ -188,13 +200,13 @@ void PerformScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &sna
       if (!_trackChipDirty[i]) {
         continue;
       }
-      _trackChips[i].active = (i == snapshot.activeTrack);
-      _trackChips[i].selected = (i == snapshot.activeTrack);
+      _trackChips[i].active = (i == safeActiveTrack);
+      _trackChips[i].selected = (i == safeActiveTrack);
       _trackChips[i].muted = snapshot.trackMutes[i];
-      canvas.fillRect(_trackChips[i].rect.x - 1,
-                      _trackChips[i].rect.y - 1,
-                      _trackChips[i].rect.w + 2,
-                      _trackChips[i].rect.h + 2,
+      canvas.fillRect(_trackChips[i].rect.x - 2,
+                      _trackChips[i].rect.y - 2,
+                      _trackChips[i].rect.w + 4,
+                      _trackChips[i].rect.h + 4,
                       theme::UiTheme::Colors::Bg);
       _trackChips[i].draw(canvas);
       _trackChipDirty[i] = false;
@@ -203,7 +215,7 @@ void PerformScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &sna
 
   _lastPlaying = snapshot.isPlaying;
   _lastBpm = snapshot.bpm;
-  _lastActiveTrack = snapshot.activeTrack;
+  _lastActiveTrack = safeActiveTrack;
   for (int i = 0; i < TRACK_COUNT; ++i) {
     _lastTrackMutes[i] = snapshot.trackMutes[i];
   }
@@ -213,6 +225,8 @@ void PerformScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &sna
 }
 
 bool PerformScreen::handleTouch(const TouchPoint &tp, const UiStateSnapshot &snapshot) {
+  const uint8_t safeActiveTrack = clampTrackIndex(snapshot.activeTrack);
+
   if (!tp.justPressed) {
     return false;
   }
@@ -226,10 +240,10 @@ bool PerformScreen::handleTouch(const TouchPoint &tp, const UiStateSnapshot &sna
   }
 
   if (_muteButton.hitTest(tp.x, tp.y)) {
-    dispatchUiAction(UiActionType::TOGGLE_MUTE, 0, snapshot.activeTrack);
+    dispatchUiAction(UiActionType::TOGGLE_MUTE, 0, safeActiveTrack);
     _controlsDirty = true;
-    _trackChipDirty[snapshot.activeTrack] = true;
-    _rings.invalidateTrack(static_cast<uint8_t>(snapshot.activeTrack));
+    _trackChipDirty[safeActiveTrack] = true;
+    _rings.invalidateTrack(safeActiveTrack);
     _ringsDirty = true;
     return true;
   }
@@ -238,8 +252,8 @@ bool PerformScreen::handleTouch(const TouchPoint &tp, const UiStateSnapshot &sna
   if (_rings.hitTestTrack(tp.x, tp.y, ringTrack)) {
     dispatchUiAction(UiActionType::SELECT_TRACK, 0, ringTrack);
     _controlsDirty = true;
-    _trackChipDirty[snapshot.activeTrack] = true;
-    _trackChipDirty[ringTrack] = true;
+    _trackChipDirty[safeActiveTrack] = true;
+    _trackChipDirty[clampTrackIndex(ringTrack)] = true;
     _rings.invalidateAll();
     _ringsDirty = true;
     return true;
@@ -249,7 +263,7 @@ bool PerformScreen::handleTouch(const TouchPoint &tp, const UiStateSnapshot &sna
     if (_trackChips[i].hitTest(tp.x, tp.y)) {
       dispatchUiAction(UiActionType::SELECT_TRACK, 0, i);
       _controlsDirty = true;
-      _trackChipDirty[snapshot.activeTrack] = true;
+      _trackChipDirty[safeActiveTrack] = true;
       _trackChipDirty[i] = true;
       _rings.invalidateAll();
       _ringsDirty = true;
