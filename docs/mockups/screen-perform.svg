@@ -1,30 +1,60 @@
-<svg xmlns='http://www.w3.org/2000/svg' width='960' height='720' viewBox='0 0 320 240'>
-  <rect width='320' height='240' fill='#0f1216'/>
-  <rect x='8' y='8' width='304' height='32' rx='8' fill='#24303c'/>
-  <text x='16' y='28' fill='#eaf2ff' font-size='11' font-family='monospace'>beatCYDa PLAY</text>
-  <text x='190' y='28' fill='#adc3d9' font-size='10' font-family='monospace'>BPM 124</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="720" viewBox="0 0 320 240">
+  <rect width="320" height="240" fill="#0f1216"/>
+  <rect x="8" y="6" width="304" height="28" rx="7" fill="#24303c" stroke="#3a4754"/>
+  <text x="16" y="24" fill="#eaf2ff" font-size="10" font-family="monospace">PERFORM • Jam ao vivo</text>
+  <text x="238" y="24" fill="#9db3c8" font-size="10" font-family="monospace">BPM 124</text>
 
-  <rect x='12' y='54' width='88' height='34' rx='6' fill='#2ea56e'/>
-  <text x='43' y='75' fill='white' font-size='11' font-family='monospace'>STOP</text>
-  <rect x='108' y='54' width='88' height='34' rx='6' fill='#405264'/>
-  <text x='135' y='75' fill='white' font-size='11' font-family='monospace'>MUTE</text>
+  <rect x="214" y="42" width="94" height="26" rx="6" fill="#24303c" stroke="#5d7186"/>
+  <text x="222" y="58" fill="#d9e9ff" font-size="9" font-family="monospace">ACTIVE: SNARE</text>
 
-  <rect x='204' y='54' width='104' height='60' rx='8' fill='#2b3642' stroke='#5f7388'/>
-  <text x='212' y='72' fill='#9db3c8' font-size='9' font-family='monospace'>PERFORM</text>
-  <text x='212' y='96' fill='#ffffff' font-size='14' font-family='monospace'>KICK</text>
+  <rect x="214" y="74" width="94" height="32" rx="7" fill="#1fa564"/>
+  <text x="246" y="94" fill="white" font-size="11" font-family="monospace">STOP</text>
 
-  <text x='12' y='96' fill='#9db3c8' font-size='10' font-family='monospace'>BPM 124</text>
+  <rect x="214" y="110" width="94" height="28" rx="7" fill="#5f2f3a"/>
+  <text x="241" y="128" fill="#ffd7df" font-size="10" font-family="monospace">UNMUTE</text>
 
-  <rect x='12' y='124' width='56' height='32' rx='5' fill='#2ea56e'/><text x='31' y='144' fill='white' font-size='10' font-family='monospace'>K</text>
-  <rect x='72' y='124' width='56' height='32' rx='5' fill='#405264'/><text x='91' y='144' fill='white' font-size='10' font-family='monospace'>S</text>
-  <rect x='132' y='124' width='56' height='32' rx='5' fill='#405264'/><text x='151' y='144' fill='white' font-size='10' font-family='monospace'>CH</text>
-  <rect x='192' y='124' width='56' height='32' rx='5' fill='#405264'/><text x='211' y='144' fill='white' font-size='10' font-family='monospace'>OH</text>
-  <rect x='252' y='124' width='56' height='32' rx='5' fill='#405264'/><text x='271' y='144' fill='white' font-size='10' font-family='monospace'>B</text>
+  <rect x="214" y="144" width="94" height="36" rx="7" fill="#2a3440" stroke="#596d82"/>
+  <text x="222" y="158" fill="#9db3c8" font-size="8" font-family="monospace">PERFORM</text>
+  <text x="222" y="173" fill="#ffffff" font-size="11" font-family="monospace">SNARE</text>
 
-  <rect x='0' y='200' width='320' height='40' fill='#24303c'/>
-  <text x='14' y='224' fill='white' font-size='10' font-family='monospace'>PERF</text>
-  <text x='74' y='224' fill='#9db3c8' font-size='10' font-family='monospace'>PATT</text>
-  <text x='136' y='224' fill='#9db3c8' font-size='10' font-family='monospace'>SND</text>
-  <text x='198' y='224' fill='#9db3c8' font-size='10' font-family='monospace'>MIX</text>
-  <text x='260' y='224' fill='#9db3c8' font-size='10' font-family='monospace'>PROJ</text>
+  <circle cx="102" cy="108" r="66" fill="none" stroke="#2f3d49" stroke-width="10"/>
+  <circle cx="102" cy="108" r="54" fill="none" stroke="#385060" stroke-width="9"/>
+  <circle cx="102" cy="108" r="42" fill="none" stroke="#465e71" stroke-width="8"/>
+  <circle cx="102" cy="108" r="30" fill="none" stroke="#5c758b" stroke-width="7"/>
+
+  <g stroke-linecap="round" stroke="#30d689" stroke-width="4">
+    <line x1="102" y1="42" x2="102" y2="53"/>
+    <line x1="139" y1="57" x2="132" y2="66"/>
+    <line x1="155" y1="95" x2="144" y2="95"/>
+    <line x1="139" y1="159" x2="132" y2="150"/>
+    <line x1="49" y1="159" x2="56" y2="150"/>
+    <line x1="33" y1="121" x2="44" y2="121"/>
+  </g>
+
+  <g stroke-linecap="round" stroke="#f7677f" stroke-width="3">
+    <line x1="102" y1="54" x2="102" y2="62"/>
+    <line x1="125" y1="64" x2="120" y2="70"/>
+    <line x1="133" y1="88" x2="125" y2="88"/>
+    <line x1="116" y1="146" x2="112" y2="139"/>
+  </g>
+
+  <text x="58" y="112" fill="#dce8f6" font-size="10" font-family="monospace">STEP 09/16</text>
+
+  <rect x="12" y="186" width="56" height="22" rx="5" fill="#2f4457"/>
+  <text x="28" y="200" fill="#d8e8ff" font-size="9" font-family="monospace">KICK</text>
+  <rect x="72" y="186" width="56" height="22" rx="5" fill="#1fa564"/>
+  <text x="86" y="200" fill="#fff" font-size="9" font-family="monospace">SNARE</text>
+  <rect x="132" y="186" width="56" height="22" rx="5" fill="#2f4457"/>
+  <text x="149" y="200" fill="#d8e8ff" font-size="9" font-family="monospace">CH</text>
+  <rect x="192" y="186" width="56" height="22" rx="5" fill="#2f4457"/>
+  <text x="210" y="200" fill="#d8e8ff" font-size="9" font-family="monospace">OH</text>
+  <rect x="252" y="186" width="56" height="22" rx="5" fill="#5f2f3a"/>
+  <text x="270" y="200" fill="#ffd7df" font-size="9" font-family="monospace">BASS</text>
+
+  <rect x="0" y="210" width="320" height="30" fill="#24303c"/>
+  <text x="18" y="228" fill="#ffffff" font-size="10" font-family="monospace">PERF</text>
+  <text x="78" y="228" fill="#9db3c8" font-size="10" font-family="monospace">PATT</text>
+  <text x="138" y="228" fill="#9db3c8" font-size="10" font-family="monospace">SND</text>
+  <text x="196" y="228" fill="#9db3c8" font-size="10" font-family="monospace">MIX</text>
+  <text x="256" y="228" fill="#9db3c8" font-size="10" font-family="monospace">PROJ</text>
 </svg>
