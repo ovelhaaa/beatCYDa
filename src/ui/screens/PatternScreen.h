@@ -1,8 +1,6 @@
 #pragma once
 
 #include "../components/UiButton.h"
-#include "../components/UiCard.h"
-#include "../components/UiChip.h"
 #include "../components/UiMacroRow.h"
 #include "../components/UiEuclideanRings.h"
 #include "../Display.h"
@@ -40,9 +38,12 @@ private:
 
   bool _dirty{true};
   bool _hasLastSnapshot{false};
+  bool _lastToolsModalVisible{false};
   UiStateSnapshot _lastSnapshot{};
-  UiCard _headerCard{};
-  UiChip _trackChips[TRACK_COUNT]{};
+  UiButton _trackPrevButton{};
+  UiButton _trackNextButton{};
+  UiRect _trackCarouselRect{};
+  UiRect _trackLabelRect{};
   UiMacroRow _rows[4]{};
   UiButton _randomButton{};
   UiButton _clearButton{};
