@@ -125,6 +125,11 @@ Monitor serial:
 python -m platformio device monitor
 ```
 
+### Boot loop com `invalid header`
+
+Se o serial mostrar repetidamente `invalid header: 0x...` + `rst:0x10 (RTCWDT_RTC_RESET)`, em geral é problema de leitura da flash no boot (gravação ruim, modo de flash incompatível ou alimentação/USB instável).  
+Neste projeto, o `platformio.ini` já está ajustado para maior compatibilidade (`flash_mode = dio`, clock de flash em `40MHz` e upload mais conservador).
+
 ## Estado atual
 
 - compila com sucesso
