@@ -1,21 +1,47 @@
-<svg xmlns='http://www.w3.org/2000/svg' width='960' height='720' viewBox='0 0 320 240'>
-  <rect width='320' height='240' fill='#0f1216'/>
-  <rect x='8' y='8' width='304' height='32' rx='8' fill='#24303c'/>
-  <text x='16' y='28' fill='#eaf2ff' font-size='11' font-family='monospace'>beatCYDa STOP</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="720" viewBox="0 0 320 240">
+  <rect width="320" height="240" fill="#0f1216"/>
+  <rect x="8" y="6" width="304" height="28" rx="7" fill="#24303c" stroke="#3a4754"/>
+  <text x="16" y="24" fill="#eaf2ff" font-size="10" font-family="monospace">PROJECT • gestão de slots</text>
+  <text x="244" y="24" fill="#9db3c8" font-size="10" font-family="monospace">BPM 124</text>
 
-  <rect x='16' y='60' width='288' height='132' rx='10' fill='#1f2933' stroke='#5f7388'/>
-  <text x='28' y='88' fill='#ffffff' font-size='14' font-family='monospace'>PROJECT (pendente)</text>
-  <text x='28' y='112' fill='#adc3d9' font-size='10' font-family='monospace'>Navegacao inferior implementada.</text>
-  <text x='28' y='128' fill='#adc3d9' font-size='10' font-family='monospace'>Tela dedicada ainda nao criada.</text>
-  <rect x='28' y='146' width='120' height='28' rx='6' fill='#405264'/>
-  <text x='56' y='164' fill='white' font-size='10' font-family='monospace'>SAVE SLOT</text>
-  <rect x='160' y='146' width='120' height='28' rx='6' fill='#405264'/>
-  <text x='190' y='164' fill='white' font-size='10' font-family='monospace'>LOAD SLOT</text>
+  <rect x="12" y="46" width="120" height="48" rx="8" fill="#2a3440" stroke="#596d82"/>
+  <text x="20" y="62" fill="#9db3c8" font-size="8" font-family="monospace">PROJECT</text>
+  <text x="20" y="82" fill="#ffffff" font-size="11" font-family="monospace">SLOTS</text>
+  <text x="12" y="104" fill="#9db3c8" font-size="8" font-family="monospace">BPM 124  TRK 5</text>
 
-  <rect x='0' y='200' width='320' height='40' fill='#24303c'/>
-  <text x='14' y='224' fill='#9db3c8' font-size='10' font-family='monospace'>PERF</text>
-  <text x='74' y='224' fill='#9db3c8' font-size='10' font-family='monospace'>PATT</text>
-  <text x='136' y='224' fill='#9db3c8' font-size='10' font-family='monospace'>SND</text>
-  <text x='198' y='224' fill='#9db3c8' font-size='10' font-family='monospace'>MIX</text>
-  <text x='260' y='224' fill='white' font-size='10' font-family='monospace'>PROJ</text>
+  <g font-family="monospace" font-size="8">
+    <rect x="144" y="48" width="66" height="30" rx="6" fill="#2f4457" stroke="#9ce4be"/>
+    <text x="162" y="67" fill="#fff">SLOT 1</text>
+    <rect x="220" y="48" width="66" height="30" rx="6" fill="#1fa564"/>
+    <text x="238" y="67" fill="#fff">SLOT 2</text>
+    <rect x="144" y="86" width="66" height="30" rx="6" fill="#324252"/>
+    <text x="162" y="105" fill="#dbe8f6">SLOT 5</text>
+    <rect x="220" y="86" width="66" height="30" rx="6" fill="#324252"/>
+    <text x="238" y="105" fill="#dbe8f6">SLOT 6</text>
+  </g>
+
+  <rect x="12" y="110" width="92" height="34" rx="7" fill="#1fa564"/>
+  <text x="43" y="131" fill="#fff" font-size="10" font-family="monospace">LOAD</text>
+  <rect x="110" y="110" width="92" height="34" rx="7" fill="#324252"/>
+  <text x="142" y="131" fill="#dbe8f6" font-size="10" font-family="monospace">SAVE</text>
+  <rect x="208" y="110" width="100" height="34" rx="7" fill="#5f2f3a"/>
+  <text x="244" y="131" fill="#ffd7df" font-size="10" font-family="monospace">DEL</text>
+
+  <rect x="44" y="88" width="232" height="96" rx="10" fill="#141b23" stroke="#778da3"/>
+  <text x="58" y="106" fill="#dbe8f6" font-size="10" font-family="monospace">CONFIRM</text>
+  <text x="58" y="126" fill="#c8d8ea" font-size="9" font-family="monospace">Overwrite slot?</text>
+  <rect x="58" y="144" width="96" height="30" rx="6" fill="#5f2f3a"/>
+  <text x="97" y="163" fill="#ffd7df" font-size="10" font-family="monospace">YES</text>
+  <rect x="166" y="144" width="96" height="30" rx="6" fill="#324252"/>
+  <text x="206" y="163" fill="#dbe8f6" font-size="10" font-family="monospace">NO</text>
+
+  <rect x="42" y="184" width="236" height="22" rx="6" fill="#203a4c"/>
+  <text x="86" y="199" fill="#c6e4ff" font-size="9" font-family="monospace">Slot loaded</text>
+
+  <rect x="0" y="210" width="320" height="30" fill="#24303c"/>
+  <text x="18" y="228" fill="#9db3c8" font-size="10" font-family="monospace">PERF</text>
+  <text x="78" y="228" fill="#9db3c8" font-size="10" font-family="monospace">PATT</text>
+  <text x="138" y="228" fill="#9db3c8" font-size="10" font-family="monospace">SND</text>
+  <text x="196" y="228" fill="#9db3c8" font-size="10" font-family="monospace">MIX</text>
+  <text x="256" y="228" fill="#ffffff" font-size="10" font-family="monospace">PROJ</text>
 </svg>
