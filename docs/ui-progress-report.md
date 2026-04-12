@@ -208,3 +208,17 @@ Avançar na pendência de Sprint 7 de **revisão de contraste/estado pressionado
   2. Revisar granularidade de invalidação dentro do bloco de controles (separar `play/mute/card` apenas se profiling indicar ganho real).
   3. Fechar validação visual final de contraste/pressed state em iluminação forte.
   4. Definir recorte final da limpeza opcional do legado mantendo rollback por feature flag.
+
+### Atualização incremental (2026-04-12 — Perform: estados pressionados + redraw granular dos controles)
+- ✅ **Verificação do estado atual**:
+  - A `PerformScreen` já estava com invalidação parcial por blocos, porém o bloco de controles (`PLAY`, `MUTE`, card de status) ainda era redesenhado em conjunto em mudanças pequenas.
+  - Faltava feedback visual explícito de pressionado nos botões principais durante toque contínuo.
+- ✅ **Tarefa pendente assumida**: finalizar o polimento da tela `Perform` com foco em estados pressionados e granularidade de repaint no bloco de controles.
+- ✅ **Implementado em código**:
+  - `PerformScreen` passou a separar dirty flags internas de controles (`play`, `mute`, `status`) para evitar limpeza/redesenho desnecessário de todo o bloco.
+  - O fluxo de touch agora acompanha estado de pressão contínua (`tp.pressed`) nos botões `PLAY` e `MUTE`, refletindo o visual `pressed` em tempo real.
+  - Mudanças de estado (`isPlaying`, `activeTrack`, `trackMutes`) passaram a invalidar apenas o subcomponente necessário, mantendo redraw completo somente em `invalidate()`/primeiro frame.
+- ⏳ **O que resta após esta rodada**:
+  1. Validar em hardware real o feedback de pressionado e o ganho visual (menor flicker) em toques rápidos/sequenciais.
+  2. Se necessário após profiling, evoluir para sub-regiões ainda menores dentro do card/status.
+  3. Encerrar revisão final de contraste sob luz forte no CYD físico.

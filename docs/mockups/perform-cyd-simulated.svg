@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="240" viewBox="0 0 320 240">
+  <rect width="320" height="240" fill="#080c12"/>
+  <rect x="0" y="0" width="320" height="32" fill="#122033"/>
+  <text x="12" y="20" fill="#dcecff" font-family="Arial" font-size="12">PERFORM | PLAYING</text>
+  <text x="246" y="20" fill="#b4d2ff" font-family="Arial" font-size="12">BPM 124</text>
+
+  <g transform="translate(100,110)" fill="none" stroke-width="3">
+    <circle r="18" stroke="#5ab4ff"/>
+    <circle r="31" stroke="#5ee09c"/>
+    <circle r="44" stroke="#ffba5e"/>
+    <circle r="57" stroke="#e669b4"/>
+    <circle r="70" stroke="#aa96ff"/>
+  </g>
+
+  <rect x="204" y="46" width="104" height="34" rx="6" fill="#2891dc" stroke="#b4dcff"/>
+  <text x="242" y="67" fill="#ffffff" font-family="Arial" font-size="14">STOP</text>
+
+  <rect x="204" y="86" width="104" height="34" rx="6" fill="#8c323c" stroke="#ffbebe"/>
+  <text x="232" y="107" fill="#fff5f5" font-family="Arial" font-size="14">UNMUTE</text>
+
+  <rect x="204" y="126" width="104" height="62" rx="8" fill="#1c263a" stroke="#7896be"/>
+  <text x="222" y="147" fill="#aabede" font-family="Arial" font-size="12">TRACK</text>
+  <text x="234" y="168" fill="#f5fcff" font-family="Arial" font-size="14">SNARE</text>
+
+  <g font-family="Arial" font-size="11" fill="#f5faff">
+    <rect x="12" y="196" width="56" height="32" rx="6" fill="#24344a" stroke="#6a82a0"/>
+    <text x="24" y="215">KICK</text>
+
+    <rect x="72" y="196" width="56" height="32" rx="6" fill="#3c96dc" stroke="#b4e6ff"/>
+    <text x="82" y="215">SNARE</text>
+
+    <rect x="132" y="196" width="56" height="32" rx="6" fill="#24344a" stroke="#6a82a0"/>
+    <text x="149" y="215">CH</text>
+
+    <rect x="192" y="196" width="56" height="32" rx="6" fill="#24344a" stroke="#6a82a0"/>
+    <text x="210" y="215">OH</text>
+
+    <rect x="252" y="196" width="56" height="32" rx="6" fill="#24344a" stroke="#6a82a0"/>
+    <text x="266" y="215">BASS</text>
+  </g>
+
+  <text x="10" y="238" fill="#7088a6" font-family="Arial" font-size="10">CYD 320x240 - Simulação da tela Perform implementada</text>
+</svg>

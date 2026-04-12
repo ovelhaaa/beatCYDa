@@ -26,6 +26,9 @@ private:
   bool _hasFrame{false};
   bool _ringsDirty{true};
   bool _controlsDirty{true};
+  bool _playDirty{true};
+  bool _muteDirty{true};
+  bool _statusDirty{true};
   bool _trackStripDirty{true};
   bool _bpmDirty{true};
   bool _lastPlaying{false};
@@ -36,6 +39,8 @@ private:
   UiButton _playButton{};
   UiButton _muteButton{};
   UiCard _statusCard{};
+  bool _playPressed{false};
+  bool _mutePressed{false};
   UiChip _trackChips[TRACK_COUNT]{};
   UiRect _ringsRect{};
   UiEuclideanRings _rings{};
