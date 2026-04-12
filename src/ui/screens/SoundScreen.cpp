@@ -42,6 +42,16 @@ const char *trackName(int track) {
   }
 }
 
+const char *bassTabName(uint8_t page) {
+  if (page == 0) {
+    return "TAB A";
+  }
+  if (page == 1) {
+    return "TAB B";
+  }
+  return "TAB C";
+}
+
 void formatRootNote(char *buffer, size_t size, uint8_t note) {
   snprintf(buffer, size, "%s%d", bassfmt::noteName(note), bassfmt::noteOctave(note));
 }
@@ -207,23 +217,37 @@ void SoundScreen::applyRowLabels(const UiStateSnapshot &snapshot) {
 }
 
 void SoundScreen::layout() {
+  applyLayoutMode(_layoutIsBass);
+}
+
+void SoundScreen::applyLayoutMode(bool bassLayout) {
+  _layoutIsBass = bassLayout;
   setRect(_identityCard.rect, 12, 46, 130, 48);
 
   for (int i = 0; i < TRACK_COUNT; ++i) {
     setRect(_trackChips[i].rect, 150 + (i * 32), 54, 30, 24);
   }
 
+  setRect(_soundTypeChipRect, 278, 54, 30, 24);
+  setRect(_bassTabRects[0], 210, 54, 30, 24);
+  setRect(_bassTabRects[1], 244, 54, 30, 24);
+  setRect(_bassTabRects[2], 278, 54, 30, 24);
+
   for (int i = 0; i < 4; ++i) {
-    const int y = 102 + (i * 24);
-    setRect(_rows[i].rowRect, 12, y, 296, 22);
-    setRect(_rows[i].minusRect, 208, y + 1, 24, 20);
-    setRect(_rows[i].plusRect, 236, y + 1, 24, 20);
+    const int y = 100 + (i * 30);
+    setRect(_rows[i].rowRect, 8, y, 304, 28);
+    setRect(_rows[i].minusRect, 220, y, 28, 28);
+    setRect(_rows[i].plusRect, 252, y, 28, 28);
   }
 }
 
 void SoundScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &snapshot) {
   const bool forceFullRender = _dirty || !_hasLastSnapshot;
   const bool trackChanged = forceFullRender || snapshot.activeTrack != _lastSnapshot.activeTrack;
+  const bool bassTrack = isBassTrack(snapshot);
+  if (forceFullRender || (_layoutIsBass != bassTrack)) {
+    applyLayoutMode(bassTrack);
+  }
   if (trackChanged && snapshot.activeTrack != VOICE_BASS) {
     _bassPage = 0;
   }
@@ -232,7 +256,7 @@ void SoundScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &snaps
   applyRowLabels(snapshot);
 
   const bool identityDirty = forceFullRender || trackChanged || pageChanged;
-  const bool chipsDirty = forceFullRender || trackChanged || hasMuteChanges(snapshot, _lastSnapshot);
+  const bool chipsDirty = forceFullRender || trackChanged || hasMuteChanges(snapshot, _lastSnapshot) || pageChanged;
   bool rowDirty[4] = {forceFullRender || trackChanged || pageChanged,
                       forceFullRender || trackChanged || pageChanged,
                       forceFullRender || trackChanged || pageChanged,
@@ -272,7 +296,7 @@ void SoundScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &snaps
                     theme::UiTheme::Colors::Bg);
 
     if (isBassTrack(snapshot)) {
-      _identityCard.value = (_bassPage == 0) ? "BASS A" : (_bassPage == 1) ? "BASS B" : "BASS C";
+      _identityCard.value = bassTabName(_bassPage);
     } else {
       _identityCard.value = trackName(snapshot.activeTrack);
     }
@@ -286,6 +310,49 @@ void SoundScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &snaps
       _trackChips[i].selected = (i == snapshot.activeTrack);
       _trackChips[i].muted = snapshot.trackMutes[i];
       _trackChips[i].draw(canvas);
+    }
+
+    if (!bassTrack) {
+      const uint16_t fill = theme::UiTheme::Colors::Surface;
+      canvas.fillRoundRect(_soundTypeChipRect.x,
+                           _soundTypeChipRect.y,
+                           _soundTypeChipRect.w,
+                           _soundTypeChipRect.h,
+                           theme::UiTheme::Metrics::RadiusSm,
+                           fill);
+      canvas.drawRoundRect(_soundTypeChipRect.x,
+                           _soundTypeChipRect.y,
+                           _soundTypeChipRect.w,
+                           _soundTypeChipRect.h,
+                           theme::UiTheme::Metrics::RadiusSm,
+                           theme::UiTheme::Colors::Outline);
+      canvas.setTextSize(theme::UiTheme::Typography::BodySize);
+      canvas.setTextColor(theme::UiTheme::Colors::TextSecondary, fill);
+      canvas.setCursor(_soundTypeChipRect.x + 5, _soundTypeChipRect.y + 9);
+      canvas.print("TYPE");
+    } else {
+      for (int i = 0; i < 3; ++i) {
+        const bool isActiveTab = (_bassPage == static_cast<uint8_t>(i));
+        const uint16_t fill = isActiveTab ? theme::UiTheme::Colors::Accent : theme::UiTheme::Colors::Surface;
+        const uint16_t text =
+            isActiveTab ? theme::UiTheme::Colors::TextOnAccent : theme::UiTheme::Colors::TextSecondary;
+        canvas.fillRoundRect(_bassTabRects[i].x,
+                             _bassTabRects[i].y,
+                             _bassTabRects[i].w,
+                             _bassTabRects[i].h,
+                             theme::UiTheme::Metrics::RadiusSm,
+                             fill);
+        canvas.drawRoundRect(_bassTabRects[i].x,
+                             _bassTabRects[i].y,
+                             _bassTabRects[i].w,
+                             _bassTabRects[i].h,
+                             theme::UiTheme::Metrics::RadiusSm,
+                             isActiveTab ? theme::UiTheme::Colors::Accent : theme::UiTheme::Colors::Outline);
+        canvas.setTextSize(theme::UiTheme::Typography::BodySize);
+        canvas.setTextColor(text, fill);
+        canvas.setCursor(_bassTabRects[i].x + 4, _bassTabRects[i].y + 9);
+        canvas.print(static_cast<char>('A' + i));
+      }
     }
   }
 
@@ -472,10 +539,17 @@ bool SoundScreen::handleTouch(const TouchPoint &tp, const UiStateSnapshot &snaps
   }
 
   if (tp.justPressed) {
-    if (isBassTrack(snapshot) && _identityCard.rect.contains(tp.x, tp.y)) {
-      _bassPage = static_cast<uint8_t>((_bassPage + 1) % 3);
-      _dirty = true;
-      return true;
+    if (isBassTrack(snapshot)) {
+      for (int i = 0; i < 3; ++i) {
+        if (_bassTabRects[i].contains(tp.x, tp.y)) {
+          const uint8_t nextPage = static_cast<uint8_t>(i);
+          if (_bassPage != nextPage) {
+            _bassPage = nextPage;
+            _dirty = true;
+          }
+          return true;
+        }
+      }
     }
 
     for (int i = 0; i < TRACK_COUNT; ++i) {
