@@ -229,46 +229,72 @@ void UiApp::renderBackground() {
 
 void UiApp::renderTopBarShell() {
   auto &canvas = _display.canvas();
-  canvas.fillRoundRect(theme::UiTheme::Metrics::OuterMargin,
-                       theme::UiTheme::Metrics::OuterMargin,
-                       theme::UiTheme::Metrics::ScreenW - theme::UiTheme::Metrics::OuterMargin * 2,
-                       theme::UiTheme::Metrics::TopBarH,
-                       theme::UiTheme::Metrics::RadiusMd,
-                       theme::UiTheme::Colors::Surface);
+  canvas.fillRect(0, 0, theme::UiTheme::Metrics::ScreenW, theme::UiTheme::Metrics::ContentTop, theme::UiTheme::Colors::Bg);
 }
 
 void UiApp::renderTopBarTransport() {
   auto &canvas = _display.canvas();
-  canvas.fillRect(theme::UiTheme::Metrics::TopBarTransportX,
-                  theme::UiTheme::Metrics::TopBarTransportY,
-                  theme::UiTheme::Metrics::TopBarTransportW,
-                  theme::UiTheme::Metrics::TopBarTransportH,
-                  theme::UiTheme::Colors::Surface);
-  canvas.setTextColor(theme::UiTheme::Colors::TextPrimary, theme::UiTheme::Colors::Surface);
-  canvas.setTextSize(theme::UiTheme::Typography::BodySize);
-  canvas.setCursor(theme::UiTheme::Metrics::TopBarTransportX, theme::UiTheme::Metrics::TopBarTextBaselineY);
   const bool hasTransientStatus =
       _transientStatusUntilMs > millis() && _transientStatus[0] != '\0';
-  canvas.printf("beatCYDa %s", hasTransientStatus ? _transientStatus : (_snapshot.isPlaying ? "PLAY" : "STOP"));
+  const bool isPlaying = _snapshot.isPlaying && !hasTransientStatus;
+  const uint16_t chipBg = isPlaying ? theme::UiTheme::Colors::Accent : theme::UiTheme::Colors::SurfacePressed;
+  canvas.fillRoundRect(theme::UiTheme::Metrics::PlayStateChipX,
+                       theme::UiTheme::Metrics::PlayStateChipY,
+                       theme::UiTheme::Metrics::PlayStateChipW,
+                       theme::UiTheme::Metrics::PlayStateChipH,
+                       theme::UiTheme::Metrics::RadiusSm,
+                       chipBg);
+  canvas.drawRoundRect(theme::UiTheme::Metrics::PlayStateChipX,
+                       theme::UiTheme::Metrics::PlayStateChipY,
+                       theme::UiTheme::Metrics::PlayStateChipW,
+                       theme::UiTheme::Metrics::PlayStateChipH,
+                       theme::UiTheme::Metrics::RadiusSm,
+                       theme::UiTheme::Colors::Outline);
+  canvas.setTextColor(theme::UiTheme::Colors::TextPrimary, chipBg);
+  canvas.setTextSize(theme::UiTheme::Typography::BodySize);
+  canvas.setCursor(theme::UiTheme::Metrics::PlayStateChipX + 8, theme::UiTheme::Metrics::PlayStateChipY + 6);
+  canvas.printf("%s", hasTransientStatus ? _transientStatus : (_snapshot.isPlaying ? "PLAY" : "STOP"));
 }
 
 void UiApp::renderTopBarMetrics() {
   auto &canvas = _display.canvas();
-  canvas.fillRect(theme::UiTheme::Metrics::TopBarMetricsX,
-                  theme::UiTheme::Metrics::TopBarMetricsY,
-                  theme::UiTheme::Metrics::TopBarMetricsW,
-                  theme::UiTheme::Metrics::TopBarMetricsH,
-                  theme::UiTheme::Colors::Surface);
-  canvas.setTextColor(theme::UiTheme::Colors::TextSecondary, theme::UiTheme::Colors::Surface);
-  canvas.setCursor(theme::UiTheme::Metrics::TopBarMetricsX + 2, theme::UiTheme::Metrics::TopBarTextBaselineY);
+  canvas.fillRoundRect(theme::UiTheme::Metrics::BpmCardX,
+                       theme::UiTheme::Metrics::BpmCardY,
+                       theme::UiTheme::Metrics::BpmCardW,
+                       theme::UiTheme::Metrics::BpmCardH,
+                       theme::UiTheme::Metrics::RadiusSm,
+                       theme::UiTheme::Colors::Accent);
+  canvas.drawRoundRect(theme::UiTheme::Metrics::BpmCardX,
+                       theme::UiTheme::Metrics::BpmCardY,
+                       theme::UiTheme::Metrics::BpmCardW,
+                       theme::UiTheme::Metrics::BpmCardH,
+                       theme::UiTheme::Metrics::RadiusSm,
+                       theme::UiTheme::Colors::Outline);
+  canvas.setTextColor(theme::UiTheme::Colors::TextOnAccent, theme::UiTheme::Colors::Accent);
+  canvas.setTextSize(theme::UiTheme::Typography::TitleSize);
+  canvas.setCursor(theme::UiTheme::Metrics::BpmCardX + 10, theme::UiTheme::Metrics::BpmCardY + 6);
+  canvas.printf("BPM %d", _snapshot.bpm);
+
   const uint8_t root = _snapshot.bassParams.rootNote;
-  canvas.printf("BPM %d %s%d %s %uFPS %luKB",
-                _snapshot.bpm,
+  canvas.fillRoundRect(theme::UiTheme::Metrics::KeyModeChipX,
+                       theme::UiTheme::Metrics::KeyModeChipY,
+                       theme::UiTheme::Metrics::KeyModeChipW,
+                       theme::UiTheme::Metrics::KeyModeChipH,
+                       theme::UiTheme::Metrics::RadiusSm,
+                       theme::UiTheme::Colors::SurfacePressed);
+  canvas.drawRoundRect(theme::UiTheme::Metrics::KeyModeChipX,
+                       theme::UiTheme::Metrics::KeyModeChipY,
+                       theme::UiTheme::Metrics::KeyModeChipW,
+                       theme::UiTheme::Metrics::KeyModeChipH,
+                       theme::UiTheme::Metrics::RadiusSm,
+                       theme::UiTheme::Colors::Outline);
+  canvas.setTextColor(theme::UiTheme::Colors::TextSecondary, theme::UiTheme::Colors::SurfacePressed);
+  canvas.setTextSize(theme::UiTheme::Typography::BodySize);
+  canvas.setCursor(theme::UiTheme::Metrics::KeyModeChipX + 4, theme::UiTheme::Metrics::KeyModeChipY + 6);
+  canvas.printf("%s%d %s",
                 bassfmt::noteName(root),
                 bassfmt::noteOctave(root),
-                bassfmt::modeShortName(_snapshot.bassParams.mode),
-                _uiFps,
-                static_cast<unsigned long>(_freeHeap / 1024UL));
+                bassfmt::modeShortName(_snapshot.bassParams.mode));
 }
 
 void UiApp::updateUiStats(uint32_t nowMs) {
@@ -282,8 +308,7 @@ void UiApp::updateUiStats(uint32_t nowMs) {
   _frameCounter = 0;
   _statsLastMs = nowMs;
   _freeHeap = ESP.getFreeHeap();
-  _invalidation.topBarDirty = true;
-  _topBarMetricsDirty = true;
+  Serial.printf("[UI] fps=%u heap=%luKB\n", _uiFps, static_cast<unsigned long>(_freeHeap / 1024UL));
 }
 
 void UiApp::renderBottomNav() {
