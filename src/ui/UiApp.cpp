@@ -17,14 +17,14 @@ void setRect(UiRect &rect, int16_t x, int16_t y, int16_t w, int16_t h) {
   rect.h = h;
 }
 
-void styleNavButton(UiButton &button, const char *label, int16_t x) {
+void styleNavButton(UiButton &button, const char *label, int16_t x, int16_t w) {
   button.label = label;
   button.variant = UiButtonVariant::Secondary;
   setRect(button.rect,
           x,
           theme::UiTheme::Metrics::ScreenH - theme::UiTheme::Metrics::BottomNavH +
               theme::UiTheme::Metrics::BottomNavButtonYInset,
-          theme::UiTheme::Metrics::BottomNavButtonW,
+          w,
           theme::UiTheme::Metrics::BottomNavButtonH);
 }
 
@@ -149,11 +149,11 @@ bool hasPanelChangesForScreen(UiScreenId screenId, const UiStateSnapshot &lhs, c
 } // namespace
 
 UiApp::UiApp() {
-  styleNavButton(_navPerform, "PERF", 8);
-  styleNavButton(_navPattern, "PATT", 70);
-  styleNavButton(_navSound, "SND", 132);
-  styleNavButton(_navMix, "MIX", 194);
-  styleNavButton(_navProject, "PROJ", 256);
+  styleNavButton(_navPerform, "PERF", 6, 62);
+  styleNavButton(_navPattern, "PATT", 68, 62);
+  styleNavButton(_navSound, "SND", 130, 62);
+  styleNavButton(_navMix, "MIX", 192, 62);
+  styleNavButton(_navProject, "PROJ", 254, 62);
 }
 
 bool UiApp::begin() {
