@@ -27,13 +27,17 @@ private:
   void dispatchRowDelta(const UiStateSnapshot &snapshot, int rowIndex, int amount);
   void applyRowLabels(const UiStateSnapshot &snapshot);
   bool isBassTrack(const UiStateSnapshot &snapshot) const;
+  void applyLayoutMode(bool bassLayout);
 
   bool _dirty{true};
   bool _hasLastSnapshot{false};
   UiStateSnapshot _lastSnapshot{};
   UiCard _identityCard{};
   UiChip _trackChips[TRACK_COUNT]{};
+  UiRect _soundTypeChipRect{};
+  UiRect _bassTabRects[3]{};
   UiMacroRow _rows[4]{};
+  bool _layoutIsBass{false};
 
   int _holdRow{-1};
   int _holdDirection{0};
