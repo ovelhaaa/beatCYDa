@@ -20,6 +20,8 @@ public:
   void runFrame(uint32_t nowMs);
 
 private:
+  void processStorageFeedback(uint32_t nowMs);
+  void setTransientStatus(const char *message, uint32_t timeoutMs);
   void renderBackground();
   void renderTopBarShell();
   void renderTopBarTransport();
@@ -42,6 +44,8 @@ private:
   uint32_t _frameCounter{0};
   uint16_t _uiFps{0};
   uint32_t _freeHeap{0};
+  char _transientStatus[32]{};
+  uint32_t _transientStatusUntilMs{0};
   bool _topBarTransportDirty{true};
   bool _topBarMetricsDirty{true};
 
