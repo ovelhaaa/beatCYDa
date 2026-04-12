@@ -33,8 +33,13 @@ struct UiMetrics {
   static constexpr int KeyModeChipH = 20;
   static constexpr int TopBarTextBaselineY = 16;
   static constexpr int BottomNavButtonYInset = 4;
-  static constexpr int BottomNavButtonW = 60;
+  static constexpr int BottomNavButtonCount = 5;
+  static constexpr int BottomNavButtonW = 62;
   static constexpr int BottomNavButtonH = 32;
+  static constexpr int BottomNavButtonGap = 0;
+  static constexpr int BottomNavButtonRowW =
+      BottomNavButtonCount * BottomNavButtonW + (BottomNavButtonCount - 1) * BottomNavButtonGap;
+  static constexpr int BottomNavButtonStartX = (ScreenW - BottomNavButtonRowW) / 2;
   static constexpr int MixHeaderX = 12;
   static constexpr int MixHeaderY = 46;
   static constexpr int MixHeaderW = 120;
