@@ -110,7 +110,7 @@ void MixScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &snapsho
     canvas.fillRect(theme::UiTheme::Metrics::MixMasterLabelX,
                     theme::UiTheme::Metrics::MixMasterLabelY,
                     theme::UiTheme::Metrics::MixMasterTrackW,
-                    theme::UiTheme::Metrics::MixMasterTrackH + 20,
+                    (theme::UiTheme::Metrics::MixMasterTrackY + theme::UiTheme::Metrics::MixMasterTrackH) - theme::UiTheme::Metrics::MixMasterLabelY + 4,
                     theme::UiTheme::Colors::Bg);
 
     canvas.setTextSize(theme::UiTheme::Typography::CaptionSize);
