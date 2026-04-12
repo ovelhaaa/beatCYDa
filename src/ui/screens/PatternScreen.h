@@ -48,6 +48,9 @@ private:
   UiButton _clearButton{};
   UiButton _copyButton{};
   UiButton _pasteButton{};
+  UiButton _toolsButton{};
+  UiRect _toolsModalRect{};
+  bool _toolsModalVisible{false};
   UiEuclideanRings _ringsPreview{};
   PatternClipboard _clipboard{};
 

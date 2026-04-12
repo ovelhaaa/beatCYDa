@@ -80,6 +80,8 @@ PatternScreen::PatternScreen() {
   _copyButton.variant = UiButtonVariant::Secondary;
   _pasteButton.label = "PASTE";
   _pasteButton.variant = UiButtonVariant::Primary;
+  _toolsButton.label = "TOOLS";
+  _toolsButton.variant = UiButtonVariant::Secondary;
 
   _ringsPreview.setCompact(true);
   _ringsPreview.setInteractive(false);
@@ -93,33 +95,78 @@ PatternScreen::PatternScreen() {
 }
 
 void PatternScreen::layout() {
-  setRect(_headerCard.rect, 12, 46, 104, 48);
+  setRect(_headerCard.rect,
+          theme::UiTheme::Metrics::PatternHeaderX,
+          theme::UiTheme::Metrics::PatternHeaderY,
+          theme::UiTheme::Metrics::PatternHeaderW,
+          theme::UiTheme::Metrics::PatternHeaderH);
 
   UiRect previewRect{};
-  setRect(previewRect, 124, 40, 84, 84);
+  setRect(previewRect,
+          theme::UiTheme::Metrics::PatternPreviewX,
+          theme::UiTheme::Metrics::PatternPreviewY,
+          theme::UiTheme::Metrics::PatternPreviewW,
+          theme::UiTheme::Metrics::PatternPreviewH);
   _ringsPreview.setRect(previewRect);
 
   for (int i = 0; i < TRACK_COUNT; ++i) {
-    setRect(_trackChips[i].rect, 12 + (i * 60), 96, 56, 26);
+    setRect(_trackChips[i].rect,
+            theme::UiTheme::Metrics::PatternTrackChipX +
+                (i * (theme::UiTheme::Metrics::PatternTrackChipW + theme::UiTheme::Metrics::PatternTrackChipGapX)),
+            theme::UiTheme::Metrics::PatternTrackChipY,
+            theme::UiTheme::Metrics::PatternTrackChipW,
+            theme::UiTheme::Metrics::PatternTrackChipH);
   }
 
   for (int i = 0; i < 4; ++i) {
-    const int y = 128 + (i * 18);
-    setRect(_rows[i].rowRect, 12, y, 296, 16);
-    setRect(_rows[i].minusRect, 220, y, 20, 16);
-    setRect(_rows[i].plusRect, 244, y, 20, 16);
+    const int y = theme::UiTheme::Metrics::PatternRowStartY + (i * theme::UiTheme::Metrics::PatternRowGapY);
+    setRect(_rows[i].rowRect,
+            theme::UiTheme::Metrics::PatternRowX,
+            y,
+            theme::UiTheme::Metrics::PatternRowW,
+            theme::UiTheme::Metrics::PatternRowH);
+    setRect(_rows[i].minusRect,
+            theme::UiTheme::Metrics::PatternRowMinusX,
+            y,
+            theme::UiTheme::Metrics::PatternRowAdjustW,
+            theme::UiTheme::Metrics::PatternRowH);
+    setRect(_rows[i].plusRect,
+            theme::UiTheme::Metrics::PatternRowPlusX,
+            y,
+            theme::UiTheme::Metrics::PatternRowAdjustW,
+            theme::UiTheme::Metrics::PatternRowH);
   }
 
-  constexpr int actionY = 200;
-  constexpr int actionW = 66;
-  constexpr int actionH = 28;
-  constexpr int actionGap = 12;
-  constexpr int actionX0 = 12;
-
-  setRect(_randomButton.rect, actionX0, actionY, actionW, actionH);
-  setRect(_clearButton.rect, actionX0 + (actionW + actionGap), actionY, actionW, actionH);
-  setRect(_copyButton.rect, actionX0 + ((actionW + actionGap) * 2), actionY, actionW, actionH);
-  setRect(_pasteButton.rect, actionX0 + ((actionW + actionGap) * 3), actionY, actionW, actionH);
+  setRect(_toolsButton.rect,
+          theme::UiTheme::Metrics::PatternToolsButtonX,
+          theme::UiTheme::Metrics::PatternToolsButtonY,
+          theme::UiTheme::Metrics::PatternToolsButtonW,
+          theme::UiTheme::Metrics::PatternToolsButtonH);
+  setRect(_toolsModalRect,
+          theme::UiTheme::Metrics::PatternToolsModalX,
+          theme::UiTheme::Metrics::PatternToolsModalY,
+          theme::UiTheme::Metrics::PatternToolsModalW,
+          theme::UiTheme::Metrics::PatternToolsModalH);
+  setRect(_randomButton.rect,
+          theme::UiTheme::Metrics::PatternToolsActionX1,
+          theme::UiTheme::Metrics::PatternToolsActionY1,
+          theme::UiTheme::Metrics::PatternToolsActionW,
+          theme::UiTheme::Metrics::PatternToolsActionH);
+  setRect(_clearButton.rect,
+          theme::UiTheme::Metrics::PatternToolsActionX2,
+          theme::UiTheme::Metrics::PatternToolsActionY1,
+          theme::UiTheme::Metrics::PatternToolsActionW,
+          theme::UiTheme::Metrics::PatternToolsActionH);
+  setRect(_copyButton.rect,
+          theme::UiTheme::Metrics::PatternToolsActionX1,
+          theme::UiTheme::Metrics::PatternToolsActionY2,
+          theme::UiTheme::Metrics::PatternToolsActionW,
+          theme::UiTheme::Metrics::PatternToolsActionH);
+  setRect(_pasteButton.rect,
+          theme::UiTheme::Metrics::PatternToolsActionX2,
+          theme::UiTheme::Metrics::PatternToolsActionY2,
+          theme::UiTheme::Metrics::PatternToolsActionW,
+          theme::UiTheme::Metrics::PatternToolsActionH);
 }
 
 void PatternScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &snapshot) {
@@ -171,22 +218,30 @@ void PatternScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &sna
 
   if (forceFullRender) {
     canvas.fillRect(0,
-                    theme::UiTheme::Metrics::TopBarH,
+                    theme::UiTheme::Metrics::ContentTop,
                     theme::UiTheme::Metrics::ScreenW,
-                    theme::UiTheme::Metrics::ScreenH -
-                        theme::UiTheme::Metrics::TopBarH - theme::UiTheme::Metrics::BottomNavH,
+                    theme::UiTheme::Metrics::ContentH,
                     theme::UiTheme::Colors::Bg);
     _headerCard.active = true;
     _headerCard.draw(canvas);
   }
 
   if (previewDirty) {
-    canvas.fillRect(124, 40, 84, 84, theme::UiTheme::Colors::Bg);
+    canvas.fillRect(theme::UiTheme::Metrics::PatternPreviewX,
+                    theme::UiTheme::Metrics::PatternPreviewY,
+                    theme::UiTheme::Metrics::PatternPreviewW,
+                    theme::UiTheme::Metrics::PatternPreviewH,
+                    theme::UiTheme::Colors::Bg);
     _ringsPreview.draw(canvas, snapshot);
   }
 
   if (chipsDirty) {
-    canvas.fillRect(12, 96, 296, 26, theme::UiTheme::Colors::Bg);
+    canvas.fillRect(theme::UiTheme::Metrics::PatternTrackChipX,
+                    theme::UiTheme::Metrics::PatternTrackChipY,
+                    (theme::UiTheme::Metrics::PatternTrackChipW * TRACK_COUNT) +
+                        (theme::UiTheme::Metrics::PatternTrackChipGapX * (TRACK_COUNT - 1)),
+                    theme::UiTheme::Metrics::PatternTrackChipH,
+                    theme::UiTheme::Colors::Bg);
     for (int i = 0; i < TRACK_COUNT; ++i) {
       _trackChips[i].active = (i == snapshot.activeTrack);
       _trackChips[i].selected = (i == snapshot.activeTrack);
@@ -249,6 +304,32 @@ void PatternScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &sna
 
   if (actionButtonsDirty) {
     _pasteButton.disabled = !_clipboard.hasData;
+    _toolsButton.draw(canvas);
+  }
+
+  if (_toolsModalVisible) {
+    canvas.fillRect(0,
+                    theme::UiTheme::Metrics::ContentTop,
+                    theme::UiTheme::Metrics::ScreenW,
+                    theme::UiTheme::Metrics::ContentH,
+                    theme::UiTheme::Colors::ModalScrim);
+    canvas.fillRoundRect(_toolsModalRect.x,
+                         _toolsModalRect.y,
+                         _toolsModalRect.w,
+                         _toolsModalRect.h,
+                         theme::UiTheme::Metrics::RadiusMd,
+                         theme::UiTheme::Colors::Surface);
+    canvas.drawRoundRect(_toolsModalRect.x,
+                         _toolsModalRect.y,
+                         _toolsModalRect.w,
+                         _toolsModalRect.h,
+                         theme::UiTheme::Metrics::RadiusMd,
+                         theme::UiTheme::Colors::Outline);
+    canvas.setTextColor(theme::UiTheme::Colors::TextPrimary, theme::UiTheme::Colors::Surface);
+    canvas.setTextSize(theme::UiTheme::Typography::BodySize);
+    canvas.setCursor(_toolsModalRect.x + theme::UiTheme::Metrics::PatternToolsTitleOffsetX,
+                     _toolsModalRect.y + theme::UiTheme::Metrics::PatternToolsTitleOffsetY);
+    canvas.print(theme::UiTheme::Metrics::PatternToolsTitle);
     _randomButton.draw(canvas);
     _clearButton.draw(canvas);
     _copyButton.draw(canvas);
@@ -368,6 +449,41 @@ bool PatternScreen::handleTouch(const TouchPoint &tp, const UiStateSnapshot &sna
   }
 
   if (tp.justPressed) {
+    if (_toolsModalVisible) {
+      if (_randomButton.hitTest(tp.x, tp.y)) {
+        dispatchUiAction(UiActionType::RANDOMIZE_TRACK, snapshot.activeTrack, 0);
+        _ringsPreview.invalidateAll();
+        _toolsModalVisible = false;
+        _dirty = true;
+        return true;
+      }
+      if (_clearButton.hitTest(tp.x, tp.y)) {
+        dispatchUiAction(UiActionType::SET_HITS, snapshot.activeTrack, 0);
+        dispatchUiAction(UiActionType::SET_ROTATION, snapshot.activeTrack, 0);
+        _ringsPreview.invalidateAll();
+        _toolsModalVisible = false;
+        _dirty = true;
+        return true;
+      }
+      if (_copyButton.hitTest(tp.x, tp.y)) {
+        copyActiveTrack(snapshot);
+        _toolsModalVisible = false;
+        _dirty = true;
+        return true;
+      }
+      if (_pasteButton.hitTest(tp.x, tp.y) && _clipboard.hasData) {
+        pasteToActiveTrack(snapshot);
+        _ringsPreview.invalidateAll();
+        _toolsModalVisible = false;
+        _dirty = true;
+        return true;
+      }
+
+      _toolsModalVisible = false;
+      _dirty = true;
+      return true;
+    }
+
     for (int i = 0; i < TRACK_COUNT; ++i) {
       if (_trackChips[i].hitTest(tp.x, tp.y)) {
         dispatchUiAction(UiActionType::SELECT_TRACK, 0, i);
@@ -392,28 +508,9 @@ bool PatternScreen::handleTouch(const TouchPoint &tp, const UiStateSnapshot &sna
       }
     }
 
-    if (_randomButton.hitTest(tp.x, tp.y)) {
-      dispatchUiAction(UiActionType::RANDOMIZE_TRACK, snapshot.activeTrack, 0);
-      _ringsPreview.invalidateAll();
-      return true;
-    }
-
-    if (_clearButton.hitTest(tp.x, tp.y)) {
-      dispatchUiAction(UiActionType::SET_HITS, snapshot.activeTrack, 0);
-      dispatchUiAction(UiActionType::SET_ROTATION, snapshot.activeTrack, 0);
-      _ringsPreview.invalidateAll();
-      return true;
-    }
-
-    if (_copyButton.hitTest(tp.x, tp.y)) {
-      copyActiveTrack(snapshot);
+    if (_toolsButton.hitTest(tp.x, tp.y)) {
+      _toolsModalVisible = true;
       _dirty = true;
-      return true;
-    }
-
-    if (_pasteButton.hitTest(tp.x, tp.y) && _clipboard.hasData) {
-      pasteToActiveTrack(snapshot);
-      _ringsPreview.invalidateAll();
       return true;
     }
   }

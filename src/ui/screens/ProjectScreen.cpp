@@ -7,7 +7,7 @@
 namespace ui {
 namespace {
 constexpr int kPanelTopY = theme::UiTheme::Metrics::TopBarH;
-constexpr int kPanelH = theme::UiTheme::Metrics::ScreenH - theme::UiTheme::Metrics::TopBarH - theme::UiTheme::Metrics::BottomNavH;
+constexpr int kPanelH = theme::UiTheme::Metrics::ContentH;
 constexpr int kStatusX = 12;
 constexpr int kStatusY = 98;
 constexpr int kStatusW = 124;
@@ -53,7 +53,6 @@ ProjectScreen::ProjectScreen() {
   _confirmModal.cancel.label = "NO";
   _confirmModal.cancel.variant = UiButtonVariant::Secondary;
 
-  setRect(_toast.rect, 42, 184, 236, 28);
   layout();
   updateLabels();
 }
@@ -81,6 +80,14 @@ void ProjectScreen::layout() {
   setRect(_confirmModal.rect, 44, 88, 232, 96);
   setRect(_confirmModal.confirm.rect, 58, 144, 96, 30);
   setRect(_confirmModal.cancel.rect, 166, 144, 96, 30);
+
+  const int toastY = min(theme::UiTheme::Metrics::ProjectToastY,
+                         _confirmModal.rect.y - theme::UiTheme::Metrics::ProjectToastH);
+  setRect(_toast.rect,
+          theme::UiTheme::Metrics::ProjectToastX,
+          toastY,
+          theme::UiTheme::Metrics::ProjectToastW,
+          theme::UiTheme::Metrics::ProjectToastH);
 }
 
 void ProjectScreen::updateLabels() {
