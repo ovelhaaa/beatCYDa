@@ -1,6 +1,7 @@
 #include "PatternScreen.h"
 
 #include "../core/UiActions.h"
+#include "../core/UiLayout.h"
 #include "../core/BassUiFormat.h"
 #include "../theme/UiTheme.h"
 #include "../../CYD_Config.h"
@@ -60,10 +61,6 @@ bool bassParamChanged(const UiStateSnapshot &lhs, const UiStateSnapshot &rhs, in
 } // namespace
 
 PatternScreen::PatternScreen() {
-  _headerCard.title = "PATTERN";
-  _headerCard.value = "EDIT";
-  _headerCard.active = true;
-
   _rows[0].label = "STEPS";
   _rows[1].label = "HITS";
   _rows[2].label = "ROTATE";
@@ -82,58 +79,58 @@ PatternScreen::PatternScreen() {
   _pasteButton.variant = UiButtonVariant::Primary;
   _toolsButton.label = "TOOLS";
   _toolsButton.variant = UiButtonVariant::Secondary;
+  _trackPrevButton.label = "<";
+  _trackPrevButton.variant = UiButtonVariant::Secondary;
+  _trackNextButton.label = ">";
+  _trackNextButton.variant = UiButtonVariant::Secondary;
 
   _ringsPreview.setCompact(true);
   _ringsPreview.setInteractive(false);
   _ringsPreview.setSingleTrack(true);
 
-  for (int i = 0; i < TRACK_COUNT; ++i) {
-    _trackChips[i].trackIndex = static_cast<uint8_t>(i);
-  }
-
   layout();
 }
 
 void PatternScreen::layout() {
-  setRect(_headerCard.rect,
-          theme::UiTheme::Metrics::PatternHeaderX,
-          theme::UiTheme::Metrics::PatternHeaderY,
-          theme::UiTheme::Metrics::PatternHeaderW,
-          theme::UiTheme::Metrics::PatternHeaderH);
+  setRect(_trackCarouselRect,
+          theme::UiTheme::Metrics::PatternTrackCarouselX,
+          theme::UiTheme::Metrics::PatternTrackCarouselY,
+          theme::UiTheme::Metrics::PatternTrackCarouselW,
+          theme::UiTheme::Metrics::PatternTrackCarouselH);
+  setRect(_trackPrevButton.rect,
+          theme::UiTheme::Metrics::PatternTrackCarouselX,
+          theme::UiTheme::Metrics::PatternTrackCarouselY,
+          theme::UiTheme::Metrics::PatternTrackCarouselArrowW,
+          theme::UiTheme::Metrics::PatternTrackCarouselH);
+  setRect(_trackNextButton.rect,
+          theme::UiTheme::Metrics::PatternTrackCarouselX + theme::UiTheme::Metrics::PatternTrackCarouselW -
+              theme::UiTheme::Metrics::PatternTrackCarouselArrowW,
+          theme::UiTheme::Metrics::PatternTrackCarouselY,
+          theme::UiTheme::Metrics::PatternTrackCarouselArrowW,
+          theme::UiTheme::Metrics::PatternTrackCarouselH);
+  setRect(_trackLabelRect,
+          theme::UiTheme::Metrics::PatternTrackLabelX,
+          theme::UiTheme::Metrics::PatternTrackLabelY,
+          theme::UiTheme::Metrics::PatternTrackLabelW,
+          theme::UiTheme::Metrics::PatternTrackLabelH);
 
   UiRect previewRect{};
   setRect(previewRect,
-          theme::UiTheme::Metrics::PatternPreviewX,
-          theme::UiTheme::Metrics::PatternPreviewY,
-          theme::UiTheme::Metrics::PatternPreviewW,
-          theme::UiTheme::Metrics::PatternPreviewH);
+          theme::UiTheme::Metrics::PatternEuclidCardX,
+          theme::UiTheme::Metrics::PatternEuclidCardY,
+          theme::UiTheme::Metrics::PatternEuclidCardW,
+          theme::UiTheme::Metrics::PatternEuclidCardH);
   _ringsPreview.setRect(previewRect);
 
-  for (int i = 0; i < TRACK_COUNT; ++i) {
-    setRect(_trackChips[i].rect,
-            theme::UiTheme::Metrics::PatternTrackChipX +
-                (i * (theme::UiTheme::Metrics::PatternTrackChipW + theme::UiTheme::Metrics::PatternTrackChipGapX)),
-            theme::UiTheme::Metrics::PatternTrackChipY,
-            theme::UiTheme::Metrics::PatternTrackChipW,
-            theme::UiTheme::Metrics::PatternTrackChipH);
-  }
-
+  const int rowY[4] = {theme::UiTheme::Metrics::PatternRowY0, theme::UiTheme::Metrics::PatternRowY1,
+                       theme::UiTheme::Metrics::PatternRowY2, theme::UiTheme::Metrics::PatternRowY3};
   for (int i = 0; i < 4; ++i) {
-    const int y = theme::UiTheme::Metrics::PatternRowStartY + (i * theme::UiTheme::Metrics::PatternRowGapY);
-    setRect(_rows[i].rowRect,
-            theme::UiTheme::Metrics::PatternRowX,
-            y,
-            theme::UiTheme::Metrics::PatternRowW,
+    const int y = rowY[i];
+    setRect(_rows[i].rowRect, theme::UiTheme::Metrics::PatternRowX, y, theme::UiTheme::Metrics::PatternRowW,
             theme::UiTheme::Metrics::PatternRowH);
-    setRect(_rows[i].minusRect,
-            theme::UiTheme::Metrics::PatternRowMinusX,
-            y,
-            theme::UiTheme::Metrics::PatternRowAdjustW,
+    setRect(_rows[i].minusRect, theme::UiTheme::Metrics::PatternRowMinusX, y, theme::UiTheme::Metrics::PatternRowAdjustW,
             theme::UiTheme::Metrics::PatternRowH);
-    setRect(_rows[i].plusRect,
-            theme::UiTheme::Metrics::PatternRowPlusX,
-            y,
-            theme::UiTheme::Metrics::PatternRowAdjustW,
+    setRect(_rows[i].plusRect, theme::UiTheme::Metrics::PatternRowPlusX, y, theme::UiTheme::Metrics::PatternRowAdjustW,
             theme::UiTheme::Metrics::PatternRowH);
   }
 
@@ -173,20 +170,21 @@ void PatternScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &sna
   const bool isBassTrackActive = snapshot.activeTrack == VOICE_BASS;
   const bool forceFullRender = _dirty || !_hasLastSnapshot;
   const bool trackChanged = forceFullRender || snapshot.activeTrack != _lastSnapshot.activeTrack;
+  const bool modalVisibilityChanged = forceFullRender || (_toolsModalVisible != _lastToolsModalVisible);
   const bool bassContext = isBassTrack(snapshot);
   const bool bassContextChanged = forceFullRender || (isBassTrack(snapshot) != isBassTrack(_lastSnapshot));
 
   _rows[2].label = bassContext ? "MODE" : "ROTATE";
   _rows[3].label = bassContext ? "MOTIF" : "GAIN";
 
-  const bool chipsDirty = forceFullRender || trackChanged || hasMuteChanges(snapshot, _lastSnapshot);
-  const bool previewDirty =
-      forceFullRender || trackChanged || snapshot.currentStep != _lastSnapshot.currentStep || hasPatternChanges(snapshot, _lastSnapshot);
-  bool rowDirty[4] = {forceFullRender || trackChanged || bassContextChanged,
-                      forceFullRender || trackChanged || bassContextChanged,
-                      forceFullRender || trackChanged || bassContextChanged,
-                      forceFullRender || trackChanged || bassContextChanged};
-  const bool actionButtonsDirty = forceFullRender || _pasteButton.disabled != !_clipboard.hasData;
+  const bool carouselDirty = forceFullRender || trackChanged || hasMuteChanges(snapshot, _lastSnapshot) || modalVisibilityChanged;
+  const bool previewDirty = forceFullRender || trackChanged || modalVisibilityChanged ||
+                            snapshot.currentStep != _lastSnapshot.currentStep || hasPatternChanges(snapshot, _lastSnapshot);
+  bool rowDirty[4] = {forceFullRender || trackChanged || bassContextChanged || modalVisibilityChanged,
+                      forceFullRender || trackChanged || bassContextChanged || modalVisibilityChanged,
+                      forceFullRender || trackChanged || bassContextChanged || modalVisibilityChanged,
+                      forceFullRender || trackChanged || bassContextChanged || modalVisibilityChanged};
+  const bool toolsButtonDirty = forceFullRender || modalVisibilityChanged || _pasteButton.disabled != !_clipboard.hasData;
 
   for (int i = 0; i < 4; ++i) {
     if (rowDirty[i]) {
@@ -222,32 +220,44 @@ void PatternScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &sna
                     theme::UiTheme::Metrics::ScreenW,
                     theme::UiTheme::Metrics::ContentH,
                     theme::UiTheme::Colors::Bg);
-    _headerCard.active = true;
-    _headerCard.draw(canvas);
   }
 
   if (previewDirty) {
-    canvas.fillRect(theme::UiTheme::Metrics::PatternPreviewX,
-                    theme::UiTheme::Metrics::PatternPreviewY,
-                    theme::UiTheme::Metrics::PatternPreviewW,
-                    theme::UiTheme::Metrics::PatternPreviewH,
+    canvas.fillRect(theme::UiTheme::Metrics::PatternEuclidCardX,
+                    theme::UiTheme::Metrics::PatternEuclidCardY,
+                    theme::UiTheme::Metrics::PatternEuclidCardW,
+                    theme::UiTheme::Metrics::PatternEuclidCardH,
                     theme::UiTheme::Colors::Bg);
     _ringsPreview.draw(canvas, snapshot);
   }
 
-  if (chipsDirty) {
-    canvas.fillRect(theme::UiTheme::Metrics::PatternTrackChipX,
-                    theme::UiTheme::Metrics::PatternTrackChipY,
-                    (theme::UiTheme::Metrics::PatternTrackChipW * TRACK_COUNT) +
-                        (theme::UiTheme::Metrics::PatternTrackChipGapX * (TRACK_COUNT - 1)),
-                    theme::UiTheme::Metrics::PatternTrackChipH,
+  if (carouselDirty) {
+    canvas.fillRect(_trackCarouselRect.x,
+                    _trackCarouselRect.y,
+                    _trackCarouselRect.w,
+                    _trackCarouselRect.h,
                     theme::UiTheme::Colors::Bg);
-    for (int i = 0; i < TRACK_COUNT; ++i) {
-      _trackChips[i].active = (i == snapshot.activeTrack);
-      _trackChips[i].selected = (i == snapshot.activeTrack);
-      _trackChips[i].muted = snapshot.trackMutes[i];
-      _trackChips[i].draw(canvas);
-    }
+    _trackPrevButton.draw(canvas);
+    _trackNextButton.draw(canvas);
+
+    const uint16_t labelBg = snapshot.trackMutes[snapshot.activeTrack] ? theme::UiTheme::Colors::Danger
+                                                                        : theme::UiTheme::Colors::SurfacePressed;
+    canvas.fillRoundRect(_trackLabelRect.x,
+                         _trackLabelRect.y,
+                         _trackLabelRect.w,
+                         _trackLabelRect.h,
+                         theme::UiTheme::Metrics::RadiusSm,
+                         labelBg);
+    canvas.drawRoundRect(_trackLabelRect.x,
+                         _trackLabelRect.y,
+                         _trackLabelRect.w,
+                         _trackLabelRect.h,
+                         theme::UiTheme::Metrics::RadiusSm,
+                         theme::UiTheme::Colors::Outline);
+    canvas.setTextSize(theme::UiTheme::Typography::BodySize);
+    canvas.setTextColor(theme::UiTheme::Colors::TextPrimary, labelBg);
+    canvas.setCursor(_trackLabelRect.x + 6, _trackLabelRect.y + 10);
+    canvas.printf("%s %d/%d", TRACK_LABELS[snapshot.activeTrack], snapshot.activeTrack + 1, TRACK_COUNT);
   }
 
   for (int i = 0; i < 4; ++i) {
@@ -302,8 +312,9 @@ void PatternScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &sna
     _rows[i].draw(canvas);
   }
 
-  if (actionButtonsDirty) {
+  if (toolsButtonDirty) {
     _pasteButton.disabled = !_clipboard.hasData;
+    canvas.fillRect(_toolsButton.rect.x, _toolsButton.rect.y, _toolsButton.rect.w, _toolsButton.rect.h, theme::UiTheme::Colors::Bg);
     _toolsButton.draw(canvas);
   }
 
@@ -338,6 +349,7 @@ void PatternScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &sna
 
   _lastSnapshot = snapshot;
   _hasLastSnapshot = true;
+  _lastToolsModalVisible = _toolsModalVisible;
   _lastHoldRow = _holdRow;
   _lastHoldDirection = _holdDirection;
   _dirty = false;
@@ -484,12 +496,25 @@ bool PatternScreen::handleTouch(const TouchPoint &tp, const UiStateSnapshot &sna
       return true;
     }
 
-    for (int i = 0; i < TRACK_COUNT; ++i) {
-      if (_trackChips[i].hitTest(tp.x, tp.y)) {
-        dispatchUiAction(UiActionType::SELECT_TRACK, 0, i);
-        _ringsPreview.invalidateAll();
-        return true;
-      }
+    if (_trackPrevButton.hitTest(tp.x, tp.y)) {
+      const int nextTrack = (snapshot.activeTrack + TRACK_COUNT - 1) % TRACK_COUNT;
+      dispatchUiAction(UiActionType::SELECT_TRACK, 0, nextTrack);
+      _ringsPreview.invalidateAll();
+      return true;
+    }
+
+    if (_trackNextButton.hitTest(tp.x, tp.y)) {
+      const int nextTrack = (snapshot.activeTrack + 1) % TRACK_COUNT;
+      dispatchUiAction(UiActionType::SELECT_TRACK, 0, nextTrack);
+      _ringsPreview.invalidateAll();
+      return true;
+    }
+
+    if (_trackLabelRect.contains(tp.x, tp.y)) {
+      const int nextTrack = (snapshot.activeTrack + 1) % TRACK_COUNT;
+      dispatchUiAction(UiActionType::SELECT_TRACK, 0, nextTrack);
+      _ringsPreview.invalidateAll();
+      return true;
     }
 
     for (int i = 0; i < 4; ++i) {
@@ -509,10 +534,15 @@ bool PatternScreen::handleTouch(const TouchPoint &tp, const UiStateSnapshot &sna
     }
 
     if (_toolsButton.hitTest(tp.x, tp.y)) {
+      stopHold();
       _toolsModalVisible = true;
       _dirty = true;
       return true;
     }
+  }
+
+  if (_toolsModalVisible) {
+    return consumed;
   }
 
   consumed = handleHoldTick(tp, snapshot) || consumed;
@@ -522,6 +552,7 @@ bool PatternScreen::handleTouch(const TouchPoint &tp, const UiStateSnapshot &sna
 void PatternScreen::invalidate() {
   _dirty = true;
   _hasLastSnapshot = false;
+  _lastToolsModalVisible = false;
   _ringsPreview.invalidateAll();
 }
 
