@@ -1,10 +1,12 @@
 #include "UiApp.h"
 
 #include "../CYD_Config.h"
+#include "../control/ControlManager.h"
 #include "core/UiActions.h"
 #include "core/BassUiFormat.h"
 #include "theme/UiTheme.h"
 #include <Arduino.h>
+#include <string.h>
 
 namespace ui {
 namespace {
@@ -163,6 +165,7 @@ void UiApp::runFrame(uint32_t nowMs) {
   _previousScreen = _activeScreen;
   _snapshot.capture();
   _display.readTouch(_touch);
+  processStorageFeedback(nowMs);
   updateUiStats(nowMs);
 
   IScreen *screen = activeScreen();
@@ -244,7 +247,9 @@ void UiApp::renderTopBarTransport() {
   canvas.setTextColor(theme::UiTheme::Colors::TextPrimary, theme::UiTheme::Colors::Surface);
   canvas.setTextSize(theme::UiTheme::Typography::BodySize);
   canvas.setCursor(theme::UiTheme::Metrics::TopBarTransportX, theme::UiTheme::Metrics::TopBarTextBaselineY);
-  canvas.printf("beatCYDa %s", _snapshot.isPlaying ? "PLAY" : "STOP");
+  const bool hasTransientStatus =
+      _transientStatusUntilMs > millis() && _transientStatus[0] != '\0';
+  canvas.printf("beatCYDa %s", hasTransientStatus ? _transientStatus : (_snapshot.isPlaying ? "PLAY" : "STOP"));
 }
 
 void UiApp::renderTopBarMetrics() {
@@ -385,6 +390,33 @@ bool UiApp::detectModelChanges() {
   }
 
   return hasPanelChangesForScreen(_activeScreen, _snapshot, _previousSnapshot);
+}
+
+void UiApp::processStorageFeedback(uint32_t nowMs) {
+  ControlManager::StorageEvent event{};
+  while (CtrlMgr.pollStorageEvent(event)) {
+    if (event.type == ControlManager::StorageEventType::SAVE_SLOT_DONE) {
+      setTransientStatus(event.success ? "Saved!" : "Save Fail",
+                         event.success ? CYDConfig::UiToastInfoMs : CYDConfig::UiToastWarningMs);
+    } else if (event.type == ControlManager::StorageEventType::LOAD_SLOT_DONE) {
+      setTransientStatus(event.success ? "Loaded!" : "Load Fail",
+                         event.success ? CYDConfig::UiToastInfoMs : CYDConfig::UiToastWarningMs);
+    }
+  }
+
+  if (_transientStatusUntilMs != 0 && nowMs >= _transientStatusUntilMs) {
+    _transientStatusUntilMs = 0;
+    _transientStatus[0] = '\0';
+    _invalidation.topBarDirty = true;
+    _topBarTransportDirty = true;
+  }
+}
+
+void UiApp::setTransientStatus(const char *message, uint32_t timeoutMs) {
+  snprintf(_transientStatus, sizeof(_transientStatus), "%s", message);
+  _transientStatusUntilMs = millis() + timeoutMs;
+  _invalidation.topBarDirty = true;
+  _topBarTransportDirty = true;
 }
 
 } // namespace ui
