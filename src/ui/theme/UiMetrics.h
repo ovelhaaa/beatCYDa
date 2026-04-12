@@ -57,6 +57,10 @@ struct UiMetrics {
   static constexpr int PerformTrackChipW = 50;
   static constexpr int PerformTrackChipH = 18;
   static constexpr int PerformTrackChipGap = 4;
+  static constexpr int PerformStatusX = 12;
+  static constexpr int PerformStatusY = 174;
+  static constexpr int PerformStatusW = 104;
+  static constexpr int PerformStatusH = 16;
   static constexpr int PerformBpmX = 204;
   static constexpr int PerformBpmY = 174;
   static constexpr int PerformBpmW = 104;
@@ -82,9 +86,9 @@ struct UiMetrics {
   static constexpr int PatternRowAdjustW = 20;
   static constexpr int PatternRowMinusX = 220;
   static constexpr int PatternRowPlusX = 244;
-  static constexpr int PatternToolsButtonX = 12;
-  static constexpr int PatternToolsButtonY = 172;
-  static constexpr int PatternToolsButtonW = 120;
+  static constexpr int PatternToolsButtonX = 214;
+  static constexpr int PatternToolsButtonY = 46;
+  static constexpr int PatternToolsButtonW = 94;
   static constexpr int PatternToolsButtonH = 20;
   static constexpr int PatternToolsModalX = 52;
   static constexpr int PatternToolsModalY = 74;

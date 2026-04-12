@@ -75,10 +75,10 @@ void PerformScreen::layout() {
           theme::UiTheme::Metrics::PerformControlW,
           theme::UiTheme::Metrics::PerformButtonH);
   setRect(_statusCard.rect,
-          theme::UiTheme::Metrics::PerformRingsX,
-          theme::UiTheme::Metrics::PerformBpmY,
-          theme::UiTheme::Metrics::PerformControlW,
-          theme::UiTheme::Metrics::PerformBpmH);
+          theme::UiTheme::Metrics::PerformStatusX,
+          theme::UiTheme::Metrics::PerformStatusY,
+          theme::UiTheme::Metrics::PerformStatusW,
+          theme::UiTheme::Metrics::PerformStatusH);
 
   setRect(_ringsRect,
           theme::UiTheme::Metrics::PerformRingsX,
@@ -181,8 +181,10 @@ void PerformScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &sna
                     _statusCard.rect.w,
                     _statusCard.rect.h + 4,
                     theme::UiTheme::Colors::Bg);
-    _statusCard.value = trackLabel(safeActiveTrack);
-    _statusCard.draw(canvas);
+    canvas.setTextSize(theme::UiTheme::Typography::CaptionSize);
+    canvas.setTextColor(theme::UiTheme::Colors::TextSecondary, theme::UiTheme::Colors::Bg);
+    canvas.setCursor(_statusCard.rect.x, _statusCard.rect.y);
+    canvas.printf("TRK %s", trackLabel(safeActiveTrack));
     _statusDirty = false;
   }
 
