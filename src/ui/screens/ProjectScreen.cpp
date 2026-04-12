@@ -8,18 +8,6 @@ namespace ui {
 namespace {
 constexpr int kPanelTopY = theme::UiTheme::Metrics::TopBarH;
 constexpr int kPanelH = theme::UiTheme::Metrics::ContentH;
-constexpr int kStatusX = 12;
-constexpr int kStatusY = 98;
-constexpr int kStatusW = 124;
-constexpr int kStatusH = 10;
-constexpr int kSlotsX = 144;
-constexpr int kSlotsY = 48;
-constexpr int kSlotsW = 174;
-constexpr int kSlotsH = 68;
-constexpr int kActionsX = 12;
-constexpr int kActionsY = 110;
-constexpr int kActionsW = 296;
-constexpr int kActionsH = 34;
 
 void setRect(UiRect &rect, int16_t x, int16_t y, int16_t w, int16_t h) {
   rect.x = x;
@@ -30,10 +18,6 @@ void setRect(UiRect &rect, int16_t x, int16_t y, int16_t w, int16_t h) {
 } // namespace
 
 ProjectScreen::ProjectScreen() {
-  _headerCard.title = "PROJECT";
-  _headerCard.value = "SLOTS";
-  _headerCard.active = true;
-
   for (uint8_t i = 0; i < 8; ++i) {
     _slotButtons[i].variant = UiButtonVariant::Secondary;
   }
@@ -58,34 +42,64 @@ ProjectScreen::ProjectScreen() {
 }
 
 void ProjectScreen::layout() {
-  setRect(_headerCard.rect, 12, 46, 120, 48);
-
-  constexpr int slotW = 66;
-  constexpr int slotH = 30;
-  constexpr int startX = 144;
-  constexpr int startY = 48;
-  constexpr int gapX = 10;
-  constexpr int gapY = 8;
+  setRect(_titleChipRect,
+          theme::UiTheme::Metrics::ProjectTitleChipX,
+          theme::UiTheme::Metrics::ProjectTitleChipY,
+          theme::UiTheme::Metrics::ProjectTitleChipW,
+          theme::UiTheme::Metrics::ProjectTitleChipH);
+  setRect(_selectedInfoRect,
+          theme::UiTheme::Metrics::ProjectSelectedInfoX,
+          theme::UiTheme::Metrics::ProjectSelectedInfoY,
+          theme::UiTheme::Metrics::ProjectSelectedInfoW,
+          theme::UiTheme::Metrics::ProjectSelectedInfoH);
 
   for (int i = 0; i < 8; ++i) {
     const int row = i / 4;
     const int col = i % 4;
-    setRect(_slotButtons[i].rect, startX + col * (slotW + gapX), startY + row * (slotH + gapY), slotW, slotH);
+    setRect(_slotButtons[i].rect,
+            theme::UiTheme::Metrics::ProjectSlotGridX + col * (theme::UiTheme::Metrics::ProjectSlotW + theme::UiTheme::Metrics::ProjectSlotGapX),
+            theme::UiTheme::Metrics::ProjectSlotGridY + row * (theme::UiTheme::Metrics::ProjectSlotH + theme::UiTheme::Metrics::ProjectSlotGapY),
+            theme::UiTheme::Metrics::ProjectSlotW,
+            theme::UiTheme::Metrics::ProjectSlotH);
   }
 
-  setRect(_loadButton.rect, 12, 110, 92, 34);
-  setRect(_saveButton.rect, 110, 110, 92, 34);
-  setRect(_deleteButton.rect, 208, 110, 100, 34);
+  const int actionX = theme::UiTheme::Metrics::ProjectSlotGridX;
+  setRect(_loadButton.rect,
+          actionX,
+          theme::UiTheme::Metrics::ProjectActionY,
+          theme::UiTheme::Metrics::ProjectActionW,
+          theme::UiTheme::Metrics::ProjectActionH);
+  setRect(_saveButton.rect,
+          actionX + theme::UiTheme::Metrics::ProjectActionW + theme::UiTheme::Metrics::ProjectActionGap,
+          theme::UiTheme::Metrics::ProjectActionY,
+          theme::UiTheme::Metrics::ProjectActionW,
+          theme::UiTheme::Metrics::ProjectActionH);
+  setRect(_deleteButton.rect,
+          actionX + (theme::UiTheme::Metrics::ProjectActionW + theme::UiTheme::Metrics::ProjectActionGap) * 2,
+          theme::UiTheme::Metrics::ProjectActionY,
+          theme::UiTheme::Metrics::ProjectActionW,
+          theme::UiTheme::Metrics::ProjectActionH);
 
-  setRect(_confirmModal.rect, 44, 88, 232, 96);
-  setRect(_confirmModal.confirm.rect, 58, 144, 96, 30);
-  setRect(_confirmModal.cancel.rect, 166, 144, 96, 30);
+  setRect(_confirmModal.rect,
+          theme::UiTheme::Metrics::ProjectModalX,
+          theme::UiTheme::Metrics::ProjectModalY,
+          theme::UiTheme::Metrics::ProjectModalW,
+          theme::UiTheme::Metrics::ProjectModalH);
+  setRect(_confirmModal.confirm.rect,
+          theme::UiTheme::Metrics::ProjectModalX + 10,
+          theme::UiTheme::Metrics::ProjectModalButtonY,
+          theme::UiTheme::Metrics::ProjectModalButtonW,
+          theme::UiTheme::Metrics::ProjectModalButtonH);
+  setRect(_confirmModal.cancel.rect,
+          theme::UiTheme::Metrics::ProjectModalX + theme::UiTheme::Metrics::ProjectModalW -
+              theme::UiTheme::Metrics::ProjectModalButtonW - 10,
+          theme::UiTheme::Metrics::ProjectModalButtonY,
+          theme::UiTheme::Metrics::ProjectModalButtonW,
+          theme::UiTheme::Metrics::ProjectModalButtonH);
 
-  const int toastY = min(theme::UiTheme::Metrics::ProjectToastY,
-                         _confirmModal.rect.y - theme::UiTheme::Metrics::ProjectToastH);
   setRect(_toast.rect,
           theme::UiTheme::Metrics::ProjectToastX,
-          toastY,
+          theme::UiTheme::Metrics::ProjectToastY,
           theme::UiTheme::Metrics::ProjectToastW,
           theme::UiTheme::Metrics::ProjectToastH);
 }
@@ -109,7 +123,7 @@ void ProjectScreen::showToast(const char *message, UiToastSeverity severity, uin
 void ProjectScreen::openConfirm(PendingAction action) {
   _pendingAction = action;
   _confirmModal.visible = true;
-  _confirmModal.body = (action == PendingAction::Delete) ? "Delete slot data?" : "Overwrite slot?";
+  _confirmModal.body = (action == PendingAction::Delete) ? "Delete selected slot?" : "Overwrite selected slot?";
   markOverlayDirty();
 }
 
@@ -142,6 +156,7 @@ void ProjectScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &sna
 
     if (_lastSelectedSlot != _selectedSlot) {
       markSlotsDirty();
+      _statusDirty = true;
     }
 
     for (uint8_t i = 0; i < 8; ++i) {
@@ -174,26 +189,63 @@ void ProjectScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &sna
   }
 
   if (_headerDirty) {
-    canvas.fillRect(_headerCard.rect.x,
-                    _headerCard.rect.y,
-                    _headerCard.rect.w,
-                    _headerCard.rect.h,
+    canvas.fillRect(_titleChipRect.x,
+                    _titleChipRect.y,
+                    _selectedInfoRect.x + _selectedInfoRect.w - _titleChipRect.x,
+                    _titleChipRect.h,
                     theme::UiTheme::Colors::Bg);
-    _headerCard.draw(canvas);
+
+    canvas.fillRoundRect(_titleChipRect.x,
+                         _titleChipRect.y,
+                         _titleChipRect.w,
+                         _titleChipRect.h,
+                         theme::UiTheme::Metrics::RadiusSm,
+                         theme::UiTheme::Colors::Accent);
+    canvas.drawRoundRect(_titleChipRect.x,
+                         _titleChipRect.y,
+                         _titleChipRect.w,
+                         _titleChipRect.h,
+                         theme::UiTheme::Metrics::RadiusSm,
+                         theme::UiTheme::Colors::Outline);
+    canvas.setTextSize(theme::UiTheme::Typography::CaptionSize);
+    canvas.setTextColor(theme::UiTheme::Colors::TextOnAccent, theme::UiTheme::Colors::Accent);
+    canvas.setCursor(_titleChipRect.x + 8, _titleChipRect.y + 8);
+    canvas.print("PROJECT");
+
     _headerDirty = false;
   }
 
   if (_statusDirty) {
-    canvas.fillRect(kStatusX, kStatusY, kStatusW, kStatusH, theme::UiTheme::Colors::Bg);
+    canvas.fillRect(_selectedInfoRect.x,
+                    _selectedInfoRect.y,
+                    _selectedInfoRect.w,
+                    _selectedInfoRect.h,
+                    theme::UiTheme::Colors::Bg);
+    canvas.fillRoundRect(_selectedInfoRect.x,
+                         _selectedInfoRect.y,
+                         _selectedInfoRect.w,
+                         _selectedInfoRect.h,
+                         theme::UiTheme::Metrics::RadiusSm,
+                         theme::UiTheme::Colors::SurfacePressed);
+    canvas.drawRoundRect(_selectedInfoRect.x,
+                         _selectedInfoRect.y,
+                         _selectedInfoRect.w,
+                         _selectedInfoRect.h,
+                         theme::UiTheme::Metrics::RadiusSm,
+                         theme::UiTheme::Colors::Outline);
     canvas.setTextSize(theme::UiTheme::Typography::CaptionSize);
-    canvas.setTextColor(theme::UiTheme::Colors::TextSecondary, theme::UiTheme::Colors::Bg);
-    canvas.setCursor(kStatusX, kStatusY);
-    canvas.printf("BPM %d  TRK %d", snapshot.bpm, snapshot.activeTrack + 1);
+    canvas.setTextColor(theme::UiTheme::Colors::TextSecondary, theme::UiTheme::Colors::SurfacePressed);
+    canvas.setCursor(_selectedInfoRect.x + 6, _selectedInfoRect.y + 8);
+    canvas.printf("Selected: SLOT %u  BPM %u", static_cast<unsigned>(_selectedSlot + 1), static_cast<unsigned>(snapshot.bpm));
     _statusDirty = false;
   }
 
   if (_slotsDirty) {
-    canvas.fillRect(kSlotsX, kSlotsY, kSlotsW, kSlotsH, theme::UiTheme::Colors::Bg);
+    canvas.fillRect(theme::UiTheme::Metrics::ProjectSlotGridX,
+                    theme::UiTheme::Metrics::ProjectSlotGridY,
+                    (theme::UiTheme::Metrics::ProjectSlotW * 4) + (theme::UiTheme::Metrics::ProjectSlotGapX * 3),
+                    (theme::UiTheme::Metrics::ProjectSlotH * 2) + theme::UiTheme::Metrics::ProjectSlotGapY,
+                    theme::UiTheme::Colors::Bg);
     updateLabels();
     for (uint8_t i = 0; i < 8; ++i) {
       _slotButtons[i].variant = _slotOccupied[i] ? UiButtonVariant::Primary : UiButtonVariant::Secondary;
@@ -204,7 +256,11 @@ void ProjectScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &sna
   }
 
   if (_actionsDirty) {
-    canvas.fillRect(kActionsX, kActionsY, kActionsW, kActionsH, theme::UiTheme::Colors::Bg);
+    canvas.fillRect(_loadButton.rect.x,
+                    _loadButton.rect.y,
+                    _deleteButton.rect.x + _deleteButton.rect.w - _loadButton.rect.x,
+                    _loadButton.rect.h,
+                    theme::UiTheme::Colors::Bg);
     _loadButton.draw(canvas);
     _saveButton.draw(canvas);
     _deleteButton.draw(canvas);
@@ -245,7 +301,6 @@ bool ProjectScreen::wantsContinuousRedraw(uint32_t nowMs) {
     return true;
   }
 
-  // Garante um frame de limpeza quando o overlay mudou de visibilidade.
   return _lastToastVisible != toastVisible || _lastModalVisible != _confirmModal.visible;
 }
 
@@ -284,6 +339,7 @@ bool ProjectScreen::handleTouch(const TouchPoint &tp, const UiStateSnapshot &sna
     if (_slotButtons[i].hitTest(tp.x, tp.y)) {
       _selectedSlot = i;
       markSlotsDirty();
+      _statusDirty = true;
       return true;
     }
   }

@@ -865,6 +865,11 @@ void Engine::handleUiAction(UiAction action) {
     return;
   }
 
+  if (action.type == UiActionType::SET_MASTER_GAIN) {
+    voiceManager.setMasterVolume(action.value / 100.0f);
+    return;
+  }
+
   if (action.type == UiActionType::RANDOMIZE_TRACK) {
     const int track = constrain(action.index, 0, TRACK_COUNT - 1);
     if (lockPattern()) {

@@ -23,12 +23,15 @@ private:
   bool _fullDirty{true};
   bool _hasFrame{false};
   int8_t _activeFader{-1};
+  bool _activeMaster{false};
   int8_t _lastCapturedFader{-1};
   uint8_t _lastRenderedFaderValues[TRACK_COUNT]{};
   uint8_t _lastRenderedMaster{0};
   bool _faderDirty[TRACK_COUNT]{};
   bool _masterDirty{true};
   UiCard _headerCard{};
+  UiRect _masterTrackRect{};
+  UiRect _masterThumbRect{};
   UiFader _faders[TRACK_COUNT]{};
 };
 
