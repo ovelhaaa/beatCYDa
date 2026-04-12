@@ -38,10 +38,21 @@ void displayTask(void *parameter) {
   }
 
   ui::UiApp app;
-  if (!app.begin()) {
-    Serial.println("[UI] New UI init failed, halting display task");
-    vTaskDelete(nullptr);
-    return;
+  uint8_t attempt = 0;
+  uint32_t retryDelayMs = CYDConfig::UiInitRetryBaseDelayMs;
+  while (!app.begin()) {
+    ++attempt;
+    Serial.printf("[UI] New UI init failed (attempt %u), retrying in %lu ms\n",
+                  static_cast<unsigned>(attempt),
+                  static_cast<unsigned long>(retryDelayMs));
+    if (CYDConfig::UiInitMaxRetries > 0 && attempt >= CYDConfig::UiInitMaxRetries) {
+      Serial.println("[UI] New UI init exceeded retry budget, halting display task");
+      vTaskDelete(nullptr);
+      return;
+    }
+
+    vTaskDelay(pdMS_TO_TICKS(retryDelayMs));
+    retryDelayMs = min<uint32_t>(retryDelayMs * 2UL, 4000UL);
   }
 
   for (;;) {
