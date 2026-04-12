@@ -20,7 +20,8 @@ Esta versao prioriza:
 - `platformio.ini`: ambiente dedicado `esp32-cyd`
 - `src/CYD_Config.h`: pinout, calibracao de touch, modo de audio e pastas do SD
 - `src/main.cpp`: boot enxuto e criacao das tasks
-- `src/ui/Display.cpp`: UI com transporte, anel euclidiano, tabs e sliders
+- `src/ui/Display.cpp`: inicializacao da task de display (nova UI)
+- `src/ui/UiApp.cpp`: shell da nova UI com navegacao por telas
 - `src/control/InputManager.cpp`: polling do XPT2046 e mapeamento de toque
 - `src/storage/PatternStorage.cpp`: save/load de patterns em JSON no SD
 - `src/storage/WavSampleBank.cpp`: leitura basica de pequenos `.wav`
@@ -46,7 +47,7 @@ Existem placas CYD com roteamentos diferentes para touch e SD. Por isso:
 - se o touch vier invertido ou deslocado, ajuste `TouchMinX`, `TouchMaxX`,
   `TouchMinY` e `TouchMaxY`
 
-## UI atual
+## UI (nova, padrao)
 
 ### Topo
 
@@ -109,6 +110,8 @@ Dentro desta pasta:
 ```powershell
 python -m platformio run
 ```
+
+Build padrao usa a nova UI (sem fallback legado).
 
 Para gravar:
 
