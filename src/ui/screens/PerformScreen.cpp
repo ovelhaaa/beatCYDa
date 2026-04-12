@@ -88,8 +88,8 @@ void PerformScreen::layout() {
   _rings.setRect(_ringsRect);
 
   for (int i = 0; i < TRACK_COUNT; ++i) {
-    const int col = i % 2;
-    const int row = i / 2;
+    const int col = i % theme::UiTheme::Metrics::PerformTrackStripColumns;
+    const int row = i / theme::UiTheme::Metrics::PerformTrackStripColumns;
     setRect(_trackChips[i].rect,
             theme::UiTheme::Metrics::PerformTrackStripX +
                 (col * (theme::UiTheme::Metrics::PerformTrackChipW + theme::UiTheme::Metrics::PerformTrackChipGap)),
@@ -210,10 +210,14 @@ void PerformScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &sna
   }
 
   if (_trackStripDirty) {
+    const int numCols = theme::UiTheme::Metrics::PerformTrackStripColumns;
+    const int numRows = (TRACK_COUNT + numCols - 1) / numCols;
     canvas.fillRect(theme::UiTheme::Metrics::PerformTrackStripX - 2,
                     theme::UiTheme::Metrics::PerformTrackStripY - 2,
-                    (theme::UiTheme::Metrics::PerformTrackChipW * 2) + theme::UiTheme::Metrics::PerformTrackChipGap + 4,
-                    (theme::UiTheme::Metrics::PerformTrackChipH * 3) + (theme::UiTheme::Metrics::PerformTrackChipGap * 2) + 4,
+                    (theme::UiTheme::Metrics::PerformTrackChipW * numCols) +
+                        (theme::UiTheme::Metrics::PerformTrackChipGap * (numCols - 1)) + 4,
+                    (theme::UiTheme::Metrics::PerformTrackChipH * numRows) +
+                        (theme::UiTheme::Metrics::PerformTrackChipGap * (numRows - 1)) + 4,
                     theme::UiTheme::Colors::Bg);
     for (int i = 0; i < TRACK_COUNT; ++i) {
       _trackChips[i].active = (i == safeActiveTrack);
