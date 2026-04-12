@@ -7,7 +7,7 @@
 namespace ui {
 namespace {
 constexpr int kPanelTopY = theme::UiTheme::Metrics::TopBarH;
-constexpr int kPanelH = theme::UiTheme::Metrics::ScreenH - theme::UiTheme::Metrics::TopBarH - theme::UiTheme::Metrics::BottomNavH;
+constexpr int kPanelH = theme::UiTheme::Metrics::ContentH;
 constexpr int kStatusX = 12;
 constexpr int kStatusY = 98;
 constexpr int kStatusW = 124;
@@ -53,7 +53,11 @@ ProjectScreen::ProjectScreen() {
   _confirmModal.cancel.label = "NO";
   _confirmModal.cancel.variant = UiButtonVariant::Secondary;
 
-  setRect(_toast.rect, 42, 184, 236, 28);
+  setRect(_toast.rect,
+          theme::UiTheme::Metrics::ProjectToastX,
+          theme::UiTheme::Metrics::ProjectToastY,
+          theme::UiTheme::Metrics::ProjectToastW,
+          theme::UiTheme::Metrics::ProjectToastH);
   layout();
   updateLabels();
 }
