@@ -404,9 +404,14 @@ bool UiApp::detectModelChanges() {
     return true;
   }
 
-  if (_snapshot.bpm != _previousSnapshot.bpm || _snapshot.isPlaying != _previousSnapshot.isPlaying) {
+  const bool topBarMetricsChanged =
+      _snapshot.bpm != _previousSnapshot.bpm ||
+      _snapshot.bassParams.rootNote != _previousSnapshot.bassParams.rootNote ||
+      _snapshot.bassParams.mode != _previousSnapshot.bassParams.mode;
+
+  if (topBarMetricsChanged || _snapshot.isPlaying != _previousSnapshot.isPlaying) {
     _invalidation.topBarDirty = true;
-    if (_snapshot.bpm != _previousSnapshot.bpm) {
+    if (topBarMetricsChanged) {
       _topBarMetricsDirty = true;
     }
     if (_snapshot.isPlaying != _previousSnapshot.isPlaying) {
