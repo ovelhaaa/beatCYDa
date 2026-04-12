@@ -229,9 +229,12 @@ void SoundScreen::applyLayoutMode(bool bassLayout) {
   }
 
   setRect(_soundTypeChipRect, 278, 54, 30, 24);
-  setRect(_bassTabRects[0], 210, 54, 30, 24);
-  setRect(_bassTabRects[1], 244, 54, 30, 24);
-  setRect(_bassTabRects[2], 278, 54, 30, 24);
+
+  const int bassTabsY = bassLayout ? 80 : 54;
+  const int bassTabsH = bassLayout ? 18 : 24;
+  setRect(_bassTabRects[0], 210, bassTabsY, 30, bassTabsH);
+  setRect(_bassTabRects[1], 244, bassTabsY, 30, bassTabsH);
+  setRect(_bassTabRects[2], 278, bassTabsY, 30, bassTabsH);
 
   for (int i = 0; i < 4; ++i) {
     const int y = 100 + (i * 30);
@@ -304,7 +307,7 @@ void SoundScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &snaps
   }
 
   if (chipsDirty) {
-    canvas.fillRect(150, 54, 158, 24, theme::UiTheme::Colors::Bg);
+    canvas.fillRect(150, 54, 158, 44, theme::UiTheme::Colors::Bg);
     for (int i = 0; i < TRACK_COUNT; ++i) {
       _trackChips[i].active = (i == snapshot.activeTrack);
       _trackChips[i].selected = (i == snapshot.activeTrack);
