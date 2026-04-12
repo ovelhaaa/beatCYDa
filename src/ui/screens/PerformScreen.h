@@ -1,9 +1,7 @@
 #pragma once
 
 #include "../components/UiButton.h"
-#include "../components/UiCard.h"
 #include "../Display.h"
-#include "../components/UiChip.h"
 #include "../components/UiEuclideanRings.h"
 #include "IScreen.h"
 
@@ -28,20 +26,27 @@ private:
   bool _controlsDirty{true};
   bool _playDirty{true};
   bool _muteDirty{true};
-  bool _statusDirty{true};
-  bool _trackStripDirty{true};
   bool _bpmDirty{true};
+  bool _trackCarouselDirty{true};
   bool _lastPlaying{false};
   uint16_t _lastBpm{0};
   uint8_t _lastActiveTrack{0};
   bool _lastTrackMutes[TRACK_COUNT]{};
-  bool _trackChipDirty[TRACK_COUNT]{};
   UiButton _playButton{};
   UiButton _muteButton{};
-  UiCard _statusCard{};
+  UiButton _bpmMinusButton{};
+  UiButton _bpmPlusButton{};
+  UiButton _trackPrevButton{};
+  UiButton _trackNextButton{};
   bool _playPressed{false};
   bool _mutePressed{false};
-  UiChip _trackChips[TRACK_COUNT]{};
+  bool _bpmMinusPressed{false};
+  bool _bpmPlusPressed{false};
+  bool _trackPrevPressed{false};
+  bool _trackNextPressed{false};
+  UiRect _heroCardRect{};
+  UiRect _bpmValueRect{};
+  UiRect _trackLabelRect{};
   UiRect _ringsRect{};
   UiEuclideanRings _rings{};
 };

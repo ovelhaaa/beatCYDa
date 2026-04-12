@@ -1,7 +1,6 @@
 #pragma once
 
 #include "../components/UiButton.h"
-#include "../components/UiCard.h"
 #include "../components/UiModal.h"
 #include "../components/UiToast.h"
 #include "../../CYD_Config.h"
@@ -58,7 +57,8 @@ private:
   bool _lastModalVisible{false};
   PendingAction _pendingAction{PendingAction::None};
 
-  UiCard _headerCard{};
+  UiRect _titleChipRect{};
+  UiRect _selectedInfoRect{};
   UiButton _slotButtons[8]{};
   UiButton _loadButton{};
   UiButton _saveButton{};
