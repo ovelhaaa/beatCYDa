@@ -866,7 +866,8 @@ void Engine::handleUiAction(UiAction action) {
   }
 
   if (action.type == UiActionType::SET_MASTER_GAIN) {
-    voiceManager.setMasterVolume(action.value / 100.0f);
+    const int gain = constrain(action.value, 0, 100);
+    voiceManager.setMasterVolume(gain / 100.0f);
     return;
   }
 
