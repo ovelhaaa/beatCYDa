@@ -17,15 +17,20 @@ void setRect(UiRect &rect, int16_t x, int16_t y, int16_t w, int16_t h) {
   rect.h = h;
 }
 
-void styleNavButton(UiButton &button, const char *label, int16_t x, int16_t w) {
+void styleNavButton(UiButton &button, const char *label, int16_t x) {
   button.label = label;
   button.variant = UiButtonVariant::Secondary;
   setRect(button.rect,
           x,
           theme::UiTheme::Metrics::ScreenH - theme::UiTheme::Metrics::BottomNavH +
               theme::UiTheme::Metrics::BottomNavButtonYInset,
-          w,
+          theme::UiTheme::Metrics::BottomNavButtonW,
           theme::UiTheme::Metrics::BottomNavButtonH);
+}
+
+int16_t navButtonX(int16_t index) {
+  return theme::UiTheme::Metrics::BottomNavButtonStartX +
+         index * (theme::UiTheme::Metrics::BottomNavButtonW + theme::UiTheme::Metrics::BottomNavButtonGap);
 }
 
 bool compareTrackMutes(const UiStateSnapshot &lhs, const UiStateSnapshot &rhs) {
@@ -149,11 +154,11 @@ bool hasPanelChangesForScreen(UiScreenId screenId, const UiStateSnapshot &lhs, c
 } // namespace
 
 UiApp::UiApp() {
-  styleNavButton(_navPerform, "PERF", 6, 62);
-  styleNavButton(_navPattern, "PATT", 68, 62);
-  styleNavButton(_navSound, "SND", 130, 62);
-  styleNavButton(_navMix, "MIX", 192, 62);
-  styleNavButton(_navProject, "PROJ", 254, 62);
+  styleNavButton(_navPerform, "PERF", navButtonX(0));
+  styleNavButton(_navPattern, "PATT", navButtonX(1));
+  styleNavButton(_navSound, "SND", navButtonX(2));
+  styleNavButton(_navMix, "MIX", navButtonX(3));
+  styleNavButton(_navProject, "PROJ", navButtonX(4));
 }
 
 bool UiApp::begin() {
