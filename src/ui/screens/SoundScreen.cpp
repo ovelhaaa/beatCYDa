@@ -236,11 +236,24 @@ void SoundScreen::applyLayoutMode(bool bassLayout) {
   setRect(_bassTabRects[1], 244, bassTabsY, 30, bassTabsH);
   setRect(_bassTabRects[2], 278, bassTabsY, 30, bassTabsH);
 
+  constexpr int rowX = 8;
+  constexpr int rowW = 304;
+  constexpr int rowH = 28;
+  constexpr int buttonW = 24;
+  constexpr int buttonGap = 4;
+  constexpr int rightPadding = 6;
+
   for (int i = 0; i < 4; ++i) {
     const int y = 100 + (i * 30);
-    setRect(_rows[i].rowRect, 8, y, 240, 28);
-    setRect(_rows[i].minusRect, 252, y, 28, 28);
-    setRect(_rows[i].plusRect, 284, y, 28, 28);
+    setRect(_rows[i].rowRect, rowX, y, rowW, rowH);
+
+    const int buttonsStartX = rowX + rowW - rightPadding - (buttonW * 2) - buttonGap;
+    setRect(_rows[i].minusRect, buttonsStartX, y + ((rowH - buttonW) / 2), buttonW, buttonW);
+    setRect(_rows[i].plusRect,
+            _rows[i].minusRect.x + _rows[i].minusRect.w + buttonGap,
+            y + ((rowH - buttonW) / 2),
+            buttonW,
+            buttonW);
   }
 }
 

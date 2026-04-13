@@ -28,26 +28,33 @@ void UiMacroRow::draw(lgfx::LGFX_Device &canvas) const {
   canvas.drawRoundRect(minusRect.x, minusRect.y, minusRect.w, minusRect.h, theme::UiTheme::Metrics::RadiusSm,
                        theme::UiTheme::Colors::Outline);
   canvas.setTextColor(minusText, minusFill);
-  canvas.setCursor(minusRect.x + 9, minusRect.y + 9);
+  const int minusTextX = minusRect.x + (minusRect.w / 2) - 3;
+  const int minusTextY = minusRect.y + (minusRect.h / 2) - 4;
+  canvas.setCursor(minusTextX, minusTextY);
   canvas.print("-");
 
   canvas.fillRoundRect(plusRect.x, plusRect.y, plusRect.w, plusRect.h, theme::UiTheme::Metrics::RadiusSm, plusFill);
   canvas.drawRoundRect(plusRect.x, plusRect.y, plusRect.w, plusRect.h, theme::UiTheme::Metrics::RadiusSm,
                        theme::UiTheme::Colors::Outline);
   canvas.setTextColor(plusText, plusFill);
-  canvas.setCursor(plusRect.x + 9, plusRect.y + 9);
+  const int plusTextX = plusRect.x + (plusRect.w / 2) - 3;
+  const int plusTextY = plusRect.y + (plusRect.h / 2) - 4;
+  canvas.setCursor(plusTextX, plusTextY);
   canvas.print("+");
 
   if (showBar) {
-    const int barX = rowRect.x + 84;
+    const int barStartX = rowRect.x + 84;
+    const int controlsLeft = minusRect.x;
+    const int controlsPadding = 8;
+    const int rowRight = rowRect.x + rowRect.w;
+    const int barRight = (controlsLeft > barStartX) ? (controlsLeft - controlsPadding) : (rowRight - controlsPadding);
+    const int barW = barRight - barStartX;
     const int barY = rowRect.y + rowRect.h - 10;
-    const bool controlsInsideRow = minusRect.x < (rowRect.x + rowRect.w);
-    const int barRight = controlsInsideRow ? (rowRect.x + rowRect.w - 8) : (minusRect.x - 6);
-    const int barW = barRight - barX;
+
     if (barW > 4) {
       const int fillW = (barW * barFill) / 100;
-      canvas.drawRect(barX, barY, barW, 6, rowBorder);
-      canvas.fillRect(barX + 1, barY + 1, fillW > 1 ? fillW - 1 : 0, 4, theme::UiTheme::Colors::Accent);
+      canvas.drawRect(barStartX, barY, barW, 6, rowBorder);
+      canvas.fillRect(barStartX + 1, barY + 1, fillW > 1 ? fillW - 1 : 0, 4, theme::UiTheme::Colors::Accent);
     }
   }
 }
