@@ -52,6 +52,13 @@ const char *bassTabName(uint8_t page) {
   return "TAB C";
 }
 
+const char *soundHeaderLabel(const UiStateSnapshot &snapshot, uint8_t bassPage) {
+  if (snapshot.activeTrack == VOICE_BASS) {
+    return bassTabName(bassPage);
+  }
+  return trackName(snapshot.activeTrack);
+}
+
 void formatRootNote(char *buffer, size_t size, uint8_t note) {
   snprintf(buffer, size, "%s%d", bassfmt::noteName(note), bassfmt::noteOctave(note));
 }
@@ -165,10 +172,6 @@ void bassRowValueText(char *buffer, size_t size, const UiStateSnapshot &snapshot
 } // namespace
 
 SoundScreen::SoundScreen() {
-  _identityCard.title = "SOUND";
-  _identityCard.value = "KICK";
-  _identityCard.active = true;
-
   _rows[0].label = "PITCH";
   _rows[1].label = "DECAY";
   _rows[2].label = "TIMBRE";
@@ -222,16 +225,16 @@ void SoundScreen::layout() {
 
 void SoundScreen::applyLayoutMode(bool bassLayout) {
   _layoutIsBass = bassLayout;
-  setRect(_identityCard.rect, 12, 46, 130, 48);
+  setRect(_headerRect, 12, 46, 130, 24);
 
   for (int i = 0; i < TRACK_COUNT; ++i) {
-    setRect(_trackChips[i].rect, 150 + (i * 32), 54, 30, 24);
+    setRect(_trackChips[i].rect, 150 + (i * 32), 48, 30, 20);
   }
 
-  setRect(_soundTypeChipRect, 278, 54, 30, 24);
+  setRect(_soundTypeChipRect, 278, 48, 30, 20);
 
-  const int bassTabsY = bassLayout ? 80 : 54;
-  const int bassTabsH = bassLayout ? 18 : 24;
+  const int bassTabsY = bassLayout ? 70 : 48;
+  const int bassTabsH = bassLayout ? 16 : 20;
   setRect(_bassTabRects[0], 210, bassTabsY, 30, bassTabsH);
   setRect(_bassTabRects[1], 244, bassTabsY, 30, bassTabsH);
   setRect(_bassTabRects[2], 278, bassTabsY, 30, bassTabsH);
@@ -244,7 +247,7 @@ void SoundScreen::applyLayoutMode(bool bassLayout) {
   constexpr int rightPadding = 6;
 
   for (int i = 0; i < 4; ++i) {
-    const int y = 100 + (i * 30);
+    const int y = 88 + (i * 30);
     setRect(_rows[i].rowRect, rowX, y, rowW, rowH);
 
     const int buttonsStartX = rowX + rowW - rightPadding - (buttonW * 2) - buttonGap;
@@ -305,22 +308,33 @@ void SoundScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &snaps
   }
 
   if (identityDirty) {
-    canvas.fillRect(_identityCard.rect.x,
-                    _identityCard.rect.y,
-                    _identityCard.rect.w,
-                    _identityCard.rect.h,
+    canvas.fillRect(_headerRect.x,
+                    _headerRect.y,
+                    _headerRect.w,
+                    _headerRect.h,
                     theme::UiTheme::Colors::Bg);
 
-    if (isBassTrack(snapshot)) {
-      _identityCard.value = bassTabName(_bassPage);
-    } else {
-      _identityCard.value = trackName(snapshot.activeTrack);
-    }
-    _identityCard.draw(canvas);
+    const uint16_t fill = theme::UiTheme::Colors::Surface;
+    canvas.fillRoundRect(_headerRect.x,
+                         _headerRect.y,
+                         _headerRect.w,
+                         _headerRect.h,
+                         theme::UiTheme::Metrics::RadiusSm,
+                         fill);
+    canvas.drawRoundRect(_headerRect.x,
+                         _headerRect.y,
+                         _headerRect.w,
+                         _headerRect.h,
+                         theme::UiTheme::Metrics::RadiusSm,
+                         theme::UiTheme::Colors::Outline);
+    canvas.setTextSize(theme::UiTheme::Typography::BodySize);
+    canvas.setTextColor(theme::UiTheme::Colors::TextSecondary, fill);
+    canvas.setCursor(_headerRect.x + 7, _headerRect.y + 7);
+    canvas.printf("SOUND / %s", soundHeaderLabel(snapshot, _bassPage));
   }
 
   if (chipsDirty) {
-    canvas.fillRect(150, 54, 158, 44, theme::UiTheme::Colors::Bg);
+    canvas.fillRect(150, 46, 158, 42, theme::UiTheme::Colors::Bg);
     for (int i = 0; i < TRACK_COUNT; ++i) {
       _trackChips[i].active = (i == snapshot.activeTrack);
       _trackChips[i].selected = (i == snapshot.activeTrack);
@@ -344,7 +358,7 @@ void SoundScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &snaps
                            theme::UiTheme::Colors::Outline);
       canvas.setTextSize(theme::UiTheme::Typography::BodySize);
       canvas.setTextColor(theme::UiTheme::Colors::TextSecondary, fill);
-      canvas.setCursor(_soundTypeChipRect.x + 5, _soundTypeChipRect.y + 9);
+      canvas.setCursor(_soundTypeChipRect.x + 5, _soundTypeChipRect.y + 7);
       canvas.print("TYPE");
     } else {
       for (int i = 0; i < 3; ++i) {
@@ -366,7 +380,7 @@ void SoundScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &snaps
                              isActiveTab ? theme::UiTheme::Colors::Accent : theme::UiTheme::Colors::Outline);
         canvas.setTextSize(theme::UiTheme::Typography::BodySize);
         canvas.setTextColor(text, fill);
-        canvas.setCursor(_bassTabRects[i].x + 4, _bassTabRects[i].y + 9);
+        canvas.setCursor(_bassTabRects[i].x + 4, _bassTabRects[i].y + 5);
         canvas.print(static_cast<char>('A' + i));
       }
     }
