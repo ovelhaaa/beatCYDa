@@ -9,6 +9,7 @@ enum class UiButtonVariant : uint8_t {
   Primary,
   Secondary,
   Danger,
+  TransportActive,
 };
 
 struct UiButton {

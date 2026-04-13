@@ -20,6 +20,9 @@ struct UiColors {
   static constexpr uint16_t Warning = 0xFD20;
   static constexpr uint16_t Danger = 0xF800;
   static constexpr uint16_t DangerPressed = 0xB000;
+  static constexpr uint16_t TransportActive = 0x07E0;
+  static constexpr uint16_t TransportActivePressed = 0x05A0;
+  static constexpr uint16_t TextOnTransportActive = 0x2124;
   static constexpr uint16_t Disabled = 0x630C;
 };
 
