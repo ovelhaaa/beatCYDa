@@ -3,7 +3,6 @@
 #include "../core/BassUiFormat.h"
 #include "../core/UiActions.h"
 #include "../theme/UiTheme.h"
-#include "../../CYD_Config.h"
 
 namespace ui {
 namespace {
@@ -239,24 +238,13 @@ void SoundScreen::applyLayoutMode(bool bassLayout) {
   setRect(_bassTabRects[1], 244, bassTabsY, 30, bassTabsH);
   setRect(_bassTabRects[2], 278, bassTabsY, 30, bassTabsH);
 
-  constexpr int rowX = 8;
-  constexpr int rowW = 304;
-  constexpr int rowH = 28;
-  constexpr int buttonW = 24;
-  constexpr int buttonGap = 4;
-  constexpr int rightPadding = 6;
+  constexpr int rowX = 12;
+  constexpr int rowW = 296;
+  constexpr int rowH = 24;
 
   for (int i = 0; i < 4; ++i) {
-    const int y = 88 + (i * 30);
+    const int y = 86 + (i * 25);
     setRect(_rows[i].rowRect, rowX, y, rowW, rowH);
-
-    const int buttonsStartX = rowX + rowW - rightPadding - (buttonW * 2) - buttonGap;
-    setRect(_rows[i].minusRect, buttonsStartX, y + ((rowH - buttonW) / 2), buttonW, buttonW);
-    setRect(_rows[i].plusRect,
-            _rows[i].minusRect.x + _rows[i].minusRect.w + buttonGap,
-            y + ((rowH - buttonW) / 2),
-            buttonW,
-            buttonW);
   }
 }
 
@@ -292,10 +280,7 @@ void SoundScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &snaps
                                                            : regularSoundRowValue(_lastSnapshot, i);
     const bool valueChanged = currentValue != previousValue;
 
-    const bool focusChanged = ((_holdRow == i) != (_lastHoldRow == i));
-    const bool minusChanged = ((_holdRow == i && _holdDirection < 0) != (_lastHoldRow == i && _lastHoldDirection < 0));
-    const bool plusChanged = ((_holdRow == i && _holdDirection > 0) != (_lastHoldRow == i && _lastHoldDirection > 0));
-    rowDirty[i] = valueChanged || focusChanged || minusChanged || plusChanged;
+    rowDirty[i] = valueChanged;
   }
 
   if (forceFullRender) {
@@ -403,9 +388,7 @@ void SoundScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &snaps
       formatPercent(value, sizeof(value), rowValue);
     }
 
-    _rows[i].focus = (_holdRow == i);
-    _rows[i].minusPressed = (_holdRow == i && _holdDirection < 0);
-    _rows[i].plusPressed = (_holdRow == i && _holdDirection > 0);
+    _rows[i].focus = false;
     _rows[i].valueText = value;
     _rows[i].barFill = static_cast<uint8_t>(constrain(rowValue, 0.0f, 1.0f) * 100.0f);
     _rows[i].draw(canvas);
@@ -413,161 +396,72 @@ void SoundScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &snaps
 
   _lastSnapshot = snapshot;
   _hasLastSnapshot = true;
-  _lastHoldRow = _holdRow;
-  _lastHoldDirection = _holdDirection;
   _lastBassPage = _bassPage;
   _dirty = false;
 }
 
-void SoundScreen::startHold(int rowIndex, int direction) {
-  _holdRow = rowIndex;
-  _holdDirection = direction;
-  _holdTickCount = 0;
-  _holdNextTickMs = millis() + CYDConfig::HoldRepeatStartDelayMs;
-}
-
-void SoundScreen::stopHold() {
-  _holdRow = -1;
-  _holdDirection = 0;
-  _holdTickCount = 0;
-  _holdNextTickMs = 0;
-}
-
-void SoundScreen::dispatchRowDelta(const UiStateSnapshot &snapshot, int rowIndex, int amount) {
+void SoundScreen::dispatchRowValue(const UiStateSnapshot &snapshot, int rowIndex, int percent) {
+    const int value = constrain(percent, 0, 100);
     if (isBassTrack(snapshot)) {
-      BassGrooveParams bp = snapshot.bassParams;
       int paramIdx = 0;
-      int currentValue = 0;
 
       if (_bassPage == 0) {
       switch (rowIndex) {
       case 0:
         paramIdx = 3;
-        currentValue = static_cast<int>(((bp.rootNote - 24.0f) / 24.0f) * 100.0f);
         break;
         case 1:
           paramIdx = 2;
-          currentValue = static_cast<int>(static_cast<uint8_t>(bp.scaleType) * (100.0f / 3.0f));
           break;
         case 2:
           paramIdx = 4;
-        currentValue = static_cast<int>(static_cast<uint8_t>(bp.mode) * (100.0f / 3.0f));
         break;
       case 3:
       default:
         paramIdx = 0;
-        currentValue = static_cast<int>(bp.density * 100.0f);
         break;
       }
       } else if (_bassPage == 1) {
         switch (rowIndex) {
         case 0:
           paramIdx = 1;
-        currentValue = static_cast<int>(((bp.range - 1.0f) / 11.0f) * 100.0f);
         break;
       case 1:
         paramIdx = 5;
-        currentValue = static_cast<int>((bp.motifIndex & 0x03) * (100.0f / 3.0f));
         break;
       case 2:
         paramIdx = 6;
-        currentValue = static_cast<int>(bp.swing * 100.0f);
         break;
         case 3:
         default:
           paramIdx = 7;
-          currentValue = static_cast<int>(bp.accentProb * 100.0f);
           break;
         }
       } else {
         switch (rowIndex) {
         case 0:
           paramIdx = 8;
-          currentValue = static_cast<int>(bp.ghostProb * 100.0f);
           break;
         case 1:
           paramIdx = 9;
-          currentValue = static_cast<int>(bp.phraseVariation * 100.0f);
           break;
         case 2:
           paramIdx = 10;
-          currentValue = static_cast<int>(bp.slideProb * 100.0f);
           break;
         case 3:
         default:
           paramIdx = 0;
-          currentValue = static_cast<int>(bp.density * 100.0f);
           break;
         }
       }
 
-    dispatchUiAction(UiActionType::SET_BASS_PARAM, paramIdx, currentValue + amount);
+    dispatchUiAction(UiActionType::SET_BASS_PARAM, paramIdx, value);
     return;
   }
-
-  const int currentValue = static_cast<int>(snapshot.voiceParams[snapshot.activeTrack].pitch * 100.0f);
-  if (rowIndex == 1) {
-    dispatchUiAction(UiActionType::SET_SOUND_PARAM, rowIndex,
-                     static_cast<int>(snapshot.voiceParams[snapshot.activeTrack].decay * 100.0f) + amount);
-    return;
-  }
-  if (rowIndex == 2) {
-    dispatchUiAction(UiActionType::SET_SOUND_PARAM, rowIndex,
-                     static_cast<int>(snapshot.voiceParams[snapshot.activeTrack].timbre * 100.0f) + amount);
-    return;
-  }
-  if (rowIndex == 3) {
-    dispatchUiAction(UiActionType::SET_SOUND_PARAM, rowIndex,
-                     static_cast<int>(snapshot.voiceParams[snapshot.activeTrack].drive * 100.0f) + amount);
-    return;
-  }
-
-  dispatchUiAction(UiActionType::SET_SOUND_PARAM, rowIndex, currentValue + amount);
-}
-
-bool SoundScreen::handleHoldTick(const TouchPoint &tp, const UiStateSnapshot &snapshot) {
-  if (_holdRow < 0 || !tp.pressed) {
-    stopHold();
-    return false;
-  }
-
-  const bool stillHolding = (_holdDirection < 0) ? _rows[_holdRow].hitMinus(tp.x, tp.y) : _rows[_holdRow].hitPlus(tp.x, tp.y);
-  if (!stillHolding) {
-    stopHold();
-    return false;
-  }
-
-  const uint32_t now = millis();
-  if (now < _holdNextTickMs) {
-    return false;
-  }
-
-  int multiplier = 1;
-  uint16_t interval = CYDConfig::HoldRepeatIntervalStartMs;
-  if (_holdTickCount >= CYDConfig::HoldRepeatStage2Threshold) {
-    multiplier = CYDConfig::HoldRepeatStage2Multiplier;
-    interval = CYDConfig::HoldRepeatIntervalStage2Ms;
-  } else if (_holdTickCount >= CYDConfig::HoldRepeatStage1Threshold) {
-    multiplier = CYDConfig::HoldRepeatStage1Multiplier;
-    interval = CYDConfig::HoldRepeatIntervalStage1Ms;
-  }
-
-  dispatchRowDelta(snapshot, _holdRow, _holdDirection * multiplier);
-  _holdTickCount++;
-  _holdNextTickMs = now + interval;
-  return true;
+  dispatchUiAction(UiActionType::SET_SOUND_PARAM, rowIndex, value);
 }
 
 bool SoundScreen::handleTouch(const TouchPoint &tp, const UiStateSnapshot &snapshot) {
-  bool consumed = false;
-
-  if (tp.justReleased) {
-    if (_holdRow >= 0) {
-      consumed = true;
-    }
-    stopHold();
-  }
-
   if (tp.justPressed) {
     if (isBassTrack(snapshot)) {
       for (int i = 0; i < 3; ++i) {
@@ -588,24 +482,18 @@ bool SoundScreen::handleTouch(const TouchPoint &tp, const UiStateSnapshot &snaps
         return true;
       }
     }
+  }
 
+  if (tp.pressed && (tp.justPressed || tp.dragging)) {
     for (int i = 0; i < 4; ++i) {
-      if (_rows[i].hitMinus(tp.x, tp.y)) {
-        dispatchRowDelta(snapshot, i, -1);
-        startHold(i, -1);
-        return true;
-      }
-
-      if (_rows[i].hitPlus(tp.x, tp.y)) {
-        dispatchRowDelta(snapshot, i, +1);
-        startHold(i, +1);
+      if (_rows[i].hitSlider(tp.x, tp.y)) {
+        dispatchRowValue(snapshot, i, _rows[i].sliderPercentAt(tp.x));
         return true;
       }
     }
   }
 
-  consumed = handleHoldTick(tp, snapshot) || consumed;
-  return consumed;
+  return false;
 }
 
 void SoundScreen::invalidate() {

@@ -20,10 +20,7 @@ public:
   UiScreenId id() const override { return UiScreenId::Sound; }
 
 private:
-  void startHold(int rowIndex, int direction);
-  void stopHold();
-  bool handleHoldTick(const TouchPoint &tp, const UiStateSnapshot &snapshot);
-  void dispatchRowDelta(const UiStateSnapshot &snapshot, int rowIndex, int amount);
+  void dispatchRowValue(const UiStateSnapshot &snapshot, int rowIndex, int percent);
   void applyRowLabels(const UiStateSnapshot &snapshot);
   bool isBassTrack(const UiStateSnapshot &snapshot) const;
   void applyLayoutMode(bool bassLayout);
@@ -38,12 +35,6 @@ private:
   UiMacroRow _rows[4]{};
   bool _layoutIsBass{false};
 
-  int _holdRow{-1};
-  int _holdDirection{0};
-  int _lastHoldRow{-1};
-  int _lastHoldDirection{0};
-  uint32_t _holdNextTickMs{0};
-  uint8_t _holdTickCount{0};
   uint8_t _bassPage{0};
   uint8_t _lastBassPage{0};
 };
