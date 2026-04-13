@@ -43,12 +43,12 @@ const char *trackName(int track) {
 
 const char *bassTabName(uint8_t page) {
   if (page == 0) {
-    return "TAB A";
+    return "Bass <A>";
   }
   if (page == 1) {
-    return "TAB B";
+    return "Bass <B>";
   }
-  return "TAB C";
+  return "Bass <C>";
 }
 
 const char *soundHeaderLabel(const UiStateSnapshot &snapshot, uint8_t bassPage) {
@@ -234,9 +234,9 @@ void SoundScreen::applyLayoutMode(bool bassLayout) {
 
   const int bassTabsY = bassLayout ? 70 : 48;
   const int bassTabsH = bassLayout ? 16 : 20;
-  setRect(_bassTabRects[0], 210, bassTabsY, 30, bassTabsH);
-  setRect(_bassTabRects[1], 244, bassTabsY, 30, bassTabsH);
-  setRect(_bassTabRects[2], 278, bassTabsY, 30, bassTabsH);
+  setRect(_bassNavLeftRect, 210, bassTabsY, 20, bassTabsH);
+  setRect(_bassNavCenterRect, 232, bassTabsY, 54, bassTabsH);
+  setRect(_bassNavRightRect, 288, bassTabsY, 20, bassTabsH);
 
   constexpr int rowX = 12;
   constexpr int rowW = 296;
@@ -346,28 +346,22 @@ void SoundScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &snaps
       canvas.setCursor(_soundTypeChipRect.x + 5, _soundTypeChipRect.y + 7);
       canvas.print("TYPE");
     } else {
-      for (int i = 0; i < 3; ++i) {
-        const bool isActiveTab = (_bassPage == static_cast<uint8_t>(i));
-        const uint16_t fill = isActiveTab ? theme::UiTheme::Colors::Accent : theme::UiTheme::Colors::Surface;
-        const uint16_t text =
-            isActiveTab ? theme::UiTheme::Colors::TextOnAccent : theme::UiTheme::Colors::TextSecondary;
-        canvas.fillRoundRect(_bassTabRects[i].x,
-                             _bassTabRects[i].y,
-                             _bassTabRects[i].w,
-                             _bassTabRects[i].h,
-                             theme::UiTheme::Metrics::RadiusSm,
-                             fill);
-        canvas.drawRoundRect(_bassTabRects[i].x,
-                             _bassTabRects[i].y,
-                             _bassTabRects[i].w,
-                             _bassTabRects[i].h,
-                             theme::UiTheme::Metrics::RadiusSm,
-                             isActiveTab ? theme::UiTheme::Colors::Accent : theme::UiTheme::Colors::Outline);
-        canvas.setTextSize(theme::UiTheme::Typography::BodySize);
+      const uint16_t arrowFill = theme::UiTheme::Colors::Surface;
+      const uint16_t arrowText = theme::UiTheme::Colors::TextSecondary;
+      canvas.setTextSize(theme::UiTheme::Typography::BodySize);
+
+      auto drawNav = [&](const UiRect &r, uint16_t fill, uint16_t text, uint16_t outline, const char *label, int offX) {
+        canvas.fillRoundRect(r.x, r.y, r.w, r.h, theme::UiTheme::Metrics::RadiusSm, fill);
+        canvas.drawRoundRect(r.x, r.y, r.w, r.h, theme::UiTheme::Metrics::RadiusSm, outline);
         canvas.setTextColor(text, fill);
-        canvas.setCursor(_bassTabRects[i].x + 4, _bassTabRects[i].y + 5);
-        canvas.print(static_cast<char>('A' + i));
-      }
+        canvas.setCursor(r.x + offX, r.y + 5);
+        canvas.print(label);
+      };
+
+      drawNav(_bassNavLeftRect, arrowFill, arrowText, theme::UiTheme::Colors::Outline, "<", 7);
+      char p[] = {static_cast<char>('A' + _bassPage), '\0'};
+      drawNav(_bassNavCenterRect, theme::UiTheme::Colors::Accent, theme::UiTheme::Colors::TextOnAccent, theme::UiTheme::Colors::Accent, p, 8);
+      drawNav(_bassNavRightRect, arrowFill, arrowText, theme::UiTheme::Colors::Outline, ">", 7);
     }
   }
 
@@ -461,18 +455,35 @@ void SoundScreen::dispatchRowValue(const UiStateSnapshot &snapshot, int rowIndex
   dispatchUiAction(UiActionType::SET_SOUND_PARAM, rowIndex, value);
 }
 
+void SoundScreen::cycleBassPage(int8_t direction) {
+  if (direction == 0) {
+    return;
+  }
+
+  constexpr int kBassPageCount = 3;
+  int nextPage = static_cast<int>(_bassPage) + static_cast<int>(direction);
+  while (nextPage < 0) {
+    nextPage += kBassPageCount;
+  }
+  nextPage %= kBassPageCount;
+
+  const uint8_t wrappedPage = static_cast<uint8_t>(nextPage);
+  if (_bassPage != wrappedPage) {
+    _bassPage = wrappedPage;
+    _dirty = true;
+  }
+}
+
 bool SoundScreen::handleTouch(const TouchPoint &tp, const UiStateSnapshot &snapshot) {
   if (tp.justPressed) {
     if (isBassTrack(snapshot)) {
-      for (int i = 0; i < 3; ++i) {
-        if (_bassTabRects[i].contains(tp.x, tp.y)) {
-          const uint8_t nextPage = static_cast<uint8_t>(i);
-          if (_bassPage != nextPage) {
-            _bassPage = nextPage;
-            _dirty = true;
-          }
-          return true;
-        }
+      if (_bassNavLeftRect.contains(tp.x, tp.y)) {
+        cycleBassPage(-1);
+        return true;
+      }
+      if (_bassNavRightRect.contains(tp.x, tp.y)) {
+        cycleBassPage(1);
+        return true;
       }
     }
 

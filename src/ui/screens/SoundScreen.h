@@ -24,6 +24,7 @@ private:
   void applyRowLabels(const UiStateSnapshot &snapshot);
   bool isBassTrack(const UiStateSnapshot &snapshot) const;
   void applyLayoutMode(bool bassLayout);
+  void cycleBassPage(int8_t direction);
 
   bool _dirty{true};
   bool _hasLastSnapshot{false};
@@ -31,7 +32,9 @@ private:
   UiRect _headerRect{};
   UiChip _trackChips[TRACK_COUNT]{};
   UiRect _soundTypeChipRect{};
-  UiRect _bassTabRects[3]{};
+  UiRect _bassNavLeftRect{};
+  UiRect _bassNavCenterRect{};
+  UiRect _bassNavRightRect{};
   UiMacroRow _rows[4]{};
   bool _layoutIsBass{false};
 
