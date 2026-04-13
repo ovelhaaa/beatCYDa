@@ -238,9 +238,9 @@ void SoundScreen::applyLayoutMode(bool bassLayout) {
 
   for (int i = 0; i < 4; ++i) {
     const int y = 100 + (i * 30);
-    setRect(_rows[i].rowRect, 8, y, 304, 28);
-    setRect(_rows[i].minusRect, 220, y, 28, 28);
-    setRect(_rows[i].plusRect, 252, y, 28, 28);
+    setRect(_rows[i].rowRect, 8, y, 240, 28);
+    setRect(_rows[i].minusRect, 252, y, 28, 28);
+    setRect(_rows[i].plusRect, 284, y, 28, 28);
   }
 }
 
