@@ -189,15 +189,19 @@ void UiEuclideanRings::redraw(const UiStateSnapshot &snapshot) {
     }
   }
 
-  if (snapshot.isPlaying) {
-    const int activeLen = clampLen(snapshot.patternLens[snapshot.activeTrack]);
-    const int playStep = snapshot.currentStep % activeLen;
-    const float playAngle = stepAngleRad(playStep, activeLen);
-    const float playRadius = _singleTrack ? ringRadiusForTrack(snapshot.activeTrack) : ringRadiusForTrack(0);
-    const int playX = cx + static_cast<int>(cosf(playAngle) * (playRadius + (_compact ? 4.0f : 6.0f)));
-    const int playY = cy + static_cast<int>(sinf(playAngle) * (playRadius + (_compact ? 4.0f : 6.0f)));
-    _sprite.drawLine(cx, cy, playX, playY, theme::UiTheme::Colors::TextSecondary);
-  }
+  const int activeLen = clampLen(snapshot.patternLens[snapshot.activeTrack]);
+  const int playStep = snapshot.currentStep % activeLen;
+  const float playAngle = stepAngleRad(playStep, activeLen);
+  const float playRadius = _singleTrack ? ringRadiusForTrack(snapshot.activeTrack) : ringRadiusForTrack(0);
+  const float markerRadius = playRadius + (_compact ? 4.0f : 7.0f);
+  const int playX = cx + static_cast<int>(cosf(playAngle) * markerRadius);
+  const int playY = cy + static_cast<int>(sinf(playAngle) * markerRadius);
+  const uint16_t markerColor = snapshot.isPlaying ? theme::UiTheme::Colors::Accent : theme::UiTheme::Colors::TextSecondary;
+  const uint16_t markerCoreColor = snapshot.isPlaying ? theme::UiTheme::Colors::TextPrimary : theme::UiTheme::Colors::Outline;
+  const int markerSize = _compact ? 2 : 3;
+  _sprite.drawCircle(playX, playY, markerSize + 2, dimColor(markerColor, snapshot.isPlaying ? 0.75f : 0.55f));
+  _sprite.fillCircle(playX, playY, markerSize, markerColor);
+  _sprite.fillCircle(playX, playY, markerSize - 1, markerCoreColor);
 
   if (_compact) {
     _sprite.setTextSize(theme::UiTheme::Typography::CaptionSize);
