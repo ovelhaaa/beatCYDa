@@ -117,6 +117,7 @@ void PerformScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &sna
   const bool repaintAll = _fullDirty || !_hasFrame;
   const uint8_t safeActiveTrack = clampTrackIndex(snapshot.activeTrack);
   const uint8_t safeLastActiveTrack = clampTrackIndex(_lastActiveTrack);
+  bool ringsNeedsRedraw = false;
 
   if (repaintAll) {
     canvas.fillRect(0,
@@ -137,6 +138,7 @@ void PerformScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &sna
                          theme::UiTheme::Metrics::RadiusMd,
                          theme::UiTheme::Colors::Outline);
     _ringsDirty = true;
+    ringsNeedsRedraw = true;
     _controlsDirty = true;
     _playDirty = true;
     _muteDirty = true;
@@ -147,28 +149,36 @@ void PerformScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &sna
   if (_hasFrame) {
     if (_lastPlaying != snapshot.isPlaying) {
       _ringsDirty = true;
+      ringsNeedsRedraw = true;
       _playDirty = true;
     }
     if (_snapshotStep != snapshot.currentStep) {
       _ringsDirty = true;
+      ringsNeedsRedraw = true;
     }
     if (_lastBpm != snapshot.bpm) {
       _bpmDirty = true;
     }
     if (safeLastActiveTrack != safeActiveTrack) {
       _ringsDirty = true;
+      ringsNeedsRedraw = true;
       _muteDirty = true;
       _rotateDirty = true;
     }
     for (int i = 0; i < TRACK_COUNT; ++i) {
       if (_lastTrackMutes[i] != snapshot.trackMutes[i]) {
         _ringsDirty = true;
+        ringsNeedsRedraw = true;
         if (i == safeActiveTrack || i == safeLastActiveTrack) {
           _muteDirty = true;
         }
         _rotateDirty = true;
       }
     }
+  }
+
+  if (ringsNeedsRedraw) {
+    _rings.invalidateAll();
   }
 
   if (_controlsDirty || _playDirty || _muteDirty || _bpmDirty || _rotateDirty) {
@@ -266,11 +276,6 @@ void PerformScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &sna
   }
 
   if (_ringsDirty) {
-    canvas.fillRect(_ringsRect.x - 2,
-                    _ringsRect.y - 2,
-                    _ringsRect.w + 4,
-                    _ringsRect.h + 4,
-                    theme::UiTheme::Colors::Surface);
     _rings.draw(canvas, snapshot);
     _ringsDirty = false;
   }
