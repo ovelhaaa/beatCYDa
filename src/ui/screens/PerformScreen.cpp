@@ -191,6 +191,7 @@ void PerformScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &sna
                     theme::UiTheme::Colors::Bg);
     _playButton.pressed = _playPressed;
     _playButton.label = snapshot.isPlaying ? "STOP" : "PLAY";
+    _playButton.variant = snapshot.isPlaying ? UiButtonVariant::TransportActive : UiButtonVariant::Primary;
     _playButton.draw(canvas);
     _playDirty = false;
   }
