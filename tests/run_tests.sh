@@ -18,3 +18,13 @@ echo "Running WAV Parsing tests..."
 g++ -Itests -Isrc/storage -Isrc tests/test_wav_parsing.cpp -o tests/test_wav_parsing
 ./tests/test_wav_parsing || echo "WAV Parsing test failed as expected (or crashed)"
 rm tests/test_wav_parsing
+
+echo "Running Euclidean Rings logic tests..."
+g++ -std=c++14 tests/test_euclidean_rings_logic.cpp -o tests/test_euclidean_rings_logic
+./tests/test_euclidean_rings_logic
+rm tests/test_euclidean_rings_logic
+
+echo "Running PerformScreen dirty-flag tests..."
+g++ -std=c++14 tests/test_perform_screen_dirty.cpp -o tests/test_perform_screen_dirty
+./tests/test_perform_screen_dirty
+rm tests/test_perform_screen_dirty
