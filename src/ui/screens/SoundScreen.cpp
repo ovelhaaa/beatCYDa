@@ -348,55 +348,20 @@ void SoundScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &snaps
     } else {
       const uint16_t arrowFill = theme::UiTheme::Colors::Surface;
       const uint16_t arrowText = theme::UiTheme::Colors::TextSecondary;
-      canvas.fillRoundRect(_bassNavLeftRect.x,
-                           _bassNavLeftRect.y,
-                           _bassNavLeftRect.w,
-                           _bassNavLeftRect.h,
-                           theme::UiTheme::Metrics::RadiusSm,
-                           arrowFill);
-      canvas.drawRoundRect(_bassNavLeftRect.x,
-                           _bassNavLeftRect.y,
-                           _bassNavLeftRect.w,
-                           _bassNavLeftRect.h,
-                           theme::UiTheme::Metrics::RadiusSm,
-                           theme::UiTheme::Colors::Outline);
       canvas.setTextSize(theme::UiTheme::Typography::BodySize);
-      canvas.setTextColor(arrowText, arrowFill);
-      canvas.setCursor(_bassNavLeftRect.x + 7, _bassNavLeftRect.y + 5);
-      canvas.print("<");
 
-      const uint16_t centerFill = theme::UiTheme::Colors::Accent;
-      canvas.fillRoundRect(_bassNavCenterRect.x,
-                           _bassNavCenterRect.y,
-                           _bassNavCenterRect.w,
-                           _bassNavCenterRect.h,
-                           theme::UiTheme::Metrics::RadiusSm,
-                           centerFill);
-      canvas.drawRoundRect(_bassNavCenterRect.x,
-                           _bassNavCenterRect.y,
-                           _bassNavCenterRect.w,
-                           _bassNavCenterRect.h,
-                           theme::UiTheme::Metrics::RadiusSm,
-                           theme::UiTheme::Colors::Accent);
-      canvas.setTextColor(theme::UiTheme::Colors::TextOnAccent, centerFill);
-      canvas.setCursor(_bassNavCenterRect.x + 8, _bassNavCenterRect.y + 5);
-      canvas.print(static_cast<char>('A' + _bassPage));
+      auto drawNav = [&](const UiRect &r, uint16_t fill, uint16_t text, uint16_t outline, const char *label, int offX) {
+        canvas.fillRoundRect(r.x, r.y, r.w, r.h, theme::UiTheme::Metrics::RadiusSm, fill);
+        canvas.drawRoundRect(r.x, r.y, r.w, r.h, theme::UiTheme::Metrics::RadiusSm, outline);
+        canvas.setTextColor(text, fill);
+        canvas.setCursor(r.x + offX, r.y + 5);
+        canvas.print(label);
+      };
 
-      canvas.fillRoundRect(_bassNavRightRect.x,
-                           _bassNavRightRect.y,
-                           _bassNavRightRect.w,
-                           _bassNavRightRect.h,
-                           theme::UiTheme::Metrics::RadiusSm,
-                           arrowFill);
-      canvas.drawRoundRect(_bassNavRightRect.x,
-                           _bassNavRightRect.y,
-                           _bassNavRightRect.w,
-                           _bassNavRightRect.h,
-                           theme::UiTheme::Metrics::RadiusSm,
-                           theme::UiTheme::Colors::Outline);
-      canvas.setTextColor(arrowText, arrowFill);
-      canvas.setCursor(_bassNavRightRect.x + 7, _bassNavRightRect.y + 5);
-      canvas.print(">");
+      drawNav(_bassNavLeftRect, arrowFill, arrowText, theme::UiTheme::Colors::Outline, "<", 7);
+      char p[] = {static_cast<char>('A' + _bassPage), '\0'};
+      drawNav(_bassNavCenterRect, theme::UiTheme::Colors::Accent, theme::UiTheme::Colors::TextOnAccent, theme::UiTheme::Colors::Accent, p, 8);
+      drawNav(_bassNavRightRect, arrowFill, arrowText, theme::UiTheme::Colors::Outline, ">", 7);
     }
   }
 
