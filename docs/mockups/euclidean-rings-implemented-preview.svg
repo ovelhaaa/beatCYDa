@@ -1,0 +1,59 @@
+<svg width="520" height="520" viewBox="0 0 520 520" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .bg { fill: #0b1018; }
+      .label { fill: #d3dbeb; font-family: 'Inter', Arial, sans-serif; font-size: 12px; }
+      .sub { fill: #8ea2c6; font-family: 'Inter', Arial, sans-serif; font-size: 10px; }
+    </style>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="520" height="520" rx="24"/>
+  <text class="label" x="24" y="30">Mockup — Euclidean Rings (implementação atual)</text>
+  <text class="sub" x="24" y="48">KICK 16/5 • SNARE 16/3 • CH 12/7 • OH 8/2 • BASS 16/6</text>
+
+  <!-- Rings -->
+  <circle cx="260" cy="270" r="200" fill="none" stroke="#4ba3ff" stroke-opacity="0.35" stroke-width="2"/>
+  <circle cx="260" cy="270" r="165" fill="none" stroke="#ff6a7a" stroke-opacity="0.35" stroke-width="2"/>
+  <circle cx="260" cy="270" r="130" fill="none" stroke="#ffcb57" stroke-opacity="0.35" stroke-width="2"/>
+  <circle cx="260" cy="270" r="95" fill="none" stroke="#8b73ff" stroke-opacity="0.35" stroke-width="2"/>
+  <circle cx="260" cy="270" r="60" fill="none" stroke="#6ce08f" stroke-opacity="0.35" stroke-width="2"/>
+
+  <!-- Hit polygons (points remain connected) -->
+  <polyline points="260,70 444,194 374,432 146,432 76,194 260,70" fill="none" stroke="#4ba3ff" stroke-opacity="0.75" stroke-width="2"/>
+  <polyline points="260,105 403,352 117,352 260,105" fill="none" stroke="#ff6a7a" stroke-opacity="0.75" stroke-width="2"/>
+  <polyline points="260,140 324,158 389,228 373,313 324,382 196,382 146,313 131,228 196,158 260,140" fill="none" stroke="#ffcb57" stroke-opacity="0.75" stroke-width="2"/>
+  <polyline points="260,175 327,365 193,365 260,175" fill="none" stroke="#8b73ff" stroke-opacity="0.75" stroke-width="2"/>
+  <polyline points="260,210 312,231 319,292 290,332 230,332 201,292 208,231 260,210" fill="none" stroke="#6ce08f" stroke-opacity="0.75" stroke-width="2"/>
+
+  <!-- Step dots + hit dots (sampled visual) -->
+  <g fill="#4ba3ff" fill-opacity="0.45">
+    <circle cx="260" cy="70" r="3"/><circle cx="444" cy="194" r="3"/><circle cx="374" cy="432" r="3"/><circle cx="146" cy="432" r="3"/><circle cx="76" cy="194" r="3"/>
+  </g>
+  <g fill="#4ba3ff"><circle cx="260" cy="70" r="5"/><circle cx="444" cy="194" r="5"/><circle cx="374" cy="432" r="5"/><circle cx="146" cy="432" r="5"/><circle cx="76" cy="194" r="5"/></g>
+
+  <g fill="#ff6a7a" fill-opacity="0.45"><circle cx="260" cy="105" r="3"/><circle cx="403" cy="352" r="3"/><circle cx="117" cy="352" r="3"/></g>
+  <g fill="#ff6a7a"><circle cx="260" cy="105" r="5"/><circle cx="403" cy="352" r="5"/><circle cx="117" cy="352" r="5"/></g>
+
+  <g fill="#ffcb57" fill-opacity="0.45"><circle cx="260" cy="140" r="3"/><circle cx="389" cy="228" r="3"/><circle cx="373" cy="313" r="3"/><circle cx="324" cy="382" r="3"/><circle cx="196" cy="382" r="3"/><circle cx="146" cy="313" r="3"/><circle cx="131" cy="228" r="3"/></g>
+  <g fill="#ffcb57"><circle cx="260" cy="140" r="5"/><circle cx="389" cy="228" r="5"/><circle cx="373" cy="313" r="5"/><circle cx="324" cy="382" r="5"/><circle cx="196" cy="382" r="5"/><circle cx="146" cy="313" r="5"/><circle cx="131" cy="228" r="5"/></g>
+
+  <g fill="#8b73ff" fill-opacity="0.45"><circle cx="260" cy="175" r="3"/><circle cx="327" cy="365" r="3"/><circle cx="193" cy="365" r="3"/></g>
+  <g fill="#8b73ff"><circle cx="260" cy="175" r="5"/><circle cx="327" cy="365" r="5"/><circle cx="193" cy="365" r="5"/></g>
+
+  <g fill="#6ce08f" fill-opacity="0.45"><circle cx="260" cy="210" r="3"/><circle cx="319" cy="292" r="3"/><circle cx="290" cy="332" r="3"/><circle cx="230" cy="332" r="3"/><circle cx="201" cy="292" r="3"/><circle cx="208" cy="231" r="3"/></g>
+  <g fill="#6ce08f"><circle cx="260" cy="210" r="5"/><circle cx="319" cy="292" r="5"/><circle cx="290" cy="332" r="5"/><circle cx="230" cy="332" r="5"/><circle cx="201" cy="292" r="5"/><circle cx="208" cy="231" r="5"/></g>
+
+  <!-- Current step highlight on each ring (step 3 sample) -->
+  <circle cx="444" cy="194" r="8" fill="none" stroke="#ffffff" stroke-width="2"/>
+  <circle cx="403" cy="352" r="8" fill="none" stroke="#ffffff" stroke-width="2"/>
+  <circle cx="389" cy="228" r="8" fill="none" stroke="#ffffff" stroke-width="2"/>
+  <circle cx="327" cy="365" r="8" fill="none" stroke="#ffffff" stroke-width="2"/>
+  <circle cx="319" cy="292" r="8" fill="none" stroke="#ffffff" stroke-width="2"/>
+
+  <!-- Orbiting transport marker (not rotating rings) -->
+  <circle cx="456" cy="190" r="9" fill="none" stroke="#37d67a" stroke-opacity="0.65" stroke-width="3"/>
+  <circle cx="456" cy="190" r="6" fill="#20e57a"/>
+  <circle cx="456" cy="190" r="3" fill="#f7fffb"/>
+
+  <text class="sub" x="24" y="500">Marcador de transporte orbita no anel externo; os anéis não giram.</text>
+</svg>

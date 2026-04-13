@@ -157,6 +157,9 @@ void PerformScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &sna
       _ringsDirty = true;
       _playDirty = true;
     }
+    if (_snapshotStep != snapshot.currentStep) {
+      _ringsDirty = true;
+    }
     if (_lastBpm != snapshot.bpm) {
       _bpmDirty = true;
     }
@@ -281,6 +284,7 @@ void PerformScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &sna
   }
 
   _lastPlaying = snapshot.isPlaying;
+  _snapshotStep = snapshot.currentStep;
   _lastBpm = snapshot.bpm;
   _lastActiveTrack = safeActiveTrack;
   for (int i = 0; i < TRACK_COUNT; ++i) {
