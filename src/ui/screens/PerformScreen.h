@@ -29,6 +29,7 @@ private:
   bool _bpmDirty{true};
   bool _trackCarouselDirty{true};
   bool _lastPlaying{false};
+  int _snapshotStep{-1};
   uint16_t _lastBpm{0};
   uint8_t _lastActiveTrack{0};
   bool _lastTrackMutes[TRACK_COUNT]{};
