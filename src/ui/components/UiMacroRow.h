@@ -20,6 +20,8 @@ struct UiMacroRow {
   void draw(lgfx::LGFX_Device &canvas) const;
   bool hitMinus(int16_t x, int16_t y) const;
   bool hitPlus(int16_t x, int16_t y) const;
+  bool hitSlider(int16_t x, int16_t y) const;
+  uint8_t sliderPercentAt(int16_t x) const;
 };
 
 } // namespace ui
