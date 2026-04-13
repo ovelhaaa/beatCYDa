@@ -1,6 +1,5 @@
 #pragma once
 
-#include "../components/UiCard.h"
 #include "../components/UiChip.h"
 #include "../components/UiMacroRow.h"
 #include "../Display.h"
@@ -32,7 +31,7 @@ private:
   bool _dirty{true};
   bool _hasLastSnapshot{false};
   UiStateSnapshot _lastSnapshot{};
-  UiCard _identityCard{};
+  UiRect _headerRect{};
   UiChip _trackChips[TRACK_COUNT]{};
   UiRect _soundTypeChipRect{};
   UiRect _bassTabRects[3]{};
