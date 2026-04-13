@@ -185,7 +185,7 @@ void PerformScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &sna
     _playButton.variant = snapshot.isPlaying ? UiButtonVariant::TransportActive : UiButtonVariant::Primary;
     _playButton.draw(canvas);
     _stopButton.pressed = _stopPressed;
-    _stopButton.variant = snapshot.isPlaying ? UiButtonVariant::Secondary : UiButtonVariant::Danger;
+    _stopButton.variant = snapshot.isPlaying ? UiButtonVariant::Danger : UiButtonVariant::Secondary;
     _stopButton.draw(canvas);
     _playDirty = false;
   }
