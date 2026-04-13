@@ -58,6 +58,37 @@ bool bassParamChanged(const UiStateSnapshot &lhs, const UiStateSnapshot &rhs, in
   }
   return lhs.bassParams.accentProb != rhs.bassParams.accentProb;
 }
+
+void drawBassClef(lgfx::LGFX_Device &canvas, int cx, int cy, uint16_t color, uint16_t bg) {
+  canvas.drawCircle(cx - 6, cy - 2, 14, color);
+  canvas.fillCircle(cx - 6, cy - 2, 7, color);
+  canvas.drawCircle(cx - 6, cy - 2, 3, bg);
+  canvas.drawFastVLine(cx + 8, cy - 28, 48, color);
+  canvas.fillCircle(cx + 14, cy - 10, 3, color);
+  canvas.fillCircle(cx + 14, cy + 8, 3, color);
+}
+
+void drawBassPatternPreview(lgfx::LGFX_Device &canvas, const UiStateSnapshot &snapshot) {
+  const int cardX = theme::UiTheme::Metrics::PatternEuclidCardX;
+  const int cardY = theme::UiTheme::Metrics::PatternEuclidCardY;
+  const int cardW = theme::UiTheme::Metrics::PatternEuclidCardW;
+  const int cardH = theme::UiTheme::Metrics::PatternEuclidCardH;
+  const int cx = cardX + (cardW / 2);
+  const int cy = cardY + (cardH / 2);
+  const uint16_t bg = theme::UiTheme::Colors::Bg;
+  const uint16_t fg = theme::UiTheme::Colors::TextSecondary;
+
+  drawBassClef(canvas, cx, cy - 6, fg, bg);
+
+  canvas.setTextColor(theme::UiTheme::Colors::TextPrimary, bg);
+  canvas.setTextSize(theme::UiTheme::Typography::CaptionSize);
+  canvas.setTextDatum(textdatum_t::middle_center);
+
+  char density[16];
+  snprintf(density, sizeof(density), "%d/%d", snapshot.trackHits[snapshot.activeTrack], snapshot.trackSteps[snapshot.activeTrack]);
+  canvas.drawString(density, cx, cardY + cardH - 12);
+  canvas.setTextDatum(textdatum_t::top_left);
+}
 } // namespace
 
 PatternScreen::PatternScreen() {
@@ -223,12 +254,17 @@ void PatternScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &sna
   }
 
   if (previewDirty) {
+    _ringsPreview.invalidateAll();
     canvas.fillRect(theme::UiTheme::Metrics::PatternEuclidCardX,
                     theme::UiTheme::Metrics::PatternEuclidCardY,
                     theme::UiTheme::Metrics::PatternEuclidCardW,
                     theme::UiTheme::Metrics::PatternEuclidCardH,
                     theme::UiTheme::Colors::Bg);
-    _ringsPreview.draw(canvas, snapshot);
+    if (isBassTrackActive) {
+      drawBassPatternPreview(canvas, snapshot);
+    } else {
+      _ringsPreview.draw(canvas, snapshot);
+    }
   }
 
   if (carouselDirty) {

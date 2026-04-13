@@ -31,6 +31,15 @@ int clampLen(int value) {
   }
   return value;
 }
+
+void drawBassClef(lgfx::LGFX_Sprite &sprite, int cx, int cy, uint16_t color, uint16_t bg) {
+  sprite.drawCircle(cx - 3, cy - 1, 5, color);
+  sprite.fillCircle(cx - 3, cy - 1, 2, color);
+  sprite.drawCircle(cx - 3, cy - 1, 1, bg);
+  sprite.drawFastVLine(cx + 2, cy - 11, 20, color);
+  sprite.fillCircle(cx + 4, cy - 4, 1, color);
+  sprite.fillCircle(cx + 4, cy + 3, 1, color);
+}
 } // namespace
 
 void UiEuclideanRings::setRect(const UiRect &rect) {
@@ -180,7 +189,11 @@ void UiEuclideanRings::redraw(const UiStateSnapshot &snapshot) {
     _sprite.setTextSize(theme::UiTheme::Typography::CaptionSize);
     _sprite.setTextDatum(textdatum_t::middle_center);
     _sprite.setTextColor(theme::UiTheme::Colors::TextSecondary, theme::UiTheme::Colors::Bg);
-    _sprite.drawString(TRACK_LABELS[snapshot.activeTrack], cx, cy - 6);
+    if (snapshot.activeTrack == VOICE_BASS) {
+      drawBassClef(_sprite, cx, cy - 5, theme::UiTheme::Colors::TextSecondary, theme::UiTheme::Colors::Bg);
+    } else {
+      _sprite.drawString(TRACK_LABELS[snapshot.activeTrack], cx, cy - 6);
+    }
 
     char density[16];
     snprintf(density, sizeof(density), "%d/%d", snapshot.trackHits[snapshot.activeTrack], snapshot.trackSteps[snapshot.activeTrack]);

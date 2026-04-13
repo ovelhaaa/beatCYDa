@@ -41,10 +41,14 @@ void UiMacroRow::draw(lgfx::LGFX_Device &canvas) const {
   if (showBar) {
     const int barX = rowRect.x + 84;
     const int barY = rowRect.y + rowRect.h - 10;
-    const int barW = rowRect.w - 92;
-    const int fillW = (barW * barFill) / 100;
-    canvas.drawRect(barX, barY, barW, 6, rowBorder);
-    canvas.fillRect(barX + 1, barY + 1, fillW > 1 ? fillW - 1 : 0, 4, theme::UiTheme::Colors::Accent);
+    const bool controlsInsideRow = minusRect.x < (rowRect.x + rowRect.w);
+    const int barRight = controlsInsideRow ? (rowRect.x + rowRect.w - 8) : (minusRect.x - 6);
+    const int barW = barRight - barX;
+    if (barW > 4) {
+      const int fillW = (barW * barFill) / 100;
+      canvas.drawRect(barX, barY, barW, 6, rowBorder);
+      canvas.fillRect(barX + 1, barY + 1, fillW > 1 ? fillW - 1 : 0, 4, theme::UiTheme::Colors::Accent);
+    }
   }
 }
 
