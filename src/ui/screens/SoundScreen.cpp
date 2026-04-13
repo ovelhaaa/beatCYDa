@@ -334,7 +334,7 @@ void SoundScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &snaps
   }
 
   if (chipsDirty) {
-    canvas.fillRect(150, 46, 158, 44, theme::UiTheme::Colors::Bg);
+    canvas.fillRect(150, 46, 158, 42, theme::UiTheme::Colors::Bg);
     for (int i = 0; i < TRACK_COUNT; ++i) {
       _trackChips[i].active = (i == snapshot.activeTrack);
       _trackChips[i].selected = (i == snapshot.activeTrack);
