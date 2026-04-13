@@ -13,21 +13,6 @@ void setRect(UiRect &rect, int16_t x, int16_t y, int16_t w, int16_t h) {
   rect.h = h;
 }
 
-const char *trackLabel(int track) {
-  switch (track) {
-  case 0:
-    return "KICK";
-  case 1:
-    return "SNARE";
-  case 2:
-    return "CH";
-  case 3:
-    return "OH";
-  default:
-    return "BASS";
-  }
-}
-
 uint8_t clampTrackIndex(int track) {
   if (track < 0) {
     return 0;
@@ -40,8 +25,10 @@ uint8_t clampTrackIndex(int track) {
 } // namespace
 
 PerformScreen::PerformScreen() {
-  _playButton.label = "PLAY";
+  _playButton.label = "▶";
   _playButton.variant = UiButtonVariant::Primary;
+  _stopButton.label = "■";
+  _stopButton.variant = UiButtonVariant::Secondary;
 
   _muteButton.label = "MUTE";
   _muteButton.variant = UiButtonVariant::Secondary;
@@ -51,10 +38,10 @@ PerformScreen::PerformScreen() {
   _bpmPlusButton.label = "+";
   _bpmPlusButton.variant = UiButtonVariant::Secondary;
 
-  _trackPrevButton.label = "<";
-  _trackPrevButton.variant = UiButtonVariant::Secondary;
-  _trackNextButton.label = ">";
-  _trackNextButton.variant = UiButtonVariant::Secondary;
+  _rotateMinusButton.label = "<";
+  _rotateMinusButton.variant = UiButtonVariant::Secondary;
+  _rotatePlusButton.label = ">";
+  _rotatePlusButton.variant = UiButtonVariant::Secondary;
 
   _rings.setCompact(false);
   _rings.setInteractive(true);
@@ -73,7 +60,12 @@ void PerformScreen::layout() {
   setRect(_playButton.rect,
           theme::UiTheme::Metrics::PerformControlsX,
           theme::UiTheme::Metrics::PerformPlayY,
-          theme::UiTheme::Metrics::PerformControlW,
+          theme::UiTheme::Metrics::PerformControlW / 2 - 1,
+          theme::UiTheme::Metrics::PerformButtonH);
+  setRect(_stopButton.rect,
+          _playButton.rect.x + _playButton.rect.w + 2,
+          theme::UiTheme::Metrics::PerformPlayY,
+          theme::UiTheme::Metrics::PerformControlW - _playButton.rect.w - 2,
           theme::UiTheme::Metrics::PerformButtonH);
   setRect(_muteButton.rect,
           theme::UiTheme::Metrics::PerformControlsX,
@@ -97,18 +89,18 @@ void PerformScreen::layout() {
           theme::UiTheme::Metrics::PerformStepperAdjustW,
           theme::UiTheme::Metrics::PerformStepperH);
 
-  setRect(_trackPrevButton.rect,
+  setRect(_rotateMinusButton.rect,
           theme::UiTheme::Metrics::PerformControlsX,
           theme::UiTheme::Metrics::PerformTrackCarouselY,
           theme::UiTheme::Metrics::PerformTrackCarouselArrowW,
           theme::UiTheme::Metrics::PerformTrackCarouselH);
-  setRect(_trackLabelRect,
+  setRect(_rotateIconRect,
           theme::UiTheme::Metrics::PerformControlsX + theme::UiTheme::Metrics::PerformTrackCarouselArrowW + 2,
           theme::UiTheme::Metrics::PerformTrackCarouselY,
           theme::UiTheme::Metrics::PerformTrackLabelW,
           theme::UiTheme::Metrics::PerformTrackCarouselH);
-  setRect(_trackNextButton.rect,
-          _trackLabelRect.x + _trackLabelRect.w + 2,
+  setRect(_rotatePlusButton.rect,
+          _rotateIconRect.x + _rotateIconRect.w + 2,
           theme::UiTheme::Metrics::PerformTrackCarouselY,
           theme::UiTheme::Metrics::PerformTrackCarouselArrowW,
           theme::UiTheme::Metrics::PerformTrackCarouselH);
@@ -149,7 +141,7 @@ void PerformScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &sna
     _playDirty = true;
     _muteDirty = true;
     _bpmDirty = true;
-    _trackCarouselDirty = true;
+    _rotateDirty = true;
   }
 
   if (_hasFrame) {
@@ -166,7 +158,7 @@ void PerformScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &sna
     if (safeLastActiveTrack != safeActiveTrack) {
       _ringsDirty = true;
       _muteDirty = true;
-      _trackCarouselDirty = true;
+      _rotateDirty = true;
     }
     for (int i = 0; i < TRACK_COUNT; ++i) {
       if (_lastTrackMutes[i] != snapshot.trackMutes[i]) {
@@ -174,12 +166,12 @@ void PerformScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &sna
         if (i == safeActiveTrack || i == safeLastActiveTrack) {
           _muteDirty = true;
         }
-        _trackCarouselDirty = true;
+        _rotateDirty = true;
       }
     }
   }
 
-  if (_controlsDirty || _playDirty || _muteDirty || _bpmDirty || _trackCarouselDirty) {
+  if (_controlsDirty || _playDirty || _muteDirty || _bpmDirty || _rotateDirty) {
     _controlsDirty = false;
   }
 
@@ -190,9 +182,11 @@ void PerformScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &sna
                     _playButton.rect.h + 4,
                     theme::UiTheme::Colors::Bg);
     _playButton.pressed = _playPressed;
-    _playButton.label = snapshot.isPlaying ? "STOP" : "PLAY";
     _playButton.variant = snapshot.isPlaying ? UiButtonVariant::TransportActive : UiButtonVariant::Primary;
     _playButton.draw(canvas);
+    _stopButton.pressed = _stopPressed;
+    _stopButton.variant = snapshot.isPlaying ? UiButtonVariant::Danger : UiButtonVariant::Secondary;
+    _stopButton.draw(canvas);
     _playDirty = false;
   }
 
@@ -240,38 +234,35 @@ void PerformScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &sna
     _bpmDirty = false;
   }
 
-  if (_trackCarouselDirty) {
-    canvas.fillRect(_trackPrevButton.rect.x - 2,
-                    _trackPrevButton.rect.y - 2,
-                    _trackNextButton.rect.x + _trackNextButton.rect.w - _trackPrevButton.rect.x + 4,
-                    _trackPrevButton.rect.h + 4,
+  if (_rotateDirty) {
+    canvas.fillRect(_rotateMinusButton.rect.x - 2,
+                    _rotateMinusButton.rect.y - 2,
+                    _rotatePlusButton.rect.x + _rotatePlusButton.rect.w - _rotateMinusButton.rect.x + 4,
+                    _rotateMinusButton.rect.h + 4,
                     theme::UiTheme::Colors::Bg);
 
-    _trackPrevButton.pressed = _trackPrevPressed;
-    _trackNextButton.pressed = _trackNextPressed;
-    _trackPrevButton.draw(canvas);
-    _trackNextButton.draw(canvas);
+    _rotateMinusButton.pressed = _rotateMinusPressed;
+    _rotatePlusButton.pressed = _rotatePlusPressed;
+    _rotateMinusButton.draw(canvas);
+    _rotatePlusButton.draw(canvas);
 
-    const uint16_t labelBg = snapshot.trackMutes[safeActiveTrack]
-                                 ? theme::UiTheme::Colors::DangerPressed
-                                 : theme::UiTheme::Colors::SurfacePressed;
-    canvas.fillRoundRect(_trackLabelRect.x,
-                         _trackLabelRect.y,
-                         _trackLabelRect.w,
-                         _trackLabelRect.h,
+    canvas.fillRoundRect(_rotateIconRect.x,
+                         _rotateIconRect.y,
+                         _rotateIconRect.w,
+                         _rotateIconRect.h,
                          theme::UiTheme::Metrics::RadiusSm,
-                         labelBg);
-    canvas.drawRoundRect(_trackLabelRect.x,
-                         _trackLabelRect.y,
-                         _trackLabelRect.w,
-                         _trackLabelRect.h,
+                         theme::UiTheme::Colors::SurfacePressed);
+    canvas.drawRoundRect(_rotateIconRect.x,
+                         _rotateIconRect.y,
+                         _rotateIconRect.w,
+                         _rotateIconRect.h,
                          theme::UiTheme::Metrics::RadiusSm,
                          theme::UiTheme::Colors::Outline);
     canvas.setTextSize(theme::UiTheme::Typography::CaptionSize);
-    canvas.setTextColor(theme::UiTheme::Colors::TextPrimary, labelBg);
-    canvas.setCursor(_trackLabelRect.x + 4, _trackLabelRect.y + 12);
-    canvas.printf("%s", trackLabel(safeActiveTrack));
-    _trackCarouselDirty = false;
+    canvas.setTextColor(theme::UiTheme::Colors::TextPrimary, theme::UiTheme::Colors::SurfacePressed);
+    canvas.setCursor(_rotateIconRect.x + 14, _rotateIconRect.y + 12);
+    canvas.printf("↻");
+    _rotateDirty = false;
   }
 
   if (_ringsDirty) {
@@ -290,6 +281,7 @@ void PerformScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &sna
   _lastActiveTrack = safeActiveTrack;
   for (int i = 0; i < TRACK_COUNT; ++i) {
     _lastTrackMutes[i] = snapshot.trackMutes[i];
+    _pendingTrackRotations[i] = snapshot.trackRotations[i];
   }
 
   _hasFrame = true;
@@ -299,14 +291,19 @@ void PerformScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &sna
 bool PerformScreen::handleTouch(const TouchPoint &tp, const UiStateSnapshot &snapshot) {
   const uint8_t safeActiveTrack = clampTrackIndex(snapshot.activeTrack);
   const bool playPressedNow = tp.pressed && _playButton.hitTest(tp.x, tp.y);
+  const bool stopPressedNow = tp.pressed && _stopButton.hitTest(tp.x, tp.y);
   const bool mutePressedNow = tp.pressed && _muteButton.hitTest(tp.x, tp.y);
   const bool bpmMinusPressedNow = tp.pressed && _bpmMinusButton.hitTest(tp.x, tp.y);
   const bool bpmPlusPressedNow = tp.pressed && _bpmPlusButton.hitTest(tp.x, tp.y);
-  const bool trackPrevPressedNow = tp.pressed && _trackPrevButton.hitTest(tp.x, tp.y);
-  const bool trackNextPressedNow = tp.pressed && _trackNextButton.hitTest(tp.x, tp.y);
+  const bool rotateMinusPressedNow = tp.pressed && _rotateMinusButton.hitTest(tp.x, tp.y);
+  const bool rotatePlusPressedNow = tp.pressed && _rotatePlusButton.hitTest(tp.x, tp.y);
 
   if (playPressedNow != _playPressed) {
     _playPressed = playPressedNow;
+    _playDirty = true;
+  }
+  if (stopPressedNow != _stopPressed) {
+    _stopPressed = stopPressedNow;
     _playDirty = true;
   }
   if (mutePressedNow != _mutePressed) {
@@ -321,22 +318,30 @@ bool PerformScreen::handleTouch(const TouchPoint &tp, const UiStateSnapshot &sna
     _bpmPlusPressed = bpmPlusPressedNow;
     _bpmDirty = true;
   }
-  if (trackPrevPressedNow != _trackPrevPressed) {
-    _trackPrevPressed = trackPrevPressedNow;
-    _trackCarouselDirty = true;
+  if (rotateMinusPressedNow != _rotateMinusPressed) {
+    _rotateMinusPressed = rotateMinusPressedNow;
+    _rotateDirty = true;
   }
-  if (trackNextPressedNow != _trackNextPressed) {
-    _trackNextPressed = trackNextPressedNow;
-    _trackCarouselDirty = true;
+  if (rotatePlusPressedNow != _rotatePlusPressed) {
+    _rotatePlusPressed = rotatePlusPressedNow;
+    _rotateDirty = true;
   }
 
   if (!tp.justPressed) {
-    return playPressedNow || mutePressedNow || bpmMinusPressedNow || bpmPlusPressedNow || trackPrevPressedNow ||
-           trackNextPressedNow;
+    return playPressedNow || stopPressedNow || mutePressedNow || bpmMinusPressedNow || bpmPlusPressedNow ||
+           rotateMinusPressedNow || rotatePlusPressedNow;
   }
 
   if (_playButton.hitTest(tp.x, tp.y)) {
-    dispatchUiAction(UiActionType::TOGGLE_PLAY, 0, 0);
+    dispatchUiAction(UiActionType::TOGGLE_PLAY, 0, 1);
+    _playDirty = true;
+    _rings.invalidateAll();
+    _ringsDirty = true;
+    return true;
+  }
+
+  if (_stopButton.hitTest(tp.x, tp.y)) {
+    dispatchUiAction(UiActionType::TOGGLE_PLAY, 0, 2);
     _playDirty = true;
     _rings.invalidateAll();
     _ringsDirty = true;
@@ -346,7 +351,6 @@ bool PerformScreen::handleTouch(const TouchPoint &tp, const UiStateSnapshot &sna
   if (_muteButton.hitTest(tp.x, tp.y)) {
     dispatchUiAction(UiActionType::TOGGLE_MUTE, 0, safeActiveTrack);
     _muteDirty = true;
-    _trackCarouselDirty = true;
     _rings.invalidateTrack(safeActiveTrack);
     _ringsDirty = true;
     return true;
@@ -364,22 +368,20 @@ bool PerformScreen::handleTouch(const TouchPoint &tp, const UiStateSnapshot &sna
     return true;
   }
 
-  if (_trackPrevButton.hitTest(tp.x, tp.y)) {
-    const int prevTrack = (safeActiveTrack + TRACK_COUNT - 1) % TRACK_COUNT;
-    dispatchUiAction(UiActionType::SELECT_TRACK, 0, prevTrack);
-    _trackCarouselDirty = true;
-    _muteDirty = true;
-    _rings.invalidateAll();
+  if (_rotateMinusButton.hitTest(tp.x, tp.y)) {
+    _pendingTrackRotations[safeActiveTrack] -= 1;
+    dispatchUiAction(UiActionType::SET_ROTATION, safeActiveTrack, _pendingTrackRotations[safeActiveTrack]);
+    _rotateDirty = true;
+    _rings.invalidateTrack(safeActiveTrack);
     _ringsDirty = true;
     return true;
   }
 
-  if (_trackNextButton.hitTest(tp.x, tp.y)) {
-    const int nextTrack = (safeActiveTrack + 1) % TRACK_COUNT;
-    dispatchUiAction(UiActionType::SELECT_TRACK, 0, nextTrack);
-    _trackCarouselDirty = true;
-    _muteDirty = true;
-    _rings.invalidateAll();
+  if (_rotatePlusButton.hitTest(tp.x, tp.y)) {
+    _pendingTrackRotations[safeActiveTrack] += 1;
+    dispatchUiAction(UiActionType::SET_ROTATION, safeActiveTrack, _pendingTrackRotations[safeActiveTrack]);
+    _rotateDirty = true;
+    _rings.invalidateTrack(safeActiveTrack);
     _ringsDirty = true;
     return true;
   }
@@ -388,7 +390,6 @@ bool PerformScreen::handleTouch(const TouchPoint &tp, const UiStateSnapshot &sna
   if (_rings.hitTestTrack(tp.x, tp.y, ringTrack)) {
     dispatchUiAction(UiActionType::SELECT_TRACK, 0, ringTrack);
     _muteDirty = true;
-    _trackCarouselDirty = true;
     _rings.invalidateAll();
     _ringsDirty = true;
     return true;
@@ -404,7 +405,7 @@ void PerformScreen::invalidate() {
   _playDirty = true;
   _muteDirty = true;
   _bpmDirty = true;
-  _trackCarouselDirty = true;
+  _rotateDirty = true;
   _rings.invalidateAll();
 }
 
