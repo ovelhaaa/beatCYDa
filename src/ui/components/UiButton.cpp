@@ -24,7 +24,7 @@ void UiButton::draw(lgfx::LGFX_Device &canvas) const {
   } else if (variant == UiButtonVariant::TransportActive) {
     fill = theme::UiTheme::Colors::TransportActive;
     fillPressed = theme::UiTheme::Colors::TransportActivePressed;
-    textColor = theme::UiTheme::Colors::TextOnWarning;
+    textColor = theme::UiTheme::Colors::TextOnTransportActive;
   }
 
   if (disabled) {
