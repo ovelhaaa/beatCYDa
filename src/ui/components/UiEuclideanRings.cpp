@@ -135,8 +135,11 @@ void UiEuclideanRings::redraw(const UiStateSnapshot &snapshot) {
     const uint16_t stepColor = dimColor(baseColor, dim * 0.45f);
     const uint16_t hitColor = dimColor(baseColor, dim * (active ? 1.0f : 0.75f));
     const uint16_t lineColor = dimColor(baseColor, dim * (active ? 0.95f : 0.6f));
+    const uint16_t playStepColor = active ? theme::UiTheme::Colors::TextPrimary : theme::UiTheme::Colors::TextSecondary;
+    const uint16_t playHitColor = active ? theme::UiTheme::Colors::Accent : dimColor(baseColor, 0.95f);
 
     const int len = clampLen(snapshot.patternLens[track]);
+    const int playStep = snapshot.currentStep % len;
     const float radius = ringRadiusForTrack(static_cast<uint8_t>(track));
 
     _sprite.drawCircle(cx, cy, static_cast<int>(radius), ringColor);
@@ -149,14 +152,23 @@ void UiEuclideanRings::redraw(const UiStateSnapshot &snapshot) {
       const float a = stepAngleRad(step, len);
       const int x = cx + static_cast<int>(cosf(a) * radius);
       const int y = cy + static_cast<int>(sinf(a) * radius);
-      _sprite.fillCircle(x, y, _compact ? 1 : 2, stepColor);
+      const bool isPlayStep = (step == playStep);
+      const bool isHit = snapshot.patterns[track][step];
+      const int stepSize = (_compact ? 1 : 2) + (isPlayStep ? 1 : 0);
+      _sprite.fillCircle(x, y, stepSize, isPlayStep ? playStepColor : stepColor);
 
-      if (snapshot.patterns[track][step]) {
+      if (isHit) {
         hitX[hitCount] = x;
         hitY[hitCount] = y;
         hitCount++;
         const int hitSize = active ? (_compact ? 2 : 3) : (_compact ? 1 : 2);
-        _sprite.fillCircle(x, y, hitSize, hitColor);
+        const int emphasizedHitSize = hitSize + (isPlayStep ? 1 : 0);
+        _sprite.fillCircle(x, y, emphasizedHitSize, isPlayStep ? playHitColor : hitColor);
+        if (isPlayStep) {
+          _sprite.drawCircle(x, y, emphasizedHitSize + 1, playStepColor);
+        }
+      } else if (isPlayStep) {
+        _sprite.drawCircle(x, y, stepSize + 1, playStepColor);
       }
     }
 
@@ -177,13 +189,15 @@ void UiEuclideanRings::redraw(const UiStateSnapshot &snapshot) {
     }
   }
 
-  const int activeLen = clampLen(snapshot.patternLens[snapshot.activeTrack]);
-  const int playStep = snapshot.currentStep % activeLen;
-  const float playAngle = stepAngleRad(playStep, activeLen);
-  const float playRadius = _singleTrack ? ringRadiusForTrack(snapshot.activeTrack) : ringRadiusForTrack(0);
-  const int playX = cx + static_cast<int>(cosf(playAngle) * (playRadius + (_compact ? 4.0f : 6.0f)));
-  const int playY = cy + static_cast<int>(sinf(playAngle) * (playRadius + (_compact ? 4.0f : 6.0f)));
-  _sprite.drawLine(cx, cy, playX, playY, theme::UiTheme::Colors::TextSecondary);
+  if (snapshot.isPlaying) {
+    const int activeLen = clampLen(snapshot.patternLens[snapshot.activeTrack]);
+    const int playStep = snapshot.currentStep % activeLen;
+    const float playAngle = stepAngleRad(playStep, activeLen);
+    const float playRadius = _singleTrack ? ringRadiusForTrack(snapshot.activeTrack) : ringRadiusForTrack(0);
+    const int playX = cx + static_cast<int>(cosf(playAngle) * (playRadius + (_compact ? 4.0f : 6.0f)));
+    const int playY = cy + static_cast<int>(sinf(playAngle) * (playRadius + (_compact ? 4.0f : 6.0f)));
+    _sprite.drawLine(cx, cy, playX, playY, theme::UiTheme::Colors::TextSecondary);
+  }
 
   if (_compact) {
     _sprite.setTextSize(theme::UiTheme::Typography::CaptionSize);
