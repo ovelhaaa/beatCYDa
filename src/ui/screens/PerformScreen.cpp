@@ -281,6 +281,7 @@ void PerformScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &sna
   _lastActiveTrack = safeActiveTrack;
   for (int i = 0; i < TRACK_COUNT; ++i) {
     _lastTrackMutes[i] = snapshot.trackMutes[i];
+    _pendingTrackRotations[i] = snapshot.trackRotations[i];
   }
 
   _hasFrame = true;
@@ -368,7 +369,8 @@ bool PerformScreen::handleTouch(const TouchPoint &tp, const UiStateSnapshot &sna
   }
 
   if (_rotateMinusButton.hitTest(tp.x, tp.y)) {
-    dispatchUiAction(UiActionType::SET_ROTATION, safeActiveTrack, snapshot.trackRotations[safeActiveTrack] - 1);
+    _pendingTrackRotations[safeActiveTrack] -= 1;
+    dispatchUiAction(UiActionType::SET_ROTATION, safeActiveTrack, _pendingTrackRotations[safeActiveTrack]);
     _rotateDirty = true;
     _rings.invalidateTrack(safeActiveTrack);
     _ringsDirty = true;
@@ -376,7 +378,8 @@ bool PerformScreen::handleTouch(const TouchPoint &tp, const UiStateSnapshot &sna
   }
 
   if (_rotatePlusButton.hitTest(tp.x, tp.y)) {
-    dispatchUiAction(UiActionType::SET_ROTATION, safeActiveTrack, snapshot.trackRotations[safeActiveTrack] + 1);
+    _pendingTrackRotations[safeActiveTrack] += 1;
+    dispatchUiAction(UiActionType::SET_ROTATION, safeActiveTrack, _pendingTrackRotations[safeActiveTrack]);
     _rotateDirty = true;
     _rings.invalidateTrack(safeActiveTrack);
     _ringsDirty = true;

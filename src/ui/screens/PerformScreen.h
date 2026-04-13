@@ -33,6 +33,7 @@ private:
   uint16_t _lastBpm{0};
   uint8_t _lastActiveTrack{0};
   bool _lastTrackMutes[TRACK_COUNT]{};
+  int _pendingTrackRotations[TRACK_COUNT]{};
   UiButton _playButton{};
   UiButton _stopButton{};
   UiButton _muteButton{};
