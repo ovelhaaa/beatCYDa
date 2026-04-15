@@ -3,6 +3,7 @@
 #include "UiRect.h"
 #include "../Display.h"
 #include <LovyanGFX.hpp>
+#include <stdint.h>
 
 namespace ui {
 
@@ -23,6 +24,8 @@ public:
 
 private:
   void ensureSprite();
+  void updateBassEnvelope(const UiStateSnapshot &snapshot);
+  void triggerBassEnvelope();
   void redraw(const UiStateSnapshot &snapshot);
   float ringRadiusForTrack(uint8_t track) const;
 
@@ -33,6 +36,11 @@ private:
   bool _dirty{true};
   int16_t _lastW{0};
   int16_t _lastH{0};
+  int _lastBassStep{-1};
+  int _lastRenderedStep{-1};
+  bool _lastIsPlaying{false};
+  float _bassEnvValue{0.0f};
+  uint32_t _lastEnvMicros{0};
 
   mutable uint16_t _trackOuterRadius[TRACK_COUNT]{};
   mutable uint16_t _trackInnerRadius[TRACK_COUNT]{};
