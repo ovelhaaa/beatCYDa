@@ -295,6 +295,9 @@ bool UiEuclideanRings::hitTestTrack(int16_t x, int16_t y, uint8_t &outTrack) con
   const float dist = sqrtf(static_cast<float>(dx * dx + dy * dy));
 
   for (int i = 0; i < TRACK_COUNT; ++i) {
+    if (i == kBassTrackIndex) {
+      continue;
+    }
     if (dist >= _trackInnerRadius[i] && dist <= _trackOuterRadius[i]) {
       outTrack = static_cast<uint8_t>(i);
       return true;
