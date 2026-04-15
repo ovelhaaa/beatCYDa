@@ -230,6 +230,18 @@ void UiEuclideanRings::redraw(const UiStateSnapshot &snapshot) {
           _sprite.fillCircle(x, y, 4, hitColor);
         }
       }
+
+    if (hitCount >= 2) {
+      for (int i = 0; i < hitCount; ++i) {
+        const int n = (i + 1) % hitCount;
+        _sprite.drawLine(hitX[i], hitY[i], hitX[n], hitY[n], lineColor);
+      }
+    }
+      if (isPlayStep) {
+        _sprite.fillCircle(x, y, 8, bgColor);
+        _sprite.fillCircle(x, y, 7, playHaloColor);
+        _sprite.fillCircle(x, y, 4, hitColor);
+      }
     }
 
     if (hitCount >= 2) {
