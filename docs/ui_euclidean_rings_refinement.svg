@@ -1,0 +1,122 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="860" height="860" viewBox="0 0 860 860" role="img" aria-labelledby="title desc">
+  <title id="title">UiEuclideanRings refined rendering</title>
+  <desc id="desc">Faithful visual representation of the implemented UI: north marker, four Euclidean rings with step dots, play halos, muted outline behavior, hit connections, and central bass envelope pulse.</desc>
+  <defs>
+    <style>
+      .bg { fill: #084210; }
+      .ring0 { stroke: #f0625d; fill: none; stroke-width: 2.2; }
+      .ring1 { stroke: #f0b25d; fill: none; stroke-width: 2.2; }
+      .ring2 { stroke: #72d6a0; fill: none; stroke-width: 2.2; }
+      .ring3 { stroke: #6fb3ff; fill: none; stroke-width: 2.2; }
+      .off { fill: #210421; }
+      .north { fill: #ad55ad; }
+      .conn0 { stroke: #9b312c; stroke-width: 1.7; fill: none; }
+      .conn1 { stroke: #96622d; stroke-width: 1.7; fill: none; }
+      .conn2 { stroke: #2f7d57; stroke-width: 1.7; fill: none; }
+      .conn3 { stroke: #2d5f96; stroke-width: 1.7; fill: none; }
+      .hit0 { fill: #ff6a61; }
+      .hit1 { fill: #ffc46b; }
+      .hit2 { fill: #7ff0b5; }
+      .hit3 { fill: #8bc3ff; }
+      .muted-outline { fill: none; stroke: #8bc3ff; stroke-width: 2; }
+      .playhalo { opacity: 0.62; }
+      .txt { fill: #c8d2d8; font: 13px monospace; }
+      .legend { fill: #102a2f; stroke: #3b5961; stroke-width: 1; }
+    </style>
+  </defs>
+
+  <!-- Background -->
+  <rect class="bg" x="0" y="0" width="860" height="860" rx="24" />
+
+  <!-- North marker triangle (global) -->
+  <polygon class="north" points="418,164 442,164 430,206" />
+
+  <!-- Ring outlines (bass ring intentionally omitted) -->
+  <circle class="ring0" cx="430" cy="430" r="330" />
+  <circle class="ring1" cx="430" cy="430" r="265" />
+  <circle class="ring2" cx="430" cy="430" r="200" />
+  <circle class="ring3" cx="430" cy="430" r="135" />
+
+  <!-- Polygon connections for active hits (rings 0..3 only) -->
+  <path class="conn0" d="M430 100 L662 228 L731 516 L430 760 L129 516 L198 228 Z" />
+  <path class="conn1" d="M430 165 L620 265 L642 475 L430 695 L218 475 L240 265 Z" />
+  <path class="conn2" d="M430 230 L571 312 L596 477 L430 630 L264 477 L289 312 Z" />
+  <path class="conn3" d="M430 295 L529 348 L542 451 L430 565 L318 451 L331 348 Z" />
+
+  <!-- Off-step dots (sparse sample per ring) -->
+  <g>
+    <circle class="off" cx="430" cy="100" r="4"/><circle class="off" cx="595" cy="147" r="4"/>
+    <circle class="off" cx="715" cy="261" r="4"/><circle class="off" cx="760" cy="430" r="4"/>
+    <circle class="off" cx="715" cy="599" r="4"/><circle class="off" cx="595" cy="713" r="4"/>
+    <circle class="off" cx="430" cy="760" r="4"/><circle class="off" cx="265" cy="713" r="4"/>
+    <circle class="off" cx="145" cy="599" r="4"/><circle class="off" cx="100" cy="430" r="4"/>
+    <circle class="off" cx="145" cy="261" r="4"/><circle class="off" cx="265" cy="147" r="4"/>
+  </g>
+
+  <!-- Hits ring 0 -->
+  <g>
+    <circle class="hit0" cx="430" cy="100" r="8"/>
+    <circle class="hit0" cx="662" cy="228" r="8"/>
+    <circle class="hit0" cx="731" cy="516" r="8"/>
+    <circle class="hit0" cx="430" cy="760" r="8"/>
+    <circle class="hit0" cx="129" cy="516" r="8"/>
+    <circle class="hit0" cx="198" cy="228" r="8"/>
+  </g>
+
+  <!-- Hits ring 1 -->
+  <g>
+    <circle class="hit1" cx="430" cy="165" r="8"/>
+    <circle class="hit1" cx="620" cy="265" r="8"/>
+    <circle class="hit1" cx="642" cy="475" r="8"/>
+    <circle class="hit1" cx="430" cy="695" r="8"/>
+    <circle class="hit1" cx="218" cy="475" r="8"/>
+    <circle class="hit1" cx="240" cy="265" r="8"/>
+  </g>
+
+  <!-- Hits ring 2 -->
+  <g>
+    <circle class="hit2" cx="430" cy="230" r="8"/>
+    <circle class="hit2" cx="571" cy="312" r="8"/>
+    <circle class="hit2" cx="596" cy="477" r="8"/>
+    <circle class="hit2" cx="430" cy="630" r="8"/>
+    <circle class="hit2" cx="264" cy="477" r="8"/>
+    <circle class="hit2" cx="289" cy="312" r="8"/>
+  </g>
+
+  <!-- Ring 3 simulated muted behavior: outline-only hits -->
+  <g>
+    <circle class="muted-outline" cx="430" cy="295" r="8"/>
+    <circle class="muted-outline" cx="529" cy="348" r="8"/>
+    <circle class="muted-outline" cx="542" cy="451" r="8"/>
+    <circle class="muted-outline" cx="430" cy="565" r="8"/>
+    <circle class="muted-outline" cx="318" cy="451" r="8"/>
+    <circle class="muted-outline" cx="331" cy="348" r="8"/>
+  </g>
+
+  <!-- Playhead halo examples (current step per ring) -->
+  <g class="playhalo">
+    <circle cx="430" cy="100" r="13" fill="#9b312c" />
+    <circle cx="620" cy="265" r="13" fill="#96622d" />
+    <circle cx="596" cy="477" r="13" fill="#2f7d57" />
+    <circle cx="430" cy="565" r="13" fill="#2d5f96" />
+  </g>
+
+  <!-- Playhead cores on top -->
+  <circle class="hit0" cx="430" cy="100" r="8"/>
+  <circle class="hit1" cx="620" cy="265" r="8"/>
+  <circle class="hit2" cx="596" cy="477" r="8"/>
+  <circle class="muted-outline" cx="430" cy="565" r="8"/>
+
+  <!-- Bass envelope center pulse (no bass ring) -->
+  <circle cx="430" cy="430" r="50" fill="#6d2f8c" opacity="0.95" />
+
+  <!-- legend -->
+  <rect class="legend" x="26" y="644" width="410" height="188" rx="12" />
+  <text class="txt" x="46" y="673">UiEuclideanRings (implementado)</text>
+  <text class="txt" x="46" y="700">• Triângulo fixo no norte (downbeat global)</text>
+  <text class="txt" x="46" y="724">• 4 anéis euclidianos com passos e conexões</text>
+  <text class="txt" x="46" y="748">• Playhead com halo + núcleo por trilha</text>
+  <text class="txt" x="46" y="772">• Hits mutados em contorno (ring interna azul)</text>
+  <text class="txt" x="46" y="796">• Bass sem anel: círculo central pulsante (envelope)</text>
+  <text class="txt" x="46" y="820">• Toque no centro seleciona Bass (hit test dedicado)</text>
+</svg>
