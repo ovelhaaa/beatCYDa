@@ -10,7 +10,7 @@ namespace ui {
 namespace {
 constexpr float kPi = 3.14159265f;
 constexpr uint16_t kStepOffColor = 0x2104;
-constexpr int kBassTrackIndex = 3;
+constexpr int kBassTrackIndex = VOICE_BASS;
 constexpr int kBassMaxRadius = 18;
 constexpr float kBassEnvDecayPerSec = 7.5f;
 constexpr uint16_t kNorthMarkerColor = 0xAD55;
@@ -179,6 +179,9 @@ void UiEuclideanRings::redraw(const UiStateSnapshot &snapshot) {
     const bool active = (track == snapshot.activeTrack);
     const bool muted = snapshot.trackMutes[track];
     const bool isBassTrack = (track == kBassTrackIndex);
+    if (isBassTrack) {
+      continue;
+    }
 
     uint16_t baseColor = TRACK_COLORS[track % TRACK_COUNT];
     float dim = active ? 1.00f : 0.70f;
@@ -226,7 +229,7 @@ void UiEuclideanRings::redraw(const UiStateSnapshot &snapshot) {
       }
     }
 
-    if (!isBassTrack && hitCount >= 2) {
+    if (hitCount >= 2) {
       for (int i = 0; i < hitCount; ++i) {
         const int n = (i + 1) % hitCount;
         _sprite.drawLine(hitX[i], hitY[i], hitX[n], hitY[n], lineColor);
