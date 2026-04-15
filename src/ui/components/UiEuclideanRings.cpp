@@ -285,7 +285,7 @@ void UiEuclideanRings::draw(lgfx::LGFX_Device &canvas, const UiStateSnapshot &sn
   updateBassEnvelope(snapshot);
   const int activeLen = clampLen(snapshot.patternLens[snapshot.activeTrack]);
   const int activeStep = snapshot.currentStep % activeLen;
-  const bool dynamicFrame = snapshot.isPlaying || (_bassEnvValue > 0.0f) || (activeStep != _lastRenderedStep);
+  const bool dynamicFrame = (_bassEnvValue > 0.0f) || (activeStep != _lastRenderedStep);
   if (_dirty || dynamicFrame) {
     redraw(snapshot);
     _dirty = false;
