@@ -3,11 +3,18 @@
 #include "../core/UiLayout.h"
 #include "../theme/UiTheme.h"
 
+#include <Arduino.h>
 #include <math.h>
 
 namespace ui {
 namespace {
 constexpr float kPi = 3.14159265f;
+constexpr uint16_t kStepOffColor = 0x2104;
+constexpr int kBassTrackIndex = VOICE_BASS;
+constexpr int kBassMaxRadius = 18;
+constexpr float kBassEnvDecayPerSec = 7.5f;
+constexpr int kBassTouchRadiusPadding = 4;
+constexpr uint16_t kNorthMarkerColor = 0xAD55;
 
 float stepAngleRad(int step, int patternLen) {
   const float turns = static_cast<float>(step) / static_cast<float>(patternLen);
@@ -21,6 +28,8 @@ uint16_t dimColor(uint16_t rgb565, float factor) {
   const uint8_t b = static_cast<uint8_t>(((rgb565 & 0x1F) * factor));
   return static_cast<uint16_t>(((r & 0x1F) << 11) | ((g & 0x3F) << 5) | (b & 0x1F));
 }
+
+uint16_t halveRgb565(uint16_t rgb565) { return static_cast<uint16_t>((rgb565 & 0xF7DEu) >> 1); }
 
 int clampLen(int value) {
   if (value < 1) {
@@ -41,6 +50,37 @@ void drawBassClef(lgfx::LGFX_Sprite &sprite, int cx, int cy, uint16_t color, uin
   sprite.fillCircle(cx + 4, cy + 3, 1, color);
 }
 } // namespace
+
+void UiEuclideanRings::triggerBassEnvelope() { _bassEnvValue = 1.0f; }
+
+void UiEuclideanRings::updateBassEnvelope(const UiStateSnapshot &snapshot) {
+  const uint32_t now = micros();
+  if (_lastEnvMicros == 0) {
+    _lastEnvMicros = now;
+  } else {
+    float dt = static_cast<float>(now - _lastEnvMicros) * 1e-6f;
+    _lastEnvMicros = now;
+    if (dt < 0.0f) {
+      dt = 0.0f;
+    } else if (dt > 0.05f) {
+      dt = 0.05f;
+    }
+    _bassEnvValue *= expf(-kBassEnvDecayPerSec * dt);
+    if (_bassEnvValue < 0.0005f) {
+      _bassEnvValue = 0.0f;
+    }
+  }
+
+  const int bassLen = clampLen(snapshot.patternLens[kBassTrackIndex]);
+  const int bassStep = snapshot.currentStep % bassLen;
+  const bool stepped = snapshot.isPlaying && (!_lastIsPlaying || bassStep != _lastBassStep);
+  if (stepped && snapshot.patterns[kBassTrackIndex][bassStep] && !snapshot.trackMutes[kBassTrackIndex]) {
+    triggerBassEnvelope();
+  }
+
+  _lastBassStep = bassStep;
+  _lastIsPlaying = snapshot.isPlaying;
+}
 
 void UiEuclideanRings::setRect(const UiRect &rect) {
   if (_rect.x == rect.x && _rect.y == rect.y && _rect.w == rect.w && _rect.h == rect.h) {
@@ -111,7 +151,19 @@ void UiEuclideanRings::redraw(const UiStateSnapshot &snapshot) {
 
   const int cx = _rect.w / 2;
   const int cy = _rect.h / 2;
-  _sprite.fillSprite(theme::UiTheme::Colors::Bg);
+  const uint16_t bgColor = theme::UiTheme::Colors::Bg;
+  _sprite.fillSprite(bgColor);
+
+  const int triDistOuter = _compact ? 12 : 16;
+  const int triDistInner = _compact ? 4 : 7;
+  const int triHalfWidth = _compact ? 2 : 3;
+  _sprite.fillTriangle(cx - triHalfWidth,
+                       cy - triDistOuter,
+                       cx + triHalfWidth,
+                       cy - triDistOuter,
+                       cx,
+                       cy - triDistInner,
+                       kNorthMarkerColor);
 
   for (int i = 0; i < TRACK_COUNT; ++i) {
     const float radius = ringRadiusForTrack(static_cast<uint8_t>(i));
@@ -125,6 +177,10 @@ void UiEuclideanRings::redraw(const UiStateSnapshot &snapshot) {
   for (int track = startTrack; track < endTrack; ++track) {
     const bool active = (track == snapshot.activeTrack);
     const bool muted = snapshot.trackMutes[track];
+    const bool isBassTrack = (track == kBassTrackIndex);
+    if (isBassTrack) {
+      continue;
+    }
 
     uint16_t baseColor = TRACK_COLORS[track % TRACK_COUNT];
     float dim = active ? 1.00f : 0.70f;
@@ -132,11 +188,9 @@ void UiEuclideanRings::redraw(const UiStateSnapshot &snapshot) {
       dim *= 0.45f;
     }
     const uint16_t ringColor = dimColor(baseColor, dim * 0.65f);
-    const uint16_t stepColor = dimColor(baseColor, dim * 0.45f);
     const uint16_t hitColor = dimColor(baseColor, dim * (active ? 1.0f : 0.75f));
-    const uint16_t lineColor = dimColor(baseColor, dim * (active ? 0.95f : 0.6f));
-    const uint16_t playStepColor = active ? theme::UiTheme::Colors::TextPrimary : theme::UiTheme::Colors::TextSecondary;
-    const uint16_t playHitColor = active ? theme::UiTheme::Colors::Accent : dimColor(baseColor, 0.95f);
+    const uint16_t lineColor = halveRgb565(hitColor);
+    const uint16_t playHaloColor = halveRgb565(hitColor);
 
     const int len = clampLen(snapshot.patternLens[track]);
     const int playStep = snapshot.currentStep % len;
@@ -154,54 +208,48 @@ void UiEuclideanRings::redraw(const UiStateSnapshot &snapshot) {
       const int y = cy + static_cast<int>(sinf(a) * radius);
       const bool isPlayStep = (step == playStep);
       const bool isHit = snapshot.patterns[track][step];
-      const int stepSize = (_compact ? 1 : 2) + (isPlayStep ? 1 : 0);
-      _sprite.fillCircle(x, y, stepSize, isPlayStep ? playStepColor : stepColor);
+      _sprite.fillCircle(x, y, 2, kStepOffColor);
+
+      if (isPlayStep) {
+        _sprite.fillCircle(x, y, _compact ? 5 : 7, playHaloColor);
+      }
 
       if (isHit) {
         hitX[hitCount] = x;
         hitY[hitCount] = y;
         hitCount++;
-        const int hitSize = active ? (_compact ? 2 : 3) : (_compact ? 1 : 2);
-        const int emphasizedHitSize = hitSize + (isPlayStep ? 1 : 0);
-        _sprite.fillCircle(x, y, emphasizedHitSize, isPlayStep ? playHitColor : hitColor);
-        if (isPlayStep) {
-          _sprite.drawCircle(x, y, emphasizedHitSize + 1, playStepColor);
+        if (muted) {
+          _sprite.drawCircle(x, y, 4, hitColor);
+        } else {
+          _sprite.fillCircle(x, y, 4, hitColor);
         }
       } else if (isPlayStep) {
-        _sprite.drawCircle(x, y, stepSize + 1, playStepColor);
+        if (muted) {
+          _sprite.drawCircle(x, y, 4, hitColor);
+        } else {
+          _sprite.fillCircle(x, y, 4, hitColor);
+        }
       }
     }
 
-    if (hitCount == 2) {
-      _sprite.drawLine(hitX[0], hitY[0], hitX[1], hitY[1], lineColor);
-    } else if (hitCount >= 3) {
+    if (hitCount >= 2) {
       for (int i = 0; i < hitCount; ++i) {
         const int n = (i + 1) % hitCount;
         _sprite.drawLine(hitX[i], hitY[i], hitX[n], hitY[n], lineColor);
       }
     }
-
-    if (active && !_compact && hitCount >= 3) {
-      for (int i = 0; i < hitCount; ++i) {
-        const int n = (i + 1) % hitCount;
-        _sprite.drawLine(hitX[i], hitY[i], hitX[n], hitY[n], dimColor(hitColor, 0.6f));
-      }
-    }
   }
 
-  const int activeLen = clampLen(snapshot.patternLens[snapshot.activeTrack]);
-  const int playStep = snapshot.currentStep % activeLen;
-  const float playAngle = stepAngleRad(playStep, activeLen);
-  const float playRadius = _singleTrack ? ringRadiusForTrack(snapshot.activeTrack) : ringRadiusForTrack(0);
-  const float markerRadius = playRadius + (_compact ? 4.0f : 7.0f);
-  const int playX = cx + static_cast<int>(cosf(playAngle) * markerRadius);
-  const int playY = cy + static_cast<int>(sinf(playAngle) * markerRadius);
-  const uint16_t markerColor = snapshot.isPlaying ? theme::UiTheme::Colors::Accent : theme::UiTheme::Colors::TextSecondary;
-  const uint16_t markerCoreColor = snapshot.isPlaying ? theme::UiTheme::Colors::TextPrimary : theme::UiTheme::Colors::Outline;
-  const int markerSize = _compact ? 2 : 3;
-  _sprite.drawCircle(playX, playY, markerSize + 2, dimColor(markerColor, snapshot.isPlaying ? 0.75f : 0.55f));
-  _sprite.fillCircle(playX, playY, markerSize, markerColor);
-  _sprite.fillCircle(playX, playY, markerSize - 1, markerCoreColor);
+  _sprite.fillCircle(cx, cy, kBassMaxRadius + 1, bgColor);
+  int bassRadius = static_cast<int>((kBassMaxRadius * _bassEnvValue) + 0.5f);
+  if (bassRadius > kBassMaxRadius) {
+    bassRadius = kBassMaxRadius;
+  } else if (bassRadius < 0) {
+    bassRadius = 0;
+  }
+  if (bassRadius > 0) {
+    _sprite.fillCircle(cx, cy, bassRadius, TRACK_COLORS[kBassTrackIndex % TRACK_COUNT]);
+  }
 
   if (_compact) {
     _sprite.setTextSize(theme::UiTheme::Typography::CaptionSize);
@@ -222,9 +270,14 @@ void UiEuclideanRings::redraw(const UiStateSnapshot &snapshot) {
 
 void UiEuclideanRings::draw(lgfx::LGFX_Device &canvas, const UiStateSnapshot &snapshot) {
   ensureSprite();
-  if (_dirty) {
+  updateBassEnvelope(snapshot);
+  const int activeLen = clampLen(snapshot.patternLens[snapshot.activeTrack]);
+  const int activeStep = snapshot.currentStep % activeLen;
+  const bool dynamicFrame = (_bassEnvValue > 0.0f) || (activeStep != _lastRenderedStep);
+  if (_dirty || dynamicFrame) {
     redraw(snapshot);
     _dirty = false;
+    _lastRenderedStep = activeStep;
   }
 
   if (_sprite.width() > 0 && _sprite.height() > 0) {
@@ -245,7 +298,16 @@ bool UiEuclideanRings::hitTestTrack(int16_t x, int16_t y, uint8_t &outTrack) con
   const int32_t dy = ly - cy;
   const float dist = sqrtf(static_cast<float>(dx * dx + dy * dy));
 
+  const int bassTouchRadius = kBassMaxRadius + (_compact ? (kBassTouchRadiusPadding + 1) : kBassTouchRadiusPadding);
+  if (dist <= static_cast<float>(bassTouchRadius)) {
+    outTrack = static_cast<uint8_t>(kBassTrackIndex);
+    return true;
+  }
+
   for (int i = 0; i < TRACK_COUNT; ++i) {
+    if (i == kBassTrackIndex) {
+      continue;
+    }
     if (dist >= _trackInnerRadius[i] && dist <= _trackOuterRadius[i]) {
       outTrack = static_cast<uint8_t>(i);
       return true;
@@ -262,6 +324,10 @@ bool UiEuclideanRings::hitTestStep(int16_t x, int16_t y, const UiStateSnapshot &
 
   uint8_t track = 0;
   if (!hitTestTrack(x, y, track)) {
+    return false;
+  }
+
+  if (track == kBassTrackIndex) {
     return false;
   }
 
