@@ -209,10 +209,6 @@ void UiEuclideanRings::redraw(const UiStateSnapshot &snapshot) {
       const bool isHit = snapshot.patterns[track][step];
       _sprite.fillCircle(x, y, 2, kStepOffColor);
 
-      if (isPlayStep) {
-        _sprite.fillCircle(x, y, _compact ? 5 : 7, playHaloColor);
-      }
-
       if (isHit) {
         hitX[hitCount] = x;
         hitY[hitCount] = y;
@@ -222,7 +218,11 @@ void UiEuclideanRings::redraw(const UiStateSnapshot &snapshot) {
         } else {
           _sprite.fillCircle(x, y, 4, hitColor);
         }
-      } else if (isPlayStep) {
+      }
+
+      if (isPlayStep) {
+        _sprite.fillCircle(x, y, 8, bgColor);
+        _sprite.fillCircle(x, y, 7, playHaloColor);
         _sprite.fillCircle(x, y, 4, hitColor);
       }
     }
@@ -268,7 +268,7 @@ void UiEuclideanRings::draw(lgfx::LGFX_Device &canvas, const UiStateSnapshot &sn
   updateBassEnvelope(snapshot);
   const int activeLen = clampLen(snapshot.patternLens[snapshot.activeTrack]);
   const int activeStep = snapshot.currentStep % activeLen;
-  const bool dynamicFrame = (_bassEnvValue > 0.0f) || (activeStep != _lastRenderedStep);
+  const bool dynamicFrame = snapshot.isPlaying || (_bassEnvValue > 0.0f) || (activeStep != _lastRenderedStep);
   if (_dirty || dynamicFrame) {
     redraw(snapshot);
     _dirty = false;
