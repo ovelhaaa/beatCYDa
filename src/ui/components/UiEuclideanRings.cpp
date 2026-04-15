@@ -13,6 +13,7 @@ constexpr uint16_t kStepOffColor = 0x2104;
 constexpr int kBassTrackIndex = VOICE_BASS;
 constexpr int kBassMaxRadius = 18;
 constexpr float kBassEnvDecayPerSec = 7.5f;
+constexpr int kBassTouchRadiusPadding = 4;
 constexpr uint16_t kNorthMarkerColor = 0xAD55;
 
 float stepAngleRad(int step, int patternLen) {
@@ -209,6 +210,10 @@ void UiEuclideanRings::redraw(const UiStateSnapshot &snapshot) {
       const bool isHit = snapshot.patterns[track][step];
       _sprite.fillCircle(x, y, 2, kStepOffColor);
 
+      if (isPlayStep) {
+        _sprite.fillCircle(x, y, _compact ? 5 : 7, playHaloColor);
+      }
+
       if (isHit) {
         hitX[hitCount] = x;
         hitY[hitCount] = y;
@@ -218,8 +223,20 @@ void UiEuclideanRings::redraw(const UiStateSnapshot &snapshot) {
         } else {
           _sprite.fillCircle(x, y, 4, hitColor);
         }
+      } else if (isPlayStep) {
+        if (muted) {
+          _sprite.drawCircle(x, y, 4, hitColor);
+        } else {
+          _sprite.fillCircle(x, y, 4, hitColor);
+        }
       }
 
+    if (hitCount >= 2) {
+      for (int i = 0; i < hitCount; ++i) {
+        const int n = (i + 1) % hitCount;
+        _sprite.drawLine(hitX[i], hitY[i], hitX[n], hitY[n], lineColor);
+      }
+    }
       if (isPlayStep) {
         _sprite.fillCircle(x, y, 8, bgColor);
         _sprite.fillCircle(x, y, 7, playHaloColor);
@@ -293,7 +310,8 @@ bool UiEuclideanRings::hitTestTrack(int16_t x, int16_t y, uint8_t &outTrack) con
   const int32_t dy = ly - cy;
   const float dist = sqrtf(static_cast<float>(dx * dx + dy * dy));
 
-  if (dist <= static_cast<float>(kBassMaxRadius + 1)) {
+  const int bassTouchRadius = kBassMaxRadius + (_compact ? (kBassTouchRadiusPadding + 1) : kBassTouchRadiusPadding);
+  if (dist <= static_cast<float>(bassTouchRadius)) {
     outTrack = static_cast<uint8_t>(kBassTrackIndex);
     return true;
   }
