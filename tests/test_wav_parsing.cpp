@@ -66,8 +66,7 @@ void test_div_by_zero() {
 
     SD.currentFile = maliciousWav;
 
-    // If blockAlign = 0, we expect a crash (Floating point exception) or it returns false if fixed.
-    // In current code, it should crash.
+    // If blockAlign = 0, it should return false.
     bool result = bank.loadMono16("malicious.wav", sample, 1000);
 
     if (result) {
