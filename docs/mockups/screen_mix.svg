@@ -16,31 +16,30 @@
 <rect x="16" y="6" width="160" height="20" rx="4" class="transport outline" />
 <text x="96.0" y="21.0" class="text-primary text-on-transport" text-anchor="middle" >PLAYING</text>
 <text x="188" y="20" class="text-primary" text-anchor="start" >BPM: 120</text>
-<rect x="8" y="40" width="186" height="154" rx="8" class="surface outline" />
-<image href="euclid_perform_compact.svg" x="14" y="46" width="174" height="142" />
-<rect x="202" y="42" width="110" height="30" rx="4" class="danger outline" />
-<text x="257.0" y="62.0" class="text-primary" text-anchor="middle" >STOP</text>
-<rect x="202" y="76" width="110" height="30" rx="4" class="surface outline" />
-<text x="257.0" y="96.0" class="text-primary" text-anchor="middle" >MUTE</text>
-<rect x="202" y="110" width="30" height="30" rx="4" class="surface outline" />
-<text x="217.0" y="130.0" class="text-primary" text-anchor="middle" >-</text>
-<rect x="234" y="110" width="46" height="30" rx="4" class="surface-pressed outline" />
-<text x="257" y="130" class="text-primary" text-anchor="middle" >120</text>
-<rect x="282" y="110" width="30" height="30" rx="4" class="surface outline" />
-<text x="297.0" y="130.0" class="text-primary" text-anchor="middle" >+</text>
-<rect x="202" y="146" width="30" height="30" rx="4" class="surface outline" />
-<text x="217.0" y="166.0" class="text-primary" text-anchor="middle" ><</text>
-<rect x="234" y="146" width="46" height="30" rx="4" class="surface outline" style="fill: #16434c; stroke: #4ae2ff; "/>
-<text x="257.0" y="166.0" class="text-primary" text-anchor="middle" >HATC</text>
-<rect x="282" y="146" width="30" height="30" rx="4" class="surface outline" />
-<text x="297.0" y="166.0" class="text-primary" text-anchor="middle" >></text>
-<rect x="5.0" y="204" width="62" height="32" rx="4" class="accent outline" />
+<rect x="12" y="46" width="120" height="48" rx="8" class="surface outline" />
+<text x="72" y="70" class="text-primary" text-anchor="middle" >MASTER 85%</text>
+<rect x="20" y="98" width="40" height="92" rx="4" class="surface outline" />
+<rect x="22" y="118" width="36" height="70" rx="2" class="" style="fill: #cd554a; "/>
+<text x="40.0" y="204" class="text-caption" text-anchor="middle" >KICK</text>
+<rect x="80" y="98" width="40" height="92" rx="4" class="surface outline" />
+<rect x="82" y="136" width="36" height="52" rx="2" class="" style="fill: #d5ae41; "/>
+<text x="100.0" y="204" class="text-caption" text-anchor="middle" >SNRE</text>
+<rect x="140" y="98" width="40" height="92" rx="4" class="surface outline" />
+<rect x="142" y="127" width="36" height="61" rx="2" class="" style="fill: #4ae2ff; "/>
+<text x="160.0" y="204" class="text-caption" text-anchor="middle" >HATC</text>
+<rect x="200" y="98" width="40" height="92" rx="4" class="surface outline" />
+<rect x="202" y="153" width="36" height="35" rx="2" class="" style="fill: #ff4ca4; "/>
+<text x="220.0" y="204" class="text-caption" text-anchor="middle" >HATO</text>
+<rect x="260" y="98" width="40" height="92" rx="4" class="surface outline" />
+<rect x="262" y="109" width="36" height="79" rx="2" class="" style="fill: #5aae62; "/>
+<text x="280.0" y="204" class="text-caption" text-anchor="middle" >BASS</text>
+<rect x="5.0" y="204" width="62" height="32" rx="4" class="surface outline" />
 <text x="36.0" y="225.0" class="text-primary" text-anchor="middle" >PERF</text>
 <rect x="67.0" y="204" width="62" height="32" rx="4" class="surface outline" />
 <text x="98.0" y="225.0" class="text-primary" text-anchor="middle" >PATT</text>
 <rect x="129.0" y="204" width="62" height="32" rx="4" class="surface outline" />
 <text x="160.0" y="225.0" class="text-primary" text-anchor="middle" >SOUND</text>
-<rect x="191.0" y="204" width="62" height="32" rx="4" class="surface outline" />
+<rect x="191.0" y="204" width="62" height="32" rx="4" class="accent outline" />
 <text x="222.0" y="225.0" class="text-primary" text-anchor="middle" >MIX</text>
 <rect x="253.0" y="204" width="62" height="32" rx="4" class="surface outline" />
 <text x="284.0" y="225.0" class="text-primary" text-anchor="middle" >PROJ</text>

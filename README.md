@@ -1,7 +1,8 @@
-# Penosa DM CYD Edition
+# beatCYDa
 
-Variante paralela do Penosa DM voltada ao hardware `ESP32 Cheap Yellow Display`
+Groovebox/Sequenciador voltado ao hardware `ESP32 Cheap Yellow Display`
 2.8" resistivo, mantendo o projeto original intacto.
+
 
 
 
@@ -11,7 +12,20 @@ Variante paralela do Penosa DM voltada ao hardware `ESP32 Cheap Yellow Display`
 
 Estes mockups foram gerados reproduzindo exatamente o algoritmo de renderização do firmware e as paletas de cores `UiColors`.
 
+**1. PERF (Performance)**
 ![Screen Perform](docs/mockups/screen_perform.svg)
+
+**2. PATT (Pattern)**
+![Screen Pattern](docs/mockups/screen_pattern.svg)
+
+**3. SOUND (Síntese e Vozes)**
+![Screen Sound](docs/mockups/screen_sound.svg)
+
+**4. MIX (Mixagem)**
+![Screen Mix](docs/mockups/screen_mix.svg)
+
+**5. PROJ (Projeto e Slots)**
+![Screen Project](docs/mockups/screen_project.svg)
 
 **Anéis Euclidianos em detalhes (Visualizador de Ritmo):**
 
@@ -63,26 +77,15 @@ Existem placas CYD com roteamentos diferentes para touch e SD. Por isso:
 - se o touch vier invertido ou deslocado, ajuste `TouchMinX`, `TouchMaxX`,
   `TouchMinY` e `TouchMaxY`
 
-## UI (nova, padrao)
+## Estrutura da Interface
 
-### Topo
+A navegação ocorre através da barra inferior contendo 5 abas principais:
 
-- `PLAY/STOP`
-- `BPM - / valor / +`
-- selecao de slot
-- `SV` para salvar pattern atual no SD
-- `LD` para carregar pattern do SD
-
-### Esquerda
-
-- visualizador de ritmos euclidianos em aneis concentricos
-- cinco botoes de trilha: `K`, `S`, `C`, `O`, `B`
-
-### Direita
-
-- tab `SEQ`: edicao de steps, hits, rotation e mute
-- tab `DSP`: pitch, decay/release, tone/brightness e drive/level
-- rodape com feedback rapido de estado
+1. **PERF (Performance):** Visão central do andamento. Permite mutar trilhas, dar play/stop, e visualizar o gerador euclidiano em tempo real.
+2. **PATT (Pattern):** Edição dos sequenciadores de ritmo por trilha (Steps, Hits, Rotate).
+3. **SOUND (Síntese):** Edição dos parâmetros de síntese de cada voz (Pitch, Decay, Tone, Drive/Snap).
+4. **MIX (Mixagem):** Faders de volume para cada uma das 5 trilhas e controle do Master.
+5. **PROJ (Projeto):** Gerenciamento de slots no cartão SD (Load, Save, Clear).
 
 ## Armazenamento no SD
 
