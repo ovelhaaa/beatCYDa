@@ -5,6 +5,10 @@
 #include <SD.h>
 #include <FS.h>
 
+static const char *const TRACK_KEYS[TRACK_COUNT] = {"track_0", "track_1",
+                                                    "track_2", "track_3",
+                                                    "track_4"};
+
 PatternStorage PatternStore;
 
 bool PatternStorage::begin() {
@@ -57,10 +61,10 @@ bool PatternStorage::loadSlot(uint8_t slot) {
 
 bool PatternStorage::captureJson(File &file) {
   StaticJsonDocument<1024> doc;
-  
+
   engine.lockPattern();
   for (int i = 0; i < TRACK_COUNT; ++i) {
-    JsonObject trackObj = doc.createNestedObject("track_" + String(i));
+    JsonObject trackObj = doc.createNestedObject(TRACK_KEYS[i]);
     trackObj["steps"] = engine.tracks[i].steps;
     trackObj["hits"] = engine.tracks[i].hits;
     trackObj["rotation"] = engine.tracks[i].rotationOffset;
@@ -82,7 +86,7 @@ bool PatternStorage::applyJson(File &file) {
 
   engine.lockPattern();
   for (int i = 0; i < TRACK_COUNT; ++i) {
-    JsonObject trackObj = doc["track_" + String(i)];
+    JsonObject trackObj = doc[TRACK_KEYS[i]];
     if (!trackObj.isNull()) {
       engine.tracks[i].steps = trackObj["steps"] | engine.tracks[i].steps;
       engine.tracks[i].hits = trackObj["hits"] | engine.tracks[i].hits;
