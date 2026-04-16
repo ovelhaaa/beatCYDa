@@ -60,7 +60,7 @@ def button(x, y, w, h, label, variant="secondary"):
     elif variant == "transport": fill_class = "transport"
 
     text_class = "text-primary"
-    if variant != "secondary": text_class += " text-on-accent" # Need custom class or just override fill
+    if variant == "transport": text_class = "text-secondary" # Or define a specific .text-on-transport class
 
     out = rect(x, y, w, h, 4, f"{fill_class} outline")
     out += text(x + w/2, y + h/2 + 5, label, text_class, "middle")
