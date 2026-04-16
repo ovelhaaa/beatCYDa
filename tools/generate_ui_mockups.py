@@ -39,6 +39,7 @@ def generate_svg_header(width, height):
     .outline {{ stroke: {Outline}; fill: none; }}
     .text-primary {{ fill: {TextPrimary}; font-family: monospace; font-size: 14px; font-weight: bold; }}
     .text-secondary {{ fill: {TextSecondary}; font-family: monospace; font-size: 12px; }}
+    .text-on-accent {{ fill: {TextOnAccent}; font-family: monospace; font-size: 14px; font-weight: bold; }}
     .accent {{ fill: {Accent}; }}
     .danger {{ fill: {Danger}; }}
     .transport {{ fill: {TransportActive}; }}
