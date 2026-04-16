@@ -31,6 +31,17 @@ uint16_t dimColor(uint16_t rgb565, float factor) {
 
 uint16_t halveRgb565(uint16_t rgb565) { return static_cast<uint16_t>((rgb565 & 0xF7DEu) >> 1); }
 
+uint16_t boostLumaRgb565(uint16_t rgb565, float boost) {
+  const uint8_t r = static_cast<uint8_t>((rgb565 >> 11) & 0x1F);
+  const uint8_t g = static_cast<uint8_t>((rgb565 >> 5) & 0x3F);
+  const uint8_t b = static_cast<uint8_t>(rgb565 & 0x1F);
+
+  const uint8_t outR = static_cast<uint8_t>(r + ((31 - r) * boost));
+  const uint8_t outG = static_cast<uint8_t>(g + ((63 - g) * boost));
+  const uint8_t outB = static_cast<uint8_t>(b + ((31 - b) * boost));
+  return static_cast<uint16_t>(((outR & 0x1F) << 11) | ((outG & 0x3F) << 5) | (outB & 0x1F));
+}
+
 int clampLen(int value) {
   if (value < 1) {
     return 1;
@@ -188,9 +199,12 @@ void UiEuclideanRings::redraw(const UiStateSnapshot &snapshot) {
       dim *= 0.45f;
     }
     const uint16_t ringColor = dimColor(baseColor, dim * 0.65f);
-    const uint16_t hitColor = dimColor(baseColor, dim * (active ? 1.0f : 0.75f));
+    const uint16_t hitColor = dimColor(baseColor, dim * (active ? 1.0f : 0.80f));
+    const uint16_t noHitColor = dimColor(baseColor, dim * (active ? 0.70f : 0.55f));
+    const uint16_t mutedHitColor = dimColor(baseColor, dim * 0.55f);
     const uint16_t lineColor = halveRgb565(hitColor);
-    const uint16_t playHaloColor = halveRgb565(hitColor);
+    const uint16_t playHaloBase = dimColor(baseColor, dim * (active ? 0.75f : 0.60f));
+    const uint16_t playHaloColor = active ? playHaloBase : boostLumaRgb565(playHaloBase, 0.20f);
 
     const int len = clampLen(snapshot.patternLens[track]);
     const int playStep = snapshot.currentStep % len;
@@ -210,37 +224,32 @@ void UiEuclideanRings::redraw(const UiStateSnapshot &snapshot) {
       const bool isHit = snapshot.patterns[track][step];
       _sprite.fillCircle(x, y, 2, kStepOffColor);
 
-      if (isPlayStep) {
-        _sprite.fillCircle(x, y, _compact ? 5 : 7, playHaloColor);
-      }
-
+      // Hit / no-hit layer (base marker already drawn above).
       if (isHit) {
         hitX[hitCount] = x;
         hitY[hitCount] = y;
         hitCount++;
         if (muted) {
-          _sprite.drawCircle(x, y, 4, hitColor);
+          _sprite.drawCircle(x, y, 4, mutedHitColor);
         } else {
           _sprite.fillCircle(x, y, 4, hitColor);
         }
-      } else if (isPlayStep) {
-        if (muted) {
-          _sprite.drawCircle(x, y, 4, hitColor);
-        } else {
-          _sprite.fillCircle(x, y, 4, hitColor);
-        }
+      } else {
+        _sprite.drawCircle(x, y, 3, noHitColor);
       }
 
-    if (hitCount >= 2) {
-      for (int i = 0; i < hitCount; ++i) {
-        const int n = (i + 1) % hitCount;
-        _sprite.drawLine(hitX[i], hitY[i], hitX[n], hitY[n], lineColor);
-      }
-    }
+      // Playhead overlay (always last for this step).
       if (isPlayStep) {
-        _sprite.fillCircle(x, y, 8, bgColor);
-        _sprite.fillCircle(x, y, 7, playHaloColor);
-        _sprite.fillCircle(x, y, 4, hitColor);
+        const int haloRadius = _compact ? 5 : 7;
+        _sprite.fillCircle(x, y, haloRadius, playHaloColor);
+        if (muted) {
+          _sprite.drawCircle(x, y, 4, mutedHitColor);
+          _sprite.drawCircle(x, y, 2, mutedHitColor);
+        } else if (isHit) {
+          _sprite.fillCircle(x, y, 4, hitColor);
+        } else {
+          _sprite.drawCircle(x, y, 4, noHitColor);
+        }
       }
     }
 
