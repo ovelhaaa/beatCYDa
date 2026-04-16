@@ -245,7 +245,7 @@ uint8_t BassGroove::generateNote() {
 }
 
 float BassGroove::midiToFreq(uint8_t note) {
-  return 440.0f * powf(2.0f, (note - 69) / 12.0f);
+  return engine.getNoteFreq(note);
 }
 
 bool BassGroove::checkProb(float p) {

@@ -115,12 +115,14 @@ public:
 
   void updateTimerFreq(hw_timer_t *timer);
 
+  float getNoteFreq(uint8_t note) const;
+
 private:
   void captureActiveToSlot(int slotId); // Helper for saving
   void initFactoryPresets();            // Factory Presets
   void setFactoryPreset(int slotId);    // Helper for hardcoded loading
   void recalculatePatternUnlocked(int id);
-  float cachedNoteFreqs[12][96];
+  float cachedNoteFreqs[128];
   void initFrequencyCache();
   uint8_t bassRootClassToMidi(int rootClass) const;
   int bassMidiToRootClass(uint8_t rootNote) const;
