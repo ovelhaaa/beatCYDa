@@ -1,0 +1,50 @@
+<svg width="320" height="240" viewBox="0 0 320 240" xmlns="http://www.w3.org/2000/svg">
+<style>
+    .bg { fill: #000000; }
+    .surface { fill: #181818; }
+    .surface-pressed { fill: #101c10; }
+    .outline { stroke: #393c39; fill: none; stroke-width: 1; }
+    .outline-thick { stroke: #393c39; fill: none; stroke-width: 2; }
+    .text-primary { fill: #ffffff; font-family: monospace; font-size: 14px; font-weight: bold; }
+    .text-secondary { fill: #bdbebd; font-family: monospace; font-size: 12px; }
+    .text-caption { fill: #ffffff; font-family: monospace; font-size: 10px; }
+    .accent { fill: #29aeff; }
+    .danger { fill: #ff0000; }
+    .transport { fill: #00ff00; }
+</style>
+<rect width="100%" height="100%" class="bg"/>
+<rect x="16" y="6" width="160" height="20" rx="4" class="danger outline" />
+<text x="96.0" y="21.0" class="text-primary" text-anchor="middle" >STOPPED</text>
+<text x="188" y="20" class="text-primary" text-anchor="start" >BPM: 120</text>
+<rect x="8" y="40" width="36" height="28" rx="4" class="surface outline" />
+<text x="26.0" y="59.0" class="text-primary" text-anchor="middle" ><</text>
+<rect x="48" y="40" width="88" height="28" rx="4" class="surface outline" style="fill: #3d1916; stroke: #cd554a; "/>
+<text x="92.0" y="59.0" class="text-primary" text-anchor="middle" >KICK 1/5</text>
+<rect x="140" y="40" width="36" height="28" rx="4" class="surface outline" />
+<text x="158.0" y="59.0" class="text-primary" text-anchor="middle" >></text>
+<rect x="184" y="40" width="128" height="28" rx="4" class="surface outline" />
+<text x="248.0" y="59.0" class="text-primary" text-anchor="middle" >TOOLS</text>
+<rect x="8" y="74" width="168" height="28" rx="4" class="surface outline" />
+<rect x="10" y="76" width="41" height="24" rx="2" class="" style="fill: #cd554a; "/>
+<text x="16" y="92.0" class="text-primary" text-anchor="start" >STEPS</text>
+<text x="168" y="92.0" class="text-primary" text-anchor="end" >16</text>
+<rect x="8" y="106" width="168" height="28" rx="4" class="surface outline" />
+<rect x="10" y="108" width="41" height="24" rx="2" class="" style="fill: #cd554a; "/>
+<text x="16" y="124.0" class="text-primary" text-anchor="start" >HITS</text>
+<text x="168" y="124.0" class="text-primary" text-anchor="end" >4</text>
+<rect x="8" y="138" width="168" height="28" rx="4" class="surface outline" />
+<text x="16" y="156.0" class="text-primary" text-anchor="start" >ROTATE</text>
+<text x="168" y="156.0" class="text-primary" text-anchor="end" >0</text>
+<rect x="184" y="74" width="124" height="124" rx="8" class="surface outline" />
+<image href="euclid_jam_active.svg" x="184" y="74" width="124" height="124" preserveAspectRatio="xMidYMid slice"/>
+<rect x="5.0" y="204" width="62" height="32" rx="4" class="surface outline" />
+<text x="36.0" y="225.0" class="text-primary" text-anchor="middle" >PERF</text>
+<rect x="67.0" y="204" width="62" height="32" rx="4" class="accent outline" />
+<text x="98.0" y="225.0" class="text-primary" text-anchor="middle" >PATT</text>
+<rect x="129.0" y="204" width="62" height="32" rx="4" class="surface outline" />
+<text x="160.0" y="225.0" class="text-primary" text-anchor="middle" >SOUND</text>
+<rect x="191.0" y="204" width="62" height="32" rx="4" class="surface outline" />
+<text x="222.0" y="225.0" class="text-primary" text-anchor="middle" >MIX</text>
+<rect x="253.0" y="204" width="62" height="32" rx="4" class="surface outline" />
+<text x="284.0" y="225.0" class="text-primary" text-anchor="middle" >PROJ</text>
+</svg>

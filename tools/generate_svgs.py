@@ -49,9 +49,8 @@ def boost_luma(hex_col, amt):
 def bjorklund(steps, pulses):
     steps = int(steps)
     pulses = int(pulses)
-    if pulses == 0:
-        return [0] * steps
     if pulses > steps:
+        pulses = steps
     pattern = []
     counts = []
     remainders = []
