@@ -41,6 +41,9 @@ private:
   bool _lastIsPlaying{false};
   float _bassEnvValue{0.0f};
   uint32_t _lastEnvMicros{0};
+  mutable uint8_t _lastHitTrack{0xFF};
+  mutable float _lastHitDist{0.0f};
+  mutable uint32_t _lastHitMicros{0};
 
   mutable uint16_t _trackOuterRadius[TRACK_COUNT]{};
   mutable uint16_t _trackInnerRadius[TRACK_COUNT]{};

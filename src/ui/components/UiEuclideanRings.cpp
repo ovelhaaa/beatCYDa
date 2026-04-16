@@ -14,6 +14,9 @@ constexpr int kBassTrackIndex = VOICE_BASS;
 constexpr int kBassMaxRadius = 18;
 constexpr float kBassEnvDecayPerSec = 7.5f;
 constexpr int kBassTouchRadiusPadding = 4;
+constexpr uint32_t kTrackHitHysteresisWindowMicros = 90000; // 90 ms
+constexpr float kTrackHitEntryMarginPx = 2.0f;
+constexpr float kTrackHitExitMarginPx = 4.0f;
 constexpr uint16_t kNorthMarkerColor = 0xAD55;
 
 float stepAngleRad(int step, int patternLen) {
@@ -318,20 +321,84 @@ bool UiEuclideanRings::hitTestTrack(int16_t x, int16_t y, uint8_t &outTrack) con
   const int32_t dx = lx - cx;
   const int32_t dy = ly - cy;
   const float dist = sqrtf(static_cast<float>(dx * dx + dy * dy));
+  const uint32_t nowMicros = micros();
+  const bool hasLastHit = (_lastHitTrack != 0xFF);
+  const bool inHysteresisWindow =
+      hasLastHit && (static_cast<uint32_t>(nowMicros - _lastHitMicros) <= kTrackHitHysteresisWindowMicros);
+
+  auto rememberHit = [&](uint8_t track) {
+    _lastHitTrack = track;
+    _lastHitDist = dist;
+    _lastHitMicros = nowMicros;
+    outTrack = track;
+    return true;
+  };
 
   const int bassTouchRadius = kBassMaxRadius + (_compact ? (kBassTouchRadiusPadding + 1) : kBassTouchRadiusPadding);
-  if (dist <= static_cast<float>(bassTouchRadius)) {
-    outTrack = static_cast<uint8_t>(kBassTrackIndex);
-    return true;
+  const float bassEntryRadius = static_cast<float>(bassTouchRadius) + kTrackHitEntryMarginPx;
+  const float bassExitRadius = bassEntryRadius + kTrackHitExitMarginPx;
+  if (dist <= bassEntryRadius) {
+    return rememberHit(static_cast<uint8_t>(kBassTrackIndex));
   }
 
+  if (inHysteresisWindow && _lastHitTrack == static_cast<uint8_t>(kBassTrackIndex) && dist <= bassExitRadius) {
+    return rememberHit(static_cast<uint8_t>(kBassTrackIndex));
+  }
+
+  int strictTrackHit = -1;
   for (int i = 0; i < TRACK_COUNT; ++i) {
     if (i == kBassTrackIndex) {
       continue;
     }
-    if (dist >= _trackInnerRadius[i] && dist <= _trackOuterRadius[i]) {
-      outTrack = static_cast<uint8_t>(i);
-      return true;
+    if (dist >= static_cast<float>(_trackInnerRadius[i]) && dist <= static_cast<float>(_trackOuterRadius[i])) {
+      strictTrackHit = i;
+      break;
+    }
+  }
+
+  if (strictTrackHit >= 0) {
+    return rememberHit(static_cast<uint8_t>(strictTrackHit));
+  }
+
+  auto inRingExitZone = [&](uint8_t track) {
+    const float inner = static_cast<float>(_trackInnerRadius[track]) - kTrackHitExitMarginPx;
+    const float outer = static_cast<float>(_trackOuterRadius[track]) + kTrackHitExitMarginPx;
+    return dist >= inner && dist <= outer;
+  };
+
+  int expandedTrackHit = -1;
+  for (int i = 0; i < TRACK_COUNT; ++i) {
+    if (i == kBassTrackIndex) {
+      continue;
+    }
+    const float inner = static_cast<float>(_trackInnerRadius[i]) - kTrackHitEntryMarginPx;
+    const float outer = static_cast<float>(_trackOuterRadius[i]) + kTrackHitEntryMarginPx;
+    if (dist >= inner && dist <= outer) {
+      expandedTrackHit = i;
+      break;
+    }
+  }
+
+  if (expandedTrackHit >= 0) {
+    if (inHysteresisWindow && _lastHitTrack != 0xFF && _lastHitTrack != static_cast<uint8_t>(expandedTrackHit)) {
+      if (_lastHitTrack == static_cast<uint8_t>(kBassTrackIndex)) {
+        if (dist <= bassExitRadius) {
+          return rememberHit(static_cast<uint8_t>(kBassTrackIndex));
+        }
+      } else if (inRingExitZone(_lastHitTrack)) {
+        return rememberHit(_lastHitTrack);
+      }
+    }
+    return rememberHit(static_cast<uint8_t>(expandedTrackHit));
+  }
+
+  if (inHysteresisWindow && _lastHitTrack != 0xFF) {
+    if (_lastHitTrack == static_cast<uint8_t>(kBassTrackIndex)) {
+      if (dist <= bassExitRadius) {
+        return rememberHit(static_cast<uint8_t>(kBassTrackIndex));
+      }
+    } else if (inRingExitZone(_lastHitTrack)) {
+      return rememberHit(_lastHitTrack);
     }
   }
 
