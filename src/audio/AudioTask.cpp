@@ -133,7 +133,7 @@ void audioTask(void *parameter) {
             const VoiceID voice = static_cast<VoiceID>(cmd.voiceId);
             if (voice == VOICE_BASS) {
               const int midiNote = constrain(static_cast<int>(lroundf(cmd.value)), 0, 127);
-              const float freq = 440.0f * powf(2.0f, (midiNote - 69) / 12.0f);
+              const float freq = engine.getNoteFreq(static_cast<uint8_t>(midiNote));
               const float gateMs =
                   120.0f + (voiceManager.getParams(VOICE_BASS).decay * 480.0f);
               voiceManager.triggerFreq(VOICE_BASS, freq, cmd.auxValue);

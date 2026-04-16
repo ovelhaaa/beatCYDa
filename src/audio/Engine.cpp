@@ -289,12 +289,15 @@ bool Engine::lockPattern() {
 
 void Engine::unlockPattern() { xSemaphoreGiveRecursive(patternMutex); }
 
+float Engine::getNoteFreq(uint8_t note) const {
+  if (note >= 128)
+    return 0.0f;
+  return cachedNoteFreqs[note];
+}
+
 void Engine::initFrequencyCache() {
-  for (int root = 0; root < 12; root++) {
-    float baseFreq = NOTE_FREQS[root];
-    for (int semitone = 0; semitone < 96; semitone++) {
-      cachedNoteFreqs[root][semitone] = baseFreq * powf(2.0f, semitone / 12.0f);
-    }
+  for (int i = 0; i < 128; i++) {
+    cachedNoteFreqs[i] = 440.0f * powf(2.0f, (i - 69) / 12.0f);
   }
 }
 
