@@ -3,8 +3,24 @@
 Variante paralela do Penosa DM voltada ao hardware `ESP32 Cheap Yellow Display`
 2.8" resistivo, mantendo o projeto original intacto.
 
-![Mockup da interface](docs/cyd-ui-mockup.svg)
 
+
+## Telas da Interface
+
+### Mockups Fiéis à Implementação
+
+Estes mockups foram gerados reproduzindo exatamente o algoritmo de renderização do firmware e as paletas de cores `UiColors`.
+
+![Screen Perform](docs/mockups/screen_perform.svg)
+
+**Anéis Euclidianos em detalhes (Visualizador de Ritmo):**
+
+*Em modo JAM (tamanho normal, anéis não cortados)*
+![Euclid Jam Active](docs/mockups/euclid_jam_active.svg)
+![Euclid Jam Muted](docs/mockups/euclid_jam_muted.svg)
+
+*Em modo PERFORM (compacto)*
+![Euclid Perform Compact](docs/mockups/euclid_perform_compact.svg)
 ## Objetivo
 
 Esta versao prioriza:

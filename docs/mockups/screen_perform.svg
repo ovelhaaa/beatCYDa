@@ -1,0 +1,44 @@
+<svg width="320" height="240" viewBox="0 0 320 240" xmlns="http://www.w3.org/2000/svg">
+<style>
+    .bg { fill: #000000; }
+    .surface { fill: #181818; }
+    .surface-pressed { fill: #101c10; }
+    .outline { stroke: #393c39; fill: none; }
+    .text-primary { fill: #ffffff; font-family: monospace; font-size: 14px; font-weight: bold; }
+    .text-secondary { fill: #bdbebd; font-family: monospace; font-size: 12px; }
+    .accent { fill: #29aeff; }
+    .danger { fill: #ff0000; }
+    .transport { fill: #00ff00; }
+</style>
+<rect width="100%" height="100%" class="bg"/>
+<rect x="16" y="12" width="160" height="20" rx="4" class="transport outline"/>
+<text x="96.0" y="27.0" class="text-primary text-on-accent" text-anchor="middle">PLAYING</text>
+<text x="188" y="27" class="text-primary" text-anchor="start">BPM: 120</text>
+<rect x="8" y="40" width="186" height="154" rx="8" class="surface outline"/>
+<image href="euclid_perform_compact.svg" x="14" y="46" width="174" height="142" />
+<rect x="202" y="42" width="110" height="30" rx="4" class="danger outline"/>
+<text x="257.0" y="62.0" class="text-primary text-on-accent" text-anchor="middle">STOP</text>
+<rect x="202" y="76" width="110" height="30" rx="4" class="surface outline"/>
+<text x="257.0" y="96.0" class="text-primary" text-anchor="middle">MUTE</text>
+<rect x="202" y="110" width="30" height="30" rx="4" class="surface outline"/>
+<text x="217.0" y="130.0" class="text-primary" text-anchor="middle">-</text>
+<rect x="234" y="110" width="46" height="30" rx="4" class="surface-pressed outline"/>
+<text x="257" y="130" class="text-primary" text-anchor="middle">120</text>
+<rect x="282" y="110" width="30" height="30" rx="4" class="surface outline"/>
+<text x="297.0" y="130.0" class="text-primary" text-anchor="middle">+</text>
+<rect x="202" y="146" width="30" height="30" rx="4" class="surface outline"/>
+<text x="217.0" y="166.0" class="text-primary" text-anchor="middle"><</text>
+<text x="257" y="166" class="text-primary" text-anchor="middle">HATC</text>
+<rect x="282" y="146" width="30" height="30" rx="4" class="surface outline"/>
+<text x="297.0" y="166.0" class="text-primary" text-anchor="middle">></text>
+<rect x="5.0" y="204" width="62" height="32" rx="4" class="accent outline"/>
+<text x="36.0" y="225.0" class="text-primary text-on-accent" text-anchor="middle">PERF</text>
+<rect x="67.0" y="204" width="62" height="32" rx="4" class="surface outline"/>
+<text x="98.0" y="225.0" class="text-primary" text-anchor="middle">PATT</text>
+<rect x="129.0" y="204" width="62" height="32" rx="4" class="surface outline"/>
+<text x="160.0" y="225.0" class="text-primary" text-anchor="middle">SOUND</text>
+<rect x="191.0" y="204" width="62" height="32" rx="4" class="surface outline"/>
+<text x="222.0" y="225.0" class="text-primary" text-anchor="middle">MIX</text>
+<rect x="253.0" y="204" width="62" height="32" rx="4" class="surface outline"/>
+<text x="284.0" y="225.0" class="text-primary" text-anchor="middle">PROJ</text>
+</svg>
