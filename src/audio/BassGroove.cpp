@@ -103,8 +103,8 @@ void BassGroove::updateParams(const BassGrooveParams &newParams) {
   // Clamp values if necessary
   if (params.density < 0.0f)
     params.density = 0.0f;
-  if (params.density > 0.8f) // Cap max density to prevent chaos
-    params.density = 0.8f;
+  if (params.density > 1.0f)
+    params.density = 1.0f;
   if (params.phraseVariation < 0.0f)
     params.phraseVariation = 0.0f;
   if (params.phraseVariation > 1.0f)
@@ -216,6 +216,7 @@ void BassGroove::onTick(int currentStep) {
       }
       break;
     }
+
   }
 
   // Clamp
