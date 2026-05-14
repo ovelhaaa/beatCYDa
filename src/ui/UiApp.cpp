@@ -448,8 +448,19 @@ void UiApp::processStorageFeedback(uint32_t nowMs) {
 }
 
 void UiApp::setTransientStatus(const char *message, uint32_t timeoutMs) {
-  snprintf(_transientStatus, sizeof(_transientStatus), "%s", message);
-  _transientStatusUntilMs = millis() + timeoutMs;
+  if (message == nullptr) {
+    _transientStatus[0] = '\0';
+    _transientStatusUntilMs = 0;
+  } else {
+    const int written = snprintf(_transientStatus, sizeof(_transientStatus), "%s", message);
+    if (written >= (int)sizeof(_transientStatus)) {
+      // Truncation occurred, add ellipsis if there's room
+      _transientStatus[sizeof(_transientStatus) - 2] = '.';
+      _transientStatus[sizeof(_transientStatus) - 3] = '.';
+      _transientStatus[sizeof(_transientStatus) - 4] = '.';
+    }
+    _transientStatusUntilMs = millis() + timeoutMs;
+  }
   _invalidation.topBarDirty = true;
   _topBarTransportDirty = true;
 }
