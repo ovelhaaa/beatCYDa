@@ -340,13 +340,9 @@ void Engine::recalculatePatternUnlocked(int id) {
 
   // 2. ROTAÇÃO AUTOMÁTICA (Garantir Downbeat)
   if (autoRotateDownbeat.load() && patLen > 0 && hits > 0 && hits < steps) {
-    int rotations = 0;
-    while (pat[0] == 0 && rotations < steps) {
-      // Manual rotate left by 1
-      uint8_t first = pat[0];
-      memmove(pat, pat + 1, patLen - 1);
-      pat[patLen - 1] = first;
-      rotations++;
+    auto it = std::find_if(pat, pat + patLen, [](uint8_t v) { return v != 0; });
+    if (it != pat + patLen) {
+      std::rotate(pat, it, pat + patLen);
     }
   }
 
@@ -358,13 +354,7 @@ void Engine::recalculatePatternUnlocked(int id) {
       rot += patLen;
 
     if (rot > 0) {
-      // Rotate right by 'rot' positions
-      // Use temp buffer for simplicity
-      uint8_t temp[64];
-      memcpy(temp, pat, patLen);
-      for (int i = 0; i < patLen; i++) {
-        pat[(i + rot) % patLen] = temp[i];
-      }
+      std::rotate(pat, pat + patLen - rot, pat + patLen);
     }
   }
 
@@ -422,17 +412,9 @@ void Engine::randomize() {
       if (tracks[i].hits > tracks[i].steps)
         tracks[i].hits = tracks[i].steps;
 
-      // Random rotation using fixed array
-      int patLen = tracks[i].patternLen;
-      if (patLen > 0) {
-        int r = esp_random() % patLen;
-        if (r > 0) {
-          uint8_t temp[64];
-          memcpy(temp, tracks[i].pattern, patLen);
-          for (int j = 0; j < patLen; j++) {
-            tracks[i].pattern[(j + r) % patLen] = temp[j];
-          }
-        }
+      // Randomize rotation offset
+      if (tracks[i].steps > 0) {
+        tracks[i].rotationOffset = esp_random() % tracks[i].steps;
       }
     }
     for (int i = 0; i < TRACK_COUNT; i++)
