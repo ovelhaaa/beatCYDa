@@ -26,17 +26,16 @@ bool PatternStorage::begin() {
   return true;
 }
 
-String PatternStorage::slotPath(uint8_t slot) const {
-  char path[32];
-  snprintf(path, sizeof(path), "%s/pattern_%02u.json", CYDConfig::PatternsDir,
+void PatternStorage::slotPath(uint8_t slot, char *buffer, size_t len) const {
+  snprintf(buffer, len, "%s/pattern_%02u.json", CYDConfig::PatternsDir,
            static_cast<unsigned>(slot));
-  return String(path);
 }
 
 bool PatternStorage::saveSlot(uint8_t slot) {
   if (!ready) return false;
-  
-  String path = slotPath(slot);
+
+  char path[32];
+  slotPath(slot, path, sizeof(path));
   File file = SD.open(path, FILE_WRITE);
   if (!file) return false;
   
@@ -47,10 +46,11 @@ bool PatternStorage::saveSlot(uint8_t slot) {
 
 bool PatternStorage::loadSlot(uint8_t slot) {
   if (!ready) return false;
-  
-  String path = slotPath(slot);
+
+  char path[32];
+  slotPath(slot, path, sizeof(path));
   if (!SD.exists(path)) return false;
-  
+
   File file = SD.open(path, FILE_READ);
   if (!file) return false;
   

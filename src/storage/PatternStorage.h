@@ -11,7 +11,7 @@ public:
 
   bool saveSlot(uint8_t slot);
   bool loadSlot(uint8_t slot);
-  String slotPath(uint8_t slot) const;
+  void slotPath(uint8_t slot, char *buffer, size_t len) const;
   bool isReady() const { return ready; }
 
   WavSampleBank &sampleBank() { return wavBank; }
