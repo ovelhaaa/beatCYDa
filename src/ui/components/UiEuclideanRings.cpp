@@ -213,6 +213,16 @@ void UiEuclideanRings::redraw(const UiStateSnapshot &snapshot) {
     const int playStep = snapshot.currentStep % len;
     const float radius = ringRadiusForTrack(static_cast<uint8_t>(track));
 
+    if (len != _cachedPatternLens[track] || radius != _cachedRadii[track] || cx != _cachedCx || cy != _cachedCy) {
+      for (int step = 0; step < len; ++step) {
+        const float a = stepAngleRad(step, len);
+        _stepCoords[track][step].x = static_cast<int16_t>(cx + static_cast<int>(cosf(a) * radius));
+        _stepCoords[track][step].y = static_cast<int16_t>(cy + static_cast<int>(sinf(a) * radius));
+      }
+      _cachedPatternLens[track] = len;
+      _cachedRadii[track] = radius;
+    }
+
     _sprite.drawCircle(cx, cy, static_cast<int>(radius), ringColor);
 
     int hitCount = 0;
@@ -220,9 +230,8 @@ void UiEuclideanRings::redraw(const UiStateSnapshot &snapshot) {
     int hitY[64]{};
 
     for (int step = 0; step < len; ++step) {
-      const float a = stepAngleRad(step, len);
-      const int x = cx + static_cast<int>(cosf(a) * radius);
-      const int y = cy + static_cast<int>(sinf(a) * radius);
+      const int x = _stepCoords[track][step].x;
+      const int y = _stepCoords[track][step].y;
       const bool isPlayStep = (step == playStep);
       const bool isHit = snapshot.patterns[track][step];
       _sprite.fillCircle(x, y, 2, kStepOffColor);
@@ -263,6 +272,9 @@ void UiEuclideanRings::redraw(const UiStateSnapshot &snapshot) {
       }
     }
   }
+
+  _cachedCx = static_cast<int16_t>(cx);
+  _cachedCy = static_cast<int16_t>(cy);
 
   _sprite.fillCircle(cx, cy, kBassMaxRadius + 1, bgColor);
   int bassRadius = static_cast<int>((kBassMaxRadius * _bassEnvValue) + 0.5f);

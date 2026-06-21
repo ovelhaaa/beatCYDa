@@ -29,6 +29,10 @@ private:
   void redraw(const UiStateSnapshot &snapshot);
   float ringRadiusForTrack(uint8_t track) const;
 
+  struct StepCoord {
+    int16_t x, y;
+  };
+
   UiRect _rect{};
   bool _compact{false};
   bool _interactive{false};
@@ -47,6 +51,12 @@ private:
 
   mutable uint16_t _trackOuterRadius[TRACK_COUNT]{};
   mutable uint16_t _trackInnerRadius[TRACK_COUNT]{};
+
+  StepCoord _stepCoords[TRACK_COUNT][64]{};
+  int _cachedPatternLens[TRACK_COUNT]{};
+  float _cachedRadii[TRACK_COUNT]{};
+  int16_t _cachedCx{-1};
+  int16_t _cachedCy{-1};
 
   lgfx::LGFX_Sprite _sprite{};
 };
