@@ -2,6 +2,7 @@
 
 #include "../core/UiActions.h"
 #include "../core/UiLayout.h"
+#include "../core/UiUtils.h"
 #include "../core/BassUiFormat.h"
 #include "../theme/UiTheme.h"
 #include "../../CYD_Config.h"
@@ -16,7 +17,7 @@ void setRect(UiRect &rect, int16_t x, int16_t y, int16_t w, int16_t h) {
 }
 
 void formatPercent(char *buffer, size_t size, int value) {
-  snprintf(buffer, size, "%d%%", value);
+  ui::utils::safe_snprintf(buffer, size, "%d%%", value);
 }
 
 bool hasMuteChanges(const UiStateSnapshot &lhs, const UiStateSnapshot &rhs) {
@@ -85,7 +86,7 @@ void drawBassPatternPreview(lgfx::LGFX_Device &canvas, const UiStateSnapshot &sn
   canvas.setTextDatum(textdatum_t::middle_center);
 
   char density[16];
-  snprintf(density, sizeof(density), "%d/%d", snapshot.trackHits[snapshot.activeTrack], snapshot.trackSteps[snapshot.activeTrack]);
+  ui::utils::safe_snprintf(density, sizeof(density), "%d/%d", snapshot.trackHits[snapshot.activeTrack], snapshot.trackSteps[snapshot.activeTrack]);
   canvas.drawString(density, cx, cardY + cardH - 12);
   canvas.setTextDatum(textdatum_t::top_left);
 }
@@ -306,7 +307,7 @@ void PatternScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &sna
     char valueBuffer[16];
     if (isBassTrackActive && i == 0) {
       _rows[i].label = "MOTIF";
-      snprintf(valueBuffer, sizeof(valueBuffer), "%u", snapshot.bassParams.motifIndex);
+      ui::utils::safe_snprintf(valueBuffer, sizeof(valueBuffer), "%u", snapshot.bassParams.motifIndex);
     } else if (isBassTrackActive && i == 1) {
       _rows[i].label = "SWING";
       formatPercent(valueBuffer, sizeof(valueBuffer), static_cast<int>(snapshot.bassParams.swing * 100.0f));
@@ -318,13 +319,13 @@ void PatternScreen::render(lgfx::LGFX_Device &canvas, const UiStateSnapshot &sna
       formatPercent(valueBuffer, sizeof(valueBuffer), static_cast<int>(snapshot.bassParams.accentProb * 100.0f));
     } else if (i == 0) {
       _rows[i].label = "STEPS";
-      snprintf(valueBuffer, sizeof(valueBuffer), "%d", snapshot.trackSteps[snapshot.activeTrack]);
+      ui::utils::safe_snprintf(valueBuffer, sizeof(valueBuffer), "%d", snapshot.trackSteps[snapshot.activeTrack]);
     } else if (i == 1) {
       _rows[i].label = "HITS";
-      snprintf(valueBuffer, sizeof(valueBuffer), "%d", snapshot.trackHits[snapshot.activeTrack]);
+      ui::utils::safe_snprintf(valueBuffer, sizeof(valueBuffer), "%d", snapshot.trackHits[snapshot.activeTrack]);
     } else if (i == 2) {
       _rows[i].label = "ROTATE";
-      snprintf(valueBuffer, sizeof(valueBuffer), "%d", snapshot.trackRotations[snapshot.activeTrack]);
+      ui::utils::safe_snprintf(valueBuffer, sizeof(valueBuffer), "%d", snapshot.trackRotations[snapshot.activeTrack]);
     } else {
       _rows[i].label = "GAIN";
       formatPercent(valueBuffer, sizeof(valueBuffer), static_cast<int>(snapshot.voiceGain[snapshot.activeTrack] * 100.0f));

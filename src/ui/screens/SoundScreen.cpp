@@ -2,6 +2,7 @@
 
 #include "../core/BassUiFormat.h"
 #include "../core/UiActions.h"
+#include "../core/UiUtils.h"
 #include "../theme/UiTheme.h"
 
 namespace ui {
@@ -14,7 +15,7 @@ void setRect(UiRect &rect, int16_t x, int16_t y, int16_t w, int16_t h) {
 }
 
 void formatPercent(char *buffer, size_t size, float value) {
-  snprintf(buffer, size, "%d%%", static_cast<int>(value * 100.0f));
+  ui::utils::safe_snprintf(buffer, size, "%d%%", static_cast<int>(value * 100.0f));
 }
 
 bool hasMuteChanges(const UiStateSnapshot &lhs, const UiStateSnapshot &rhs) {
@@ -59,7 +60,7 @@ const char *soundHeaderLabel(const UiStateSnapshot &snapshot, uint8_t bassPage) 
 }
 
 void formatRootNote(char *buffer, size_t size, uint8_t note) {
-  snprintf(buffer, size, "%s%d", bassfmt::noteName(note), bassfmt::noteOctave(note));
+  ui::utils::safe_snprintf(buffer, size, "%s%d", bassfmt::noteName(note), bassfmt::noteOctave(note));
 }
 
 float regularSoundRowValue(const UiStateSnapshot &snapshot, int rowIndex) {
@@ -124,10 +125,10 @@ void bassRowValueText(char *buffer, size_t size, const UiStateSnapshot &snapshot
       formatRootNote(buffer, size, bp.rootNote);
       return;
     case 1:
-      snprintf(buffer, size, "%s", bassfmt::scaleShortName(bp.scaleType));
+      ui::utils::safe_snprintf(buffer, size, "%s", bassfmt::scaleShortName(bp.scaleType));
       return;
     case 2:
-      snprintf(buffer, size, "%s", bassfmt::modeShortName(bp.mode));
+      ui::utils::safe_snprintf(buffer, size, "%s", bassfmt::modeShortName(bp.mode));
       return;
     default:
       formatPercent(buffer, size, bp.density);
@@ -138,10 +139,10 @@ void bassRowValueText(char *buffer, size_t size, const UiStateSnapshot &snapshot
   if (page == 1) {
     switch (rowIndex) {
     case 0:
-      snprintf(buffer, size, "%d", bp.range);
+      ui::utils::safe_snprintf(buffer, size, "%d", bp.range);
       return;
     case 1:
-      snprintf(buffer, size, "M%u", static_cast<unsigned>(bp.motifIndex & 0x03));
+      ui::utils::safe_snprintf(buffer, size, "M%u", static_cast<unsigned>(bp.motifIndex & 0x03));
       return;
     case 2:
       formatPercent(buffer, size, bp.swing);

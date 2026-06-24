@@ -1,6 +1,7 @@
 #include "UiEuclideanRings.h"
 
 #include "../core/UiLayout.h"
+#include "../core/UiUtils.h"
 #include "../theme/UiTheme.h"
 
 #include <Arduino.h>
@@ -286,7 +287,7 @@ void UiEuclideanRings::redraw(const UiStateSnapshot &snapshot) {
     }
 
     char density[16];
-    snprintf(density, sizeof(density), "%d/%d", snapshot.trackHits[snapshot.activeTrack], snapshot.trackSteps[snapshot.activeTrack]);
+    ui::utils::safe_snprintf(density, sizeof(density), "%d/%d", snapshot.trackHits[snapshot.activeTrack], snapshot.trackSteps[snapshot.activeTrack]);
     _sprite.drawString(density, cx, cy + 8);
     _sprite.setTextDatum(textdatum_t::top_left);
   }

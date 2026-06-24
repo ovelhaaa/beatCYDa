@@ -2,6 +2,7 @@
 
 #include "../../CYD_Config.h"
 #include "../core/UiActions.h"
+#include "../core/UiUtils.h"
 #include "../theme/UiTheme.h"
 
 namespace ui {
@@ -106,7 +107,7 @@ void ProjectScreen::layout() {
 
 void ProjectScreen::updateLabels() {
   for (uint8_t i = 0; i < 8; ++i) {
-    snprintf(_slotLabels[i], sizeof(_slotLabels[i]), "SLOT %d", i + 1);
+    ui::utils::safe_snprintf(_slotLabels[i], sizeof(_slotLabels[i]), "SLOT %d", i + 1);
     _slotButtons[i].label = _slotLabels[i];
     _slotButtons[i].pressed = (i == _selectedSlot);
   }

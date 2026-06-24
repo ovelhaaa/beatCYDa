@@ -3,6 +3,7 @@
 #include "../CYD_Config.h"
 #include "../control/ControlManager.h"
 #include "core/UiActions.h"
+#include "core/UiUtils.h"
 #include "core/BassUiFormat.h"
 #include "theme/UiTheme.h"
 #include <Arduino.h>
@@ -448,7 +449,7 @@ void UiApp::processStorageFeedback(uint32_t nowMs) {
 }
 
 void UiApp::setTransientStatus(const char *message, uint32_t timeoutMs) {
-  snprintf(_transientStatus, sizeof(_transientStatus), "%s", message);
+  ui::utils::safe_snprintf(_transientStatus, sizeof(_transientStatus), "%s", message);
   _transientStatusUntilMs = millis() + timeoutMs;
   _invalidation.topBarDirty = true;
   _topBarTransportDirty = true;
